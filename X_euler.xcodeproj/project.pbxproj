@@ -7,24 +7,37 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		070E2D4820567E1C00DCF21C /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 070E2D4720567E1C00DCF21C /* main.c */; };
+		070E2D5B205689D600DCF21C /* libgmp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 070E2D5A205689D600DCF21C /* libgmp.a */; };
+		07B6656C20568F7B00C85F9B /* X_euler in CopyFiles */ = {isa = PBXBuildFile; fileRef = 070E2D4420567E1C00DCF21C /* X_euler */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		07B665912056A08F00C85F9B /* euler.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658D2056A08F00C85F9B /* euler.c */; };
+		07B665922056A08F00C85F9B /* p042_words.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658E2056A08F00C85F9B /* p042_words.c */; };
+		07B665932056A08F00C85F9B /* p067_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658F2056A08F00C85F9B /* p067_data.c */; };
+		07B665942056A08F00C85F9B /* p081_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B665902056A08F00C85F9B /* p081_data.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		070E2D4220567E1C00DCF21C /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
+			buildActionMask = 12;
+			dstPath = "~/WORK/bin";
 			dstSubfolderSpec = 0;
 			files = (
+				07B6656C20568F7B00C85F9B /* X_euler in CopyFiles */,
 			);
-			runOnlyForDeploymentPostprocessing = 1;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		070E2D4420567E1C00DCF21C /* X_euler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = X_euler; sourceTree = BUILT_PRODUCTS_DIR; };
-		070E2D4720567E1C00DCF21C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		070E2D5A205689D600DCF21C /* libgmp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgmp.a; path = ../../../../usr/local/lib/libgmp.a; sourceTree = "<group>"; };
+		07B6658D2056A08F00C85F9B /* euler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = euler.c; path = X_euler/euler.c; sourceTree = "<group>"; };
+		07B6658E2056A08F00C85F9B /* p042_words.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = p042_words.c; path = X_euler/p042_words.c; sourceTree = "<group>"; };
+		07B6658F2056A08F00C85F9B /* p067_data.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = p067_data.c; path = X_euler/p067_data.c; sourceTree = "<group>"; };
+		07B665902056A08F00C85F9B /* p081_data.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = p081_data.c; path = X_euler/p081_data.c; sourceTree = "<group>"; };
+		07B665952056A0AC00C85F9B /* p042_words.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p042_words.h; path = X_euler/p042_words.h; sourceTree = "<group>"; };
+		07B665962056A0AC00C85F9B /* p067_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p067_data.h; path = X_euler/p067_data.h; sourceTree = "<group>"; };
+		07B665972056A0AC00C85F9B /* p081_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p081_data.h; path = X_euler/p081_data.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				070E2D5B205689D600DCF21C /* libgmp.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,8 +55,9 @@
 		070E2D3B20567E1C00DCF21C = {
 			isa = PBXGroup;
 			children = (
-				070E2D4620567E1C00DCF21C /* X_euler */,
+				07B6657B20569DF700C85F9B /* X_euler */,
 				070E2D4520567E1C00DCF21C /* Products */,
+				070E2D59205689D600DCF21C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -54,12 +69,26 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		070E2D4620567E1C00DCF21C /* X_euler */ = {
+		070E2D59205689D600DCF21C /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				070E2D4720567E1C00DCF21C /* main.c */,
+				070E2D5A205689D600DCF21C /* libgmp.a */,
 			);
-			path = X_euler;
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		07B6657B20569DF700C85F9B /* X_euler */ = {
+			isa = PBXGroup;
+			children = (
+				07B665952056A0AC00C85F9B /* p042_words.h */,
+				07B665962056A0AC00C85F9B /* p067_data.h */,
+				07B665972056A0AC00C85F9B /* p081_data.h */,
+				07B6658D2056A08F00C85F9B /* euler.c */,
+				07B6658E2056A08F00C85F9B /* p042_words.c */,
+				07B6658F2056A08F00C85F9B /* p067_data.c */,
+				07B665902056A08F00C85F9B /* p081_data.c */,
+			);
+			name = X_euler;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +148,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				070E2D4820567E1C00DCF21C /* main.c in Sources */,
+				07B665912056A08F00C85F9B /* euler.c in Sources */,
+				07B665922056A08F00C85F9B /* p042_words.c in Sources */,
+				07B665932056A08F00C85F9B /* p067_data.c in Sources */,
+				07B665942056A08F00C85F9B /* p081_data.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,7 +161,7 @@
 		070E2D4920567E1C00DCF21C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
@@ -177,7 +209,7 @@
 		070E2D4A20567E1C00DCF21C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
@@ -201,6 +233,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -218,6 +251,8 @@
 		070E2D4C20567E1C00DCF21C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"HEADER_SEARCH_PATHS[arch=*]" = /usr/local/include;
+				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -225,6 +260,9 @@
 		070E2D4D20567E1C00DCF21C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_TESTABILITY = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = /usr/local/include;
+				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -248,6 +286,7 @@
 				070E2D4D20567E1C00DCF21C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
