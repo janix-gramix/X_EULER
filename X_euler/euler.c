@@ -1,5 +1,5 @@
 //
-//  main.c
+//  euler.c
 //  EulerProject
 //  Created by Jeannot on 26/01/2018.
 //  Copyright © 2018 Jeannot. All rights reserved.
