@@ -1,0 +1,74 @@
+//
+//  PB001_050.h
+//  X_euler
+//
+//  Created by Jeannot on 13/03/2018.
+//  Copyright © 2018 Jeannot. All rights reserved.
+//
+
+#ifndef PB001_050_h
+#define PB001_050_h
+
+#include <stdio.h>
+#include "euler_utils.h"
+
+PROTO_PB(001) ;
+PROTO_PB(002) ;
+PROTO_PB(003) ;
+PROTO_PB(004) ;
+PROTO_PB(005) ;
+PROTO_PB(006) ;
+PROTO_PB(007) ;
+PROTO_PB(008) ;
+PROTO_PB(009) ;
+
+PROTO_PB(010) ;
+PROTO_PB(011) ;
+PROTO_PB(012) ;
+PROTO_PB(013) ;
+PROTO_PB(014) ;
+PROTO_PB(015) ;
+PROTO_PB(016) ;
+PROTO_PB(017) ;
+PROTO_PB(018) ;
+PROTO_PB(019) ;
+
+PROTO_PB(020) ;
+PROTO_PB(021) ;
+PROTO_PB(022) ;
+PROTO_PB(023) ;
+PROTO_PB(024) ;
+PROTO_PB(025) ;
+PROTO_PB(026) ;
+PROTO_PB(027) ;
+PROTO_PB(028) ;
+PROTO_PB(029) ;
+
+PROTO_PB(030) ;
+PROTO_PB(031) ;
+PROTO_PB(032) ;
+PROTO_PB(033) ;
+PROTO_PB(034) ;
+PROTO_PB(035) ;
+PROTO_PB(036) ;
+PROTO_PB(037) ;
+PROTO_PB(037r) ;
+
+PROTO_PB(038) ;
+PROTO_PB(039) ;
+
+PROTO_PB(040) ;
+PROTO_PB(041) ;
+PROTO_PB(042) ;
+PROTO_PB(043) ;
+PROTO_PB(044) ;
+PROTO_PB(045) ;
+PROTO_PB(046) ;
+PROTO_PB(047) ;
+PROTO_PB(048) ;
+PROTO_PB(049) ;
+PROTO_PB(050) ;
+
+
+
+#endif /* PB001_050_h */

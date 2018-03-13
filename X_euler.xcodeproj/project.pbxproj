@@ -13,6 +13,12 @@
 		07B665922056A08F00C85F9B /* p042_words.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658E2056A08F00C85F9B /* p042_words.c */; };
 		07B665932056A08F00C85F9B /* p067_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658F2056A08F00C85F9B /* p067_data.c */; };
 		07B665942056A08F00C85F9B /* p081_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B665902056A08F00C85F9B /* p081_data.c */; };
+		07B7131D2057E4CB001BC2A9 /* euler_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B7131B2057E4CB001BC2A9 /* euler_utils.c */; };
+		07B7132020580219001BC2A9 /* PB001_050.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B7131E20580219001BC2A9 /* PB001_050.c */; };
+		07B713232058690D001BC2A9 /* PB_gmp.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B713212058690D001BC2A9 /* PB_gmp.c */; };
+		07B7132620586C10001BC2A9 /* gmp_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B7132420586C10001BC2A9 /* gmp_utils.c */; };
+		07B7132920586CAE001BC2A9 /* PB051_100.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B7132720586CAE001BC2A9 /* PB051_100.c */; };
+		07B7132C20587CC2001BC2A9 /* PB_other.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B7132A20587CC2001BC2A9 /* PB_other.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,6 +44,18 @@
 		07B665952056A0AC00C85F9B /* p042_words.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p042_words.h; path = X_euler/p042_words.h; sourceTree = "<group>"; };
 		07B665962056A0AC00C85F9B /* p067_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p067_data.h; path = X_euler/p067_data.h; sourceTree = "<group>"; };
 		07B665972056A0AC00C85F9B /* p081_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p081_data.h; path = X_euler/p081_data.h; sourceTree = "<group>"; };
+		07B7131B2057E4CB001BC2A9 /* euler_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = euler_utils.c; path = X_euler/euler_utils.c; sourceTree = "<group>"; };
+		07B7131C2057E4CB001BC2A9 /* euler_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = euler_utils.h; path = X_euler/euler_utils.h; sourceTree = "<group>"; };
+		07B7131E20580219001BC2A9 /* PB001_050.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB001_050.c; path = X_euler/PB001_050.c; sourceTree = "<group>"; };
+		07B7131F20580219001BC2A9 /* PB001_050.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB001_050.h; path = X_euler/PB001_050.h; sourceTree = "<group>"; };
+		07B713212058690D001BC2A9 /* PB_gmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB_gmp.c; path = X_euler/PB_gmp.c; sourceTree = "<group>"; };
+		07B713222058690D001BC2A9 /* PB_gmp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB_gmp.h; path = X_euler/PB_gmp.h; sourceTree = "<group>"; };
+		07B7132420586C10001BC2A9 /* gmp_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gmp_utils.c; path = X_euler/gmp_utils.c; sourceTree = "<group>"; };
+		07B7132520586C10001BC2A9 /* gmp_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gmp_utils.h; path = X_euler/gmp_utils.h; sourceTree = "<group>"; };
+		07B7132720586CAE001BC2A9 /* PB051_100.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB051_100.c; path = X_euler/PB051_100.c; sourceTree = "<group>"; };
+		07B7132820586CAE001BC2A9 /* PB051_100.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB051_100.h; path = X_euler/PB051_100.h; sourceTree = "<group>"; };
+		07B7132A20587CC2001BC2A9 /* PB_other.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB_other.c; path = X_euler/PB_other.c; sourceTree = "<group>"; };
+		07B7132B20587CC2001BC2A9 /* PB_other.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB_other.h; path = X_euler/PB_other.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +105,18 @@
 				07B6658E2056A08F00C85F9B /* p042_words.c */,
 				07B6658F2056A08F00C85F9B /* p067_data.c */,
 				07B665902056A08F00C85F9B /* p081_data.c */,
+				07B7131B2057E4CB001BC2A9 /* euler_utils.c */,
+				07B7131C2057E4CB001BC2A9 /* euler_utils.h */,
+				07B7131E20580219001BC2A9 /* PB001_050.c */,
+				07B7131F20580219001BC2A9 /* PB001_050.h */,
+				07B713212058690D001BC2A9 /* PB_gmp.c */,
+				07B713222058690D001BC2A9 /* PB_gmp.h */,
+				07B7132420586C10001BC2A9 /* gmp_utils.c */,
+				07B7132520586C10001BC2A9 /* gmp_utils.h */,
+				07B7132720586CAE001BC2A9 /* PB051_100.c */,
+				07B7132820586CAE001BC2A9 /* PB051_100.h */,
+				07B7132A20587CC2001BC2A9 /* PB_other.c */,
+				07B7132B20587CC2001BC2A9 /* PB_other.h */,
 			);
 			name = X_euler;
 			sourceTree = "<group>";
@@ -148,10 +178,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				07B7132620586C10001BC2A9 /* gmp_utils.c in Sources */,
 				07B665912056A08F00C85F9B /* euler.c in Sources */,
+				07B7132C20587CC2001BC2A9 /* PB_other.c in Sources */,
+				07B713232058690D001BC2A9 /* PB_gmp.c in Sources */,
 				07B665922056A08F00C85F9B /* p042_words.c in Sources */,
 				07B665932056A08F00C85F9B /* p067_data.c in Sources */,
+				07B7132020580219001BC2A9 /* PB001_050.c in Sources */,
 				07B665942056A08F00C85F9B /* p081_data.c in Sources */,
+				07B7131D2057E4CB001BC2A9 /* euler_utils.c in Sources */,
+				07B7132920586CAE001BC2A9 /* PB051_100.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
