@@ -2103,20 +2103,136 @@ int PB091(PB_RESULT *pbR) {
     return 1 ;
 }
 
-int Oper(int nop, int d0, int d1) {
+
+
+
+typedef struct Fract_095 {
+    int32_t N ;
+    int32_t D ;
+} Fract_095 ;
+Fract_095 Oper(int nop, Fract_095 d0, Fract_095 d1) {
+    Fract_095 fr ;
+    fr.D = 1 ;
     switch(nop){
-        case 0: return d0+d1 ;
-        case 1: return d0*d1 ;
-        case 2: return (d0 > d1) ? d0-d1 : d1-d0 ;
-        case 3: return  (d1 != 0 && (d0 % d1) == 0 ) ? (d0/d1 ) : (d0 != 0 &&  (d1 % d0) == 0 ? (d1/d0) : -1)   ;
+        case 0: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D+d1.N*d0.D;  break ; // +
+        case 1: fr.D=d0.D*d1.D ; fr.N=d0.N*d1.N ; break ; // *
+        case 2: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D-d1.N*d0.D; if(fr.N<0) fr.N = -fr.N ; break ; // -
+        case 3: fr.D=d0.D*d1.N ; fr.N=d0.N*d1.D ; break ; // d0/d1
+        case 4: fr.D=d1.D*d0.N ; fr.N=d1.N*d0.D ; break ; // d1/d0
     }
-    return -1 ;
+    int32_t gd = PGCD(fr.N,fr.D) ;
+    if(gd > 1) { fr.N /= gd ; fr.D /= gd ; }
+    return fr ;
 }
 
-int cmpV(const void *v1,const void *v2) {
-    return ((int *)v1)[0] -  ((int *)v2)[0] ;
+Fract_095 FractDig(u_int8_t dig) {
+    Fract_095 fr ;
+    fr.D = 1 ; fr.N = dig ;
+    return fr ;
 }
 
+#define PB095_NBD       6
+#define PB095_NBO       5
+#define PB095_EXPMAX   1000
+
+void AddVal(u_int8_t *isValFind, Fract_095 res) {
+    if(res.D != 1 || res.N == 0 || res.N > PB095_EXPMAX ) return ;
+    isValFind[res.N-1] = 1 ;
+}
+
+int PB093a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+   // 2 parenthesage possible ((a@b)@c)@d) et (a@b)@(c@d)
+    // ou @ designe un operateur commutatif (+,x) ou un operateur non commutatif a un seul sens.
+    // Pour le premeir choix a,b puis c, et 3 operations. Pour le second choix a,b et " operateurs
+    u_int8_t isValFind[PB095_EXPMAX] ;
+//   int tbValues[3000] ;
+    int maxCons =0 ;
+    char maxABCD[PB095_NBD+1] ;
+    maxABCD[PB095_NBD] = 0 ;
+    Fract_095 vals[(PB095_NBD*(PB095_NBD+1))/2] ;
+    Fract_095 * valsNiv[PB095_NBD] ;
+    int ind0Niv[PB095_NBD], ind1Niv[PB095_NBD] , operNiv[PB095_NBD] ;
+    int i ,offs , indDig ;
+    for(i=0,offs=0;i<PB095_NBD;i++) {
+        vals[i] = FractDig(i+1) ;
+        valsNiv[i] = vals+offs ;
+        offs += PB095_NBD - i ;
+        ind0Niv[i] = 0 ; ind1Niv[i]=1 ;
+        operNiv[i] = 0 ;
+    }
+    indDig = PB095_NBD - 1 ;
+    do {
+        if(indDig == PB095_NBD - 1) {
+            int curNiv = 0 ;
+            memset(isValFind,0,PB095_EXPMAX) ;
+            do {
+                int lgNiv = PB095_NBD - curNiv ;
+                if(lgNiv == 1) {
+                    AddVal(isValFind,valsNiv[curNiv][0]);
+                    curNiv-- ;
+                    continue ;
+                } else if(operNiv[curNiv]>=PB095_NBO){
+                    operNiv[curNiv] = 0 ;
+                    if(ind1Niv[curNiv] >= lgNiv-1 ) {
+                        if(ind0Niv[curNiv] >= lgNiv-2 ) {
+                            ind0Niv[curNiv] = 0 ; ind1Niv[curNiv] = 1 ;
+                            curNiv-- ;
+                            continue ;
+                        } else {
+                            ind0Niv[curNiv]++ ;
+                            ind1Niv[curNiv] = ind0Niv[curNiv] + 1 ;
+                        }
+                    } else {
+                        ind1Niv[curNiv]++ ;
+                    }
+                }
+                // on avance d'un cran
+                int i,j;
+                for(i=0;i<ind0Niv[curNiv];i++) {
+                    valsNiv[curNiv+1][i] = valsNiv[curNiv][i] ;
+                }
+                valsNiv[curNiv+1][i++] = Oper(operNiv[curNiv],valsNiv[curNiv][ind0Niv[curNiv]],valsNiv[curNiv][ind1Niv[curNiv]]) ;
+                for(j=ind0Niv[curNiv]+1;j<lgNiv;j++) {
+                    if(j != ind1Niv[curNiv] ) {
+                        valsNiv[curNiv+1][i++] = valsNiv[curNiv][j] ;
+                    }
+                }
+                operNiv[curNiv]++ ;
+                curNiv++ ;
+                
+            } while(curNiv >= 0) ;
+            {
+                int i ;
+                for(i=0;i<PB095_EXPMAX && isValFind[i] ; i++) ;
+                if(i>=maxCons){
+                    maxCons = i ;
+                    int k ;
+                    for(k=0;k<PB095_NBD;k++) maxABCD[k] = valsNiv[0][k].N + '0' ;
+                }
+            }
+        }
+        if(valsNiv[0][indDig].N < 10 - PB095_NBD + indDig ){
+            valsNiv[0][indDig].N++ ;
+            for(;indDig<PB095_NBD-1;){
+                indDig++ ;
+                valsNiv[0][indDig].N = valsNiv[0][indDig-1].N+1 ;
+            }
+        } else {
+            indDig-- ;
+        }
+    } while(indDig >=0) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(maxCons < PB095_EXPMAX) {
+        sprintf(pbR->strRes,"%s",maxABCD);
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%s)\n",pbR->pbNum,maxCons,maxABCD) ;
+        return 1 ;
+    } else {
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d ERROR MAX_PRESUMED=%d reached for (%s)\n",pbR->pbNum,maxCons,maxABCD) ;
+        return 0 ;
+        
+    }
+}
 
 int PB093(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
@@ -2124,13 +2240,12 @@ int PB093(PB_RESULT *pbR) {
     // 2 parenthesage possible ((a@b)@c)@d) et (a@b)@(c@d)
     // ou @ designe un operateur commutatif (+,x) ou un operateur non commutatif a un seul sens.
     // Pour le premeir choix a,b puis c, et 3 operations. Pour le second choix a,b et " operateurs
-    int max_nbv= 6*2*4*4*4 + 6*4*4*4 ;
-//    int *tbValues = malloc(max_nbv * sizeof(tbValues[0]));
-    int tbValues[3000] ;
+    u_int8_t isValFind[PB095_EXPMAX] ;
+    //   int tbValues[3000] ;
     int maxCons =0 ;
     int maxABCD = 0 ;
     u_int8_t dig[4] ;
-    for(a=0;a<7;a++) {
+    for(a=1;a<7;a++) {
         dig[0] = a ;
         for(b=a+1;b<8;b++) {
             dig[1] = b ;
@@ -2138,63 +2253,63 @@ int PB093(PB_RESULT *pbR) {
                 dig[2] = c ;
                 for(d=c+1;d<10;d++) {
                     dig[3]= d ;
-                    int nbv = 0 ;
+                    memset(isValFind,0,PB095_EXPMAX) ;
                     do {
                         int op1 ;
-                        for(op1=0;op1<4;op1++) {
-                            int v1 = Oper(op1 ,dig[0],dig[1] );
-                            if(v1==-1) continue ;
+                        if(dig[0]>dig[1]) continue ;
+                        for(op1=0;op1<PB095_NBO;op1++) {
+                            Fract_095 v1 = Oper(op1 ,FractDig(dig[0]),FractDig(dig[1]) );
+                            if(v1.D==0) continue ;
                             int op2 ;
-                            for(op2=0;op2<4;op2++) {
-                                int v2 = Oper(op2 ,dig[2],dig[3] );
-                                if(v2!=-1) {
+                            for(op2=0;op2<PB095_NBO;op2++) {
+                                Fract_095 v2 = Oper(op2 ,FractDig(dig[2]),FractDig(dig[3]) );
+                                if(v2.D != 0) {
                                     int op3 ;
-                                    for(op3=0;op3<4;op3++) {
-                                        int v3 =  Oper(op3 ,v1,v2);
-                                        if(v3>0) tbValues[nbv++] = v3 ;
+                                    for(op3=0;op3<PB095_NBO;op3++) {
+                                        Fract_095 v3 =  Oper(op3 ,v1,v2);
+                                        AddVal(isValFind,v3);
                                     }
                                 }
-                                v2 = Oper(op2,v1,dig[2]) ;
-                                if(v2!=-1) {
+                                v2 = Oper(op2,v1,FractDig(dig[2])) ;
+                                if(v2.D != 0) {
                                     int op3 ;
-                                    for(op3=0;op3<4;op3++) {
-                                        int v3 =  Oper(op3 ,v2,dig[3]);
-                                        if(v3>0) tbValues[nbv++] = v3 ;
+                                    for(op3=0;op3<PB095_NBO;op3++) {
+                                        Fract_095 v3 =  Oper(op3 ,v2,FractDig(dig[3]));
+                                        AddVal(isValFind,v3);
                                     }
                                 }
-                                v2 = Oper(op2,v1,dig[3]) ;
-                                if(v2!=-1) {
+                                v2 = Oper(op2,v1,FractDig(dig[3])) ;
+                                if(v2.D != 0) {
                                     int op3 ;
-                                    for(op3=0;op3<4;op3++) {
-                                        int v3 =  Oper(op3 ,v2,dig[2]);
-                                        if(v3> 0) tbValues[nbv++] = v3 ;
+                                    for(op3=0;op3<PB095_NBO;op3++) {
+                                        Fract_095 v3 =  Oper(op3 ,v2,FractDig(dig[2]));
+                                        AddVal(isValFind,v3);
                                     }
                                 }
                             }
                         }
                     } while(NextPermutRg(dig,4,1)>=0) ;
                     HeapSortUint8(dig,4) ;
-                    qsort(tbValues,nbv,sizeof(tbValues[0]),cmpV) ;
-                    int i,id ;
-                    for(i=0,id=0;i<nbv;i++) {
-                        if(tbValues[i] == id)  continue ;
-                        if(tbValues[i] == id+1) id++ ;
-                        else break ;
-                    }
-                    printf("%.4d->%d ",dig[0]*1000+dig[1]*100+dig[2]*10+dig[3],id);
-                    if(id>=maxCons){
-                        maxCons = id ;
+                    int i ;
+                    for(i=0;i<PB095_EXPMAX && isValFind[i] ; i++) ;
+                    if(i>=maxCons){
+                        maxCons = i ;
                         maxABCD= a*1000+b*100+c*10+d ;
                     }
                 }
             }
         }
     }
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
-    sprintf(pbR->strRes,"%d",maxABCD);
-    
     pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
+    if(maxCons < PB095_EXPMAX) {
+        sprintf(pbR->strRes,"%d",maxABCD);
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
+        return 1 ;
+    } else {
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d ERROR MAX_PRESUMED=%d reached for (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
+        return 0 ;
+        
+    }
 }
 
 
