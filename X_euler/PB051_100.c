@@ -2106,60 +2106,61 @@ int PB091(PB_RESULT *pbR) {
 
 
 
-typedef struct Fract_095 {
+typedef struct Fract_093 {
     int32_t N ;
     int32_t D ;
-} Fract_095 ;
-Fract_095 Oper(int nop, Fract_095 d0, Fract_095 d1) {
-    Fract_095 fr ;
-    fr.D = 1 ;
-    switch(nop){
-        case 0: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D+d1.N*d0.D;  break ; // +
-        case 1: fr.D=d0.D*d1.D ; fr.N=d0.N*d1.N ; break ; // *
-        case 2: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D-d1.N*d0.D; if(fr.N<0) fr.N = -fr.N ; break ; // -
-        case 3: fr.D=d0.D*d1.N ; fr.N=d0.N*d1.D ; break ; // d0/d1
-        case 4: fr.D=d1.D*d0.N ; fr.N=d1.N*d0.D ; break ; // d1/d0
-    }
-    int32_t gd = PGCD(fr.N,fr.D) ;
-    if(gd > 1) { fr.N /= gd ; fr.D /= gd ; }
+} Fract_093 ;
+Fract_093 Oper(int nop, Fract_093 d0, Fract_093 d1) {
+    Fract_093 fr ;
+        switch(nop){
+            case 0: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D+d1.N*d0.D;  break ; // +
+            case 1: fr.D=d0.D*d1.D ; fr.N=d0.N*d1.N ; break ; // *
+            case 2: fr.D=d0.D*d1.D; fr.N=d0.N*d1.D-d1.N*d0.D; if(fr.N<0) fr.N = -fr.N ; break ; // -
+            case 3: fr.D=d0.D*d1.N ; fr.N=d0.N*d1.D ; break ; // d0/d1
+            case 4: fr.D=d1.D*d0.N ; fr.N=d1.N*d0.D ; break ; // d1/d0
+        }
+        if(fr.D > 1) {
+            int32_t gd = PGCD(fr.N,fr.D) ;
+            if(gd > 1) { fr.N /= gd ; fr.D /= gd ; }
+        }
+    
     return fr ;
 }
 
-Fract_095 FractDig(u_int8_t dig) {
-    Fract_095 fr ;
+Fract_093 FractDig(u_int8_t dig) {
+    Fract_093 fr ;
     fr.D = 1 ; fr.N = dig ;
     return fr ;
 }
 
-#define PB095_NBD       6
+#define PB095_NBD       5
 #define PB095_NBO       5
 #define PB095_EXPMAX   1000
 
-void AddVal(u_int8_t *isValFind, Fract_095 res) {
+void AddVal(u_int8_t *isValFind, Fract_093 res) {
     if(res.D != 1 || res.N == 0 || res.N > PB095_EXPMAX ) return ;
     isValFind[res.N-1] = 1 ;
 }
+typedef struct niv_093 {
+    Fract_093 vals[PB095_NBD] ;
+    int16_t op1 ;
+    int16_t op2 ;
+    int16_t oper ;
+} niv_093 ;
 
 int PB093a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-   // 2 parenthesage possible ((a@b)@c)@d) et (a@b)@(c@d)
-    // ou @ designe un operateur commutatif (+,x) ou un operateur non commutatif a un seul sens.
-    // Pour le premeir choix a,b puis c, et 3 operations. Pour le second choix a,b et " operateurs
     u_int8_t isValFind[PB095_EXPMAX] ;
-//   int tbValues[3000] ;
     int maxCons =0 ;
     char maxABCD[PB095_NBD+1] ;
     maxABCD[PB095_NBD] = 0 ;
-    Fract_095 vals[(PB095_NBD*(PB095_NBD+1))/2] ;
-    Fract_095 * valsNiv[PB095_NBD] ;
-    int ind0Niv[PB095_NBD], ind1Niv[PB095_NBD] , operNiv[PB095_NBD] ;
+    niv_093 niv[PB095_NBD] ;
     int i ,offs , indDig ;
     for(i=0,offs=0;i<PB095_NBD;i++) {
-        vals[i] = FractDig(i+1) ;
-        valsNiv[i] = vals+offs ;
+        niv[0].vals[i] = FractDig(i+1) ;
         offs += PB095_NBD - i ;
-        ind0Niv[i] = 0 ; ind1Niv[i]=1 ;
-        operNiv[i] = 0 ;
+        niv[i].op1 = 0 ; niv[i].op2 = 1 ;
+        niv[i].oper = 0 ;
     }
     indDig = PB095_NBD - 1 ;
     do {
@@ -2168,39 +2169,42 @@ int PB093a(PB_RESULT *pbR) {
             memset(isValFind,0,PB095_EXPMAX) ;
             do {
                 int lgNiv = PB095_NBD - curNiv ;
-                if(lgNiv == 1) {
-                    AddVal(isValFind,valsNiv[curNiv][0]);
-                    curNiv-- ;
-                    continue ;
-                } else if(operNiv[curNiv]>=PB095_NBO){
-                    operNiv[curNiv] = 0 ;
-                    if(ind1Niv[curNiv] >= lgNiv-1 ) {
-                        if(ind0Niv[curNiv] >= lgNiv-2 ) {
-                            ind0Niv[curNiv] = 0 ; ind1Niv[curNiv] = 1 ;
+              if(niv[curNiv].oper >=PB095_NBO){
+                  niv[curNiv].oper = 0 ;
+                    if(niv[curNiv].op2>= lgNiv-1 ) {
+                        if(niv[curNiv].op1>= lgNiv-2 ) {
+                            niv[curNiv].op1 = 0 ; niv[curNiv].op2 = 1 ;
                             curNiv-- ;
                             continue ;
                         } else {
-                            ind0Niv[curNiv]++ ;
-                            ind1Niv[curNiv] = ind0Niv[curNiv] + 1 ;
+                            niv[curNiv].op1++ ;
+                            niv[curNiv].op2 = niv[curNiv].op1 +1 ;
                         }
                     } else {
-                        ind1Niv[curNiv]++ ;
+                        niv[curNiv].op2++ ;
                     }
                 }
-                // on avance d'un cran
-                int i,j;
-                for(i=0;i<ind0Niv[curNiv];i++) {
-                    valsNiv[curNiv+1][i] = valsNiv[curNiv][i] ;
-                }
-                valsNiv[curNiv+1][i++] = Oper(operNiv[curNiv],valsNiv[curNiv][ind0Niv[curNiv]],valsNiv[curNiv][ind1Niv[curNiv]]) ;
-                for(j=ind0Niv[curNiv]+1;j<lgNiv;j++) {
-                    if(j != ind1Niv[curNiv] ) {
-                        valsNiv[curNiv+1][i++] = valsNiv[curNiv][j] ;
+                Fract_093 newVal = Oper(niv[curNiv].oper,niv[curNiv].vals[niv[curNiv].op1],niv[curNiv].vals[niv[curNiv].op2]);
+                if(lgNiv == 2) {
+                    AddVal(isValFind,newVal);
+                    niv[curNiv].oper++ ;
+                    continue ;
+                } else {
+                    // on avance d'un cran
+                    int i,j;
+                    for(i=0;i<niv[curNiv].op1;i++) {
+                        niv[curNiv+1].vals[i] = niv[curNiv].vals[i] ;
                     }
+                    niv[curNiv+1].vals[i++] = newVal ;
+                    for(j=niv[curNiv].op1+1;j<lgNiv;j++) {
+                        if(j != niv[curNiv].op2 ) {
+                            niv[curNiv+1].vals[i++] = niv[curNiv].vals[j] ;
+                        }
+    
+                    }
+                    niv[curNiv].oper++ ;
+                    curNiv++ ;
                 }
-                operNiv[curNiv]++ ;
-                curNiv++ ;
-                
             } while(curNiv >= 0) ;
             {
                 int i ;
@@ -2208,15 +2212,15 @@ int PB093a(PB_RESULT *pbR) {
                 if(i>=maxCons){
                     maxCons = i ;
                     int k ;
-                    for(k=0;k<PB095_NBD;k++) maxABCD[k] = valsNiv[0][k].N + '0' ;
+                    for(k=0;k<PB095_NBD;k++) maxABCD[k] = niv[0].vals[k].N + '0' ;
                 }
             }
         }
-        if(valsNiv[0][indDig].N < 10 - PB095_NBD + indDig ){
-            valsNiv[0][indDig].N++ ;
+        if(niv[0].vals[indDig].N < 10 - PB095_NBD + indDig ){
+            niv[0].vals[indDig].N++ ;
             for(;indDig<PB095_NBD-1;){
                 indDig++ ;
-                valsNiv[0][indDig].N = valsNiv[0][indDig-1].N+1 ;
+                niv[0].vals[indDig].N = niv[0].vals[indDig-1].N+1 ;
             }
         } else {
             indDig-- ;
@@ -2258,15 +2262,15 @@ int PB093(PB_RESULT *pbR) {
                         int op1 ;
                         if(dig[0]>dig[1]) continue ;
                         for(op1=0;op1<PB095_NBO;op1++) {
-                            Fract_095 v1 = Oper(op1 ,FractDig(dig[0]),FractDig(dig[1]) );
+                            Fract_093 v1 = Oper(op1 ,FractDig(dig[0]),FractDig(dig[1]) );
                             if(v1.D==0) continue ;
                             int op2 ;
                             for(op2=0;op2<PB095_NBO;op2++) {
-                                Fract_095 v2 = Oper(op2 ,FractDig(dig[2]),FractDig(dig[3]) );
+                                Fract_093 v2 = Oper(op2 ,FractDig(dig[2]),FractDig(dig[3]) );
                                 if(v2.D != 0) {
                                     int op3 ;
                                     for(op3=0;op3<PB095_NBO;op3++) {
-                                        Fract_095 v3 =  Oper(op3 ,v1,v2);
+                                        Fract_093 v3 =  Oper(op3 ,v1,v2);
                                         AddVal(isValFind,v3);
                                     }
                                 }
@@ -2274,7 +2278,7 @@ int PB093(PB_RESULT *pbR) {
                                 if(v2.D != 0) {
                                     int op3 ;
                                     for(op3=0;op3<PB095_NBO;op3++) {
-                                        Fract_095 v3 =  Oper(op3 ,v2,FractDig(dig[3]));
+                                        Fract_093 v3 =  Oper(op3 ,v2,FractDig(dig[3]));
                                         AddVal(isValFind,v3);
                                     }
                                 }
@@ -2282,7 +2286,7 @@ int PB093(PB_RESULT *pbR) {
                                 if(v2.D != 0) {
                                     int op3 ;
                                     for(op3=0;op3<PB095_NBO;op3++) {
-                                        Fract_095 v3 =  Oper(op3 ,v2,FractDig(dig[2]));
+                                        Fract_093 v3 =  Oper(op3 ,v2,FractDig(dig[2]));
                                         AddVal(isValFind,v3);
                                     }
                                 }
