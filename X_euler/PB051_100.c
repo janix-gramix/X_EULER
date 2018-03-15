@@ -2119,13 +2119,13 @@ Fract_093 Oper(int nop, Fract_093 d0, Fract_093 d1) {
             case 3: fr.D=d0.D*d1.N ; fr.N=d0.N*d1.D ; break ; // d0/d1
             case 4: fr.D=d1.D*d0.N ; fr.N=d1.N*d0.D ; break ; // d1/d0
         }
-        if(fr.D > 1) {
+       if(fr.D > 1) {
             int32_t gd = PGCD(fr.N,fr.D) ;
             if(gd > 1) { fr.N /= gd ; fr.D /= gd ; }
         }
-    
     return fr ;
 }
+
 
 Fract_093 FractDig(u_int8_t dig) {
     Fract_093 fr ;
@@ -2168,7 +2168,7 @@ int PB093a(PB_RESULT *pbR) {
             int curNiv = 0 ;
             memset(isValFind,0,PB095_EXPMAX) ;
             do {
-                int lgNiv = PB095_NBD - curNiv ;
+              int lgNiv = PB095_NBD - curNiv ;
               if(niv[curNiv].oper >=PB095_NBO){
                   niv[curNiv].oper = 0 ;
                     if(niv[curNiv].op2>= lgNiv-1 ) {
@@ -2178,32 +2178,33 @@ int PB093a(PB_RESULT *pbR) {
                             continue ;
                         } else {
                             niv[curNiv].op1++ ;
-                            niv[curNiv].op2 = niv[curNiv].op1 +1 ;
+                            niv[curNiv].op2 = niv[curNiv].op1 + 1 ;
                         }
                     } else {
                         niv[curNiv].op2++ ;
                     }
                 }
                 Fract_093 newVal = Oper(niv[curNiv].oper,niv[curNiv].vals[niv[curNiv].op1],niv[curNiv].vals[niv[curNiv].op2]);
-                if(lgNiv == 2) {
-                    AddVal(isValFind,newVal);
-                    niv[curNiv].oper++ ;
-                    continue ;
-                } else {
-                    // on avance d'un cran
-                    int i,j;
-                    for(i=0;i<niv[curNiv].op1;i++) {
-                        niv[curNiv+1].vals[i] = niv[curNiv].vals[i] ;
-                    }
-                    niv[curNiv+1].vals[i++] = newVal ;
-                    for(j=niv[curNiv].op1+1;j<lgNiv;j++) {
-                        if(j != niv[curNiv].op2 ) {
-                            niv[curNiv+1].vals[i++] = niv[curNiv].vals[j] ;
+                niv[curNiv].oper++ ;
+                if(newVal.D != 0) {
+                    if(lgNiv == 2) {
+                        AddVal(isValFind,newVal);
+                        continue ;
+                    } else {
+                        // on avance d'un cran
+                        int i,j;
+                        for(i=0;i<niv[curNiv].op1;i++) {
+                            niv[curNiv+1].vals[i] = niv[curNiv].vals[i] ;
                         }
-    
+                        niv[curNiv+1].vals[i++] = newVal ;
+                        for(j=niv[curNiv].op1+1;j<lgNiv;j++) {
+                            if(j != niv[curNiv].op2 ) {
+                                niv[curNiv+1].vals[i++] = niv[curNiv].vals[j] ;
+                            }
+        
+                        }
+                        curNiv++ ;
                     }
-                    niv[curNiv].oper++ ;
-                    curNiv++ ;
                 }
             } while(curNiv >= 0) ;
             {
