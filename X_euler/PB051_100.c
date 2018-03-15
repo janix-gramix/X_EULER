@@ -2133,9 +2133,11 @@ Fract_093 FractDig(u_int8_t dig) {
     return fr ;
 }
 
-#define PB095_NBD       5
+#define PB095_NBD       4
 #define PB095_NBO       5
-#define PB095_EXPMAX   1000
+#define PB095_EXPMAX   100
+
+// EXPMAX 1000 pour 5 digits ou  6 digits
 
 void AddVal(u_int8_t *isValFind, Fract_093 res) {
     if(res.D != 1 || res.N == 0 || res.N > PB095_EXPMAX ) return ;
@@ -2148,6 +2150,7 @@ typedef struct niv_093 {
     int16_t oper ;
 } niv_093 ;
 
+// version avec parcours recursif
 int PB093a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     u_int8_t isValFind[PB095_EXPMAX] ;
@@ -2155,10 +2158,9 @@ int PB093a(PB_RESULT *pbR) {
     char maxABCD[PB095_NBD+1] ;
     maxABCD[PB095_NBD] = 0 ;
     niv_093 niv[PB095_NBD] ;
-    int i ,offs , indDig ;
-    for(i=0,offs=0;i<PB095_NBD;i++) {
+    int i , indDig ;
+    for(i=0;i<PB095_NBD;i++) {
         niv[0].vals[i] = FractDig(i+1) ;
-        offs += PB095_NBD - i ;
         niv[i].op1 = 0 ; niv[i].op2 = 1 ;
         niv[i].oper = 0 ;
     }
@@ -2186,7 +2188,7 @@ int PB093a(PB_RESULT *pbR) {
                 }
                 Fract_093 newVal = Oper(niv[curNiv].oper,niv[curNiv].vals[niv[curNiv].op1],niv[curNiv].vals[niv[curNiv].op2]);
                 niv[curNiv].oper++ ;
-                if(newVal.D != 0) {
+                if(newVal.D != 0) { // no division par zero
                     if(lgNiv == 2) {
                         AddVal(isValFind,newVal);
                         continue ;
@@ -2201,7 +2203,6 @@ int PB093a(PB_RESULT *pbR) {
                             if(j != niv[curNiv].op2 ) {
                                 niv[curNiv+1].vals[i++] = niv[curNiv].vals[j] ;
                             }
-        
                         }
                         curNiv++ ;
                     }
