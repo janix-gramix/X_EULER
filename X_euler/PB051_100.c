@@ -2103,6 +2103,101 @@ int PB091(PB_RESULT *pbR) {
     return 1 ;
 }
 
+int Oper(int nop, int d0, int d1) {
+    switch(nop){
+        case 0: return d0+d1 ;
+        case 1: return d0*d1 ;
+        case 2: return (d0 > d1) ? d0-d1 : d1-d0 ;
+        case 3: return  (d1 != 0 && (d0 % d1) == 0 ) ? (d0/d1 ) : (d0 != 0 &&  (d1 % d0) == 0 ? (d1/d0) : -1)   ;
+    }
+    return -1 ;
+}
+
+int cmpV(const void *v1,const void *v2) {
+    return ((int *)v1)[0] -  ((int *)v2)[0] ;
+}
+
+
+int PB093(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int a,b,c,d ;
+    // 2 parenthesage possible ((a@b)@c)@d) et (a@b)@(c@d)
+    // ou @ designe un operateur commutatif (+,x) ou un operateur non commutatif a un seul sens.
+    // Pour le premeir choix a,b puis c, et 3 operations. Pour le second choix a,b et " operateurs
+    int max_nbv= 6*2*4*4*4 + 6*4*4*4 ;
+//    int *tbValues = malloc(max_nbv * sizeof(tbValues[0]));
+    int tbValues[3000] ;
+    int maxCons =0 ;
+    int maxABCD = 0 ;
+    u_int8_t dig[4] ;
+    for(a=0;a<7;a++) {
+        dig[0] = a ;
+        for(b=a+1;b<8;b++) {
+            dig[1] = b ;
+            for(c=b+1;c<9;c++) {
+                dig[2] = c ;
+                for(d=c+1;d<10;d++) {
+                    dig[3]= d ;
+                    int nbv = 0 ;
+                    do {
+                        int op1 ;
+                        for(op1=0;op1<4;op1++) {
+                            int v1 = Oper(op1 ,dig[0],dig[1] );
+                            if(v1==-1) continue ;
+                            int op2 ;
+                            for(op2=0;op2<4;op2++) {
+                                int v2 = Oper(op2 ,dig[2],dig[3] );
+                                if(v2!=-1) {
+                                    int op3 ;
+                                    for(op3=0;op3<4;op3++) {
+                                        int v3 =  Oper(op3 ,v1,v2);
+                                        if(v3>0) tbValues[nbv++] = v3 ;
+                                    }
+                                }
+                                v2 = Oper(op2,v1,dig[2]) ;
+                                if(v2!=-1) {
+                                    int op3 ;
+                                    for(op3=0;op3<4;op3++) {
+                                        int v3 =  Oper(op3 ,v2,dig[3]);
+                                        if(v3>0) tbValues[nbv++] = v3 ;
+                                    }
+                                }
+                                v2 = Oper(op2,v1,dig[3]) ;
+                                if(v2!=-1) {
+                                    int op3 ;
+                                    for(op3=0;op3<4;op3++) {
+                                        int v3 =  Oper(op3 ,v2,dig[2]);
+                                        if(v3> 0) tbValues[nbv++] = v3 ;
+                                    }
+                                }
+                            }
+                        }
+                    } while(NextPermutRg(dig,4,1)>=0) ;
+                    HeapSortUint8(dig,4) ;
+                    qsort(tbValues,nbv,sizeof(tbValues[0]),cmpV) ;
+                    int i,id ;
+                    for(i=0,id=0;i<nbv;i++) {
+                        if(tbValues[i] == id)  continue ;
+                        if(tbValues[i] == id+1) id++ ;
+                        else break ;
+                    }
+                    printf("%.4d->%d ",dig[0]*1000+dig[1]*100+dig[2]*10+dig[3],id);
+                    if(id>=maxCons){
+                        maxCons = id ;
+                        maxABCD= a*1000+b*100+c*10+d ;
+                    }
+                }
+            }
+        }
+    }
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
+    sprintf(pbR->strRes,"%d",maxABCD);
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
 
 #define PB100_DEBUG 1
 #define PB100_MIN_N 1000000000000
