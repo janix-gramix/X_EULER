@@ -16,23 +16,26 @@
 
 #define PB579_SIZE  50
 
-typedef struct trip {
+typedef enum ClassV {
+    Vabc = 0 , Vaab = 1 , V0ab = 2 , V00c = 3
+} ClassV ;
+typedef struct V3 {
     int32_t x ;
     int32_t y ;
     int32_t z ;
-} trip ;
+} V3 ;
 
-typedef struct tripGCD {
-    int32_t x ;
-    int32_t y ;
-    int32_t z ;
+typedef struct V3GCD {
+    V3 T ;
     int32_t gcd ;
-} tripGCD ;
+    ClassV cl ;
+    
+} V3GCD ;
 
 typedef struct cubeO {
-    trip A ;
-    trip B ;
-    trip C ;
+    V3 A ;
+    V3 B ;
+    V3 C ;
 } cubeO ;
 
 typedef struct cubeMin {
@@ -116,7 +119,29 @@ typedef struct CTX_Cube {
     int nbCand ;
 } CTX_Cube ;
 
-void AddCube(CTX_Cube * CC,int32_t a1,int32_t b1,int32_t c1, int32_t a2,int32_t b2,int32_t c2, int N) {
+static inline V3 PVect( V3 T1,V3 T2,int N) {
+    V3 V ;
+    V.x = (T1.y*T2.z - T1.z*T2.y)/N ;
+    V.y = (T1.z*T2.x - T1.x*T2.z)/N ;
+    V.z = (T1.x*T2.y - T1.y*T2.x)/N ;
+    return V ;
+}
+void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
+    cubeO cube ;
+    cube.A = T1 ;
+    cube.B = T2 ;
+    cube.C = PVect(T1,T2,N) ;
+    CC->nbCand++ ;
+    printf("%dx%d (%d,%d,%d)+(%d,%d,%d)+(%d,%d,%d)\n"
+           ,N,fact
+           ,cube.A.x,cube.A.y,cube.A.z,cube.B.x,cube.B.y,cube.B.z,cube.C.x,cube.C.y,cube.C.z
+    ) ;
+    CC->nbC++ ;
+
+    
+}
+
+void AddCube1(CTX_Cube * CC,int32_t a1,int32_t b1,int32_t c1, int32_t a2,int32_t b2,int32_t c2, int N) {
     cubeO cube ;
     int offx, offy,offz ;
     int sizex, sizey,sizez ;
@@ -174,14 +199,48 @@ void AddCube(CTX_Cube * CC,int32_t a1,int32_t b1,int32_t c1, int32_t a2,int32_t 
 #define TST_ORTHO2(ptC,a1,b1,c1,a2,b2,c2,N) if(a1*a2-b1*b2+c1*c2 == 0)  AddCube(ptC,b1,a1,c1,-b2,a2,c2,N)
 #define TST_ORTHO3(ptC,a1,b1,c1,a2,b2,c2,N) if(a1*a2+b1*b2-c1*c2 == 0)  AddCube(ptC,c1,a1,b1,-c2,a2,b2,N)
 
+static inline V3 R1(V3 T) {
+    V3 Tn   ; Tn.x = T.y    ; Tn.y = T.z    ; Tn.z = T.x    ; return Tn ;
+}
+static inline V3 R2(V3 T) {
+    V3 Tn   ; Tn.x = T.z    ; Tn.y = T.x    ; Tn.z = T.y    ; return Tn ;
+}
+static inline V3 Pxy(V3 T) {
+    V3 Tn   ; Tn.x = T.y   ; Tn.y = T.x    ; Tn.z = T.z    ; return Tn ;
+}
+static inline V3 Pyz(V3 T) {
+    V3 Tn   ; Tn.x = T.x   ; Tn.y = T.z    ; Tn.z = T.y    ; return Tn ;
+}
+static inline V3 Pxz(V3 T) {
+    V3 Tn   ; Tn.x = T.z   ; Tn.y = T.y    ; Tn.z = T.x    ; return Tn ;
+}
+
+
+
+static inline V3 Sx(V3 T) {
+    V3 Tn   ; Tn.x = -T.x   ; Tn.y = T.y    ; Tn.z = T.z    ; return Tn ;
+}
+static inline V3 Sy(V3 T) {
+    V3 Tn   ; Tn.x = T.x    ; Tn.y = -T.y   ; Tn.z = T.z    ; return Tn ;
+}
+static inline V3 Sz(V3 T) {
+    V3 Tn   ; Tn.x = T.x    ; Tn.y = T.y    ; Tn.z = -T.z   ; return Tn ;
+}
+
+
+
+static inline int32_t SC (V3 S, V3 T) {
+    return S.x*T.x + S.y*T.y + S.z*T.z ;
+}
+
 int PB579(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_Cube CC ;
-    tripGCD tbTrip[PB579_MAXT] ;
+    V3GCD tbTrip[PB579_MAXT] ;
         int nbO=0, nbp=0,nbq = 0 ;
     u_int32_t n1,n2,n3 ,N ;
     CC.nbC = 0 ;
-    for(N=3;N<=PB579_SIZE;N++) {
+    for(N=3;N<=PB579_SIZE;N+=2) {
         u_int32_t S1 = N*N ;
         int nbT = 0 ;
         for(n1=0;n1<N;n1++) {
@@ -190,12 +249,21 @@ int PB579(PB_RESULT *pbR) {
             for(n2=n1;n2<=n2Max;n2++) {
                 n3 =Sqrt32(S2-n2*n2) ;
                 if(n3*n3 == S2-n2*n2) {
-                    int n12  = PGCD(n1,n2);
-  //                  if(PGCD(n12,n3) > 1) continue ;
-                    tbTrip[nbT].x = n1 ;
-                    tbTrip[nbT].y = n2 ;
-                    tbTrip[nbT].z = n3 ;
-                    tbTrip[nbT].gcd = PGCD(n12,n3) ;
+                    int gcd  = PGCD(n1,n2);
+                    tbTrip[nbT].T.x = n1 ;
+                    tbTrip[nbT].T.y = n2 ;
+                    tbTrip[nbT].T.z = n3 ;
+                    tbTrip[nbT].gcd = PGCD(gcd,n3); ;
+                    if(n2==n3) { // dans ce cas n1 != 0
+                        tbTrip[nbT].T.x = n3 ;
+                        tbTrip[nbT].T.z = n1 ;
+                    }
+                    ClassV cl = Vabc ;
+                    if(tbTrip[nbT].T.x==tbTrip[nbT].T.y) {
+                        if(tbTrip[nbT].T.x==0) cl = V00c ;
+                        else cl = Vaab ;
+                    } else if (tbTrip[nbT].T.x==0) cl=V0ab ;
+                    tbTrip[nbT].cl = cl ;
                     nbT++;
                 }
             }
@@ -204,10 +272,104 @@ int PB579(PB_RESULT *pbR) {
             int i1,i2 ;
             printf("\n%d ",N);
             for(i1=0;i1<nbT;i1++){
-                tripGCD T1=tbTrip[i1] ;
+                int gcd1 = tbTrip[i1].gcd ;
+                V3 T1=tbTrip[i1].T ;
                 for(i2=i1;i2<nbT;i2++) {
-                    tripGCD T2 = tbTrip[i2] ;
-                    if(PGCD(T1.gcd,T2.gcd) > 1) continue ;
+                    int gcd2 = tbTrip[i2].gcd ;
+                    V3 T2 = tbTrip[i2].T ;
+                    if(PGCD(gcd1,gcd2) > 1) continue ;
+                    if(tbTrip[i1].cl >= V0ab) {
+                        if(tbTrip[i2].cl < V0ab ) continue ;
+                        if(tbTrip[i1].cl == tbTrip[i2].cl ) continue ;
+                        if(tbTrip[i1].cl == V0ab) {
+                            AddCube(&CC,R1(T1),T2,N,6); // pas de test a faire cela est OK
+                        } else {
+                            AddCube(&CC,R1(T2),T1,N,6);
+                        }
+                    } else if(tbTrip[i2].cl >= V0ab) {
+                       continue ; // T1 n'est pas V0ab ou V00c
+                    } else if(tbTrip[i1].cl == Vaab) {
+                        if(tbTrip[i2].cl == Vaab) {
+                            if( SC(T1,T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,T1,T2,N,10) ;
+                            if( SC(Sx(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sx(T1),T2,N,2) ;
+                            if( SC(Sy(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sy(T1),T2,N,2) ;
+                            if( SC(Sz(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sz(T1),T2,N,2) ;
+                            
+                            if( SC(R1(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,R1(T1),T2,N,4) ;
+                            if( SC(Sx(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sx(R1(T1)),T2,N,4) ;
+                            if( SC(Sy(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sy(R1(T1)),T2,N,4) ;
+                            if( SC(Sz(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sz(R1(T1)),T2,N,4) ;
+
+                        } else {
+                            if( SC(T1,T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,T1,T2,N,2) ;
+                            if( SC(Sx(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sx(T1),T2,N,2) ;
+                            if( SC(Sy(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sy(T1),T2,N,2) ;
+                            if( SC(Sz(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sz(T1),T2,N,2) ;
+                            
+                            if( SC(R1(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,R1(T1),T2,N,2) ;
+                            if( SC(Sx(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sx(R1(T1)),T2,N,2) ;
+                            if( SC(Sy(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sy(R1(T1)),T2,N,2) ;
+                            if( SC(Sz(R1(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sz(R1(T1)),T2,N,2) ;
+                            
+                            if( SC(R2(T1),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,R2(T1),T2,N,2) ;
+                            if( SC(Sx(R2(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sx(R2(T1)),T2,N,2) ;
+                            if( SC(Sy(R2(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sy(R2(T1)),T2,N,2) ;
+                            if( SC(Sz(R2(T1)),T2) == 0) printf("(%d,%d)",i1,i2),AddCube(&CC,Sz(R2(T1)),T2,N,2) ;
+                            
+                        }
+                        
+                    } else if(tbTrip[i2].cl == Vaab) {
+                        if( SC(T2,T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,T2,T1,N,2) ;
+                        if( SC(Sx(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(T2),T1,N,2) ;
+                        if( SC(Sy(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(T2),T1,N,2) ;
+                        if( SC(Sz(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(T2),T1,N,2) ;
+
+                        if( SC(R1(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,R1(T2),T1,N,2) ;
+                        if( SC(Sx(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(R1(T2)),T1,N,2) ;
+                        if( SC(Sy(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(R1(T2)),T1,N,2) ;
+                        if( SC(Sz(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(R1(T2)),T1,N,2) ;
+
+                        if( SC(R2(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,R2(T2),T1,N,1) ;
+                        if( SC(Sx(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(R2(T2)),T1,N,2) ;
+                        if( SC(Sy(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(R2(T2)),T1,N,2) ;
+                        if( SC(Sz(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(R2(T2)),T1,N,2) ;
+                    }  else {
+                        if( SC(T2,T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,T2,T1,N,2) ;
+                        if( SC(Sx(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(T2),T1,N,2) ;
+                        if( SC(Sy(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(T2),T1,N,2) ;
+                        if( SC(Sz(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(T2),T1,N,2) ;
+                        
+                        if( SC(R1(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,R1(T2),T1,N,2) ;
+                        if( SC(Sx(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(R1(T2)),T1,N,2) ;
+                        if( SC(Sy(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(R1(T2)),T1,N,2) ;
+                        if( SC(Sz(R1(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(R1(T2)),T1,N,2) ;
+                        
+                        if( SC(R2(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,R2(T2),T1,N,1) ;
+                        if( SC(Sx(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(R2(T2)),T1,N,2) ;
+                        if( SC(Sy(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(R2(T2)),T1,N,2) ;
+                        if( SC(Sz(R2(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(R2(T2)),T1,N,2) ;
+
+                        if( SC(Pxy(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Pxy(T2),T1,N,2) ;
+                        if( SC(Sx(Pxy(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(Pxy(T2)),T1,N,2) ;
+                        if( SC(Sy(Pxy(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(Pxy(T2)),T1,N,2) ;
+                        if( SC(Sz(Pxy(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(Pxy(T2)),T1,N,2) ;
+
+                        if( SC(Pyz(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Pyz(T2),T1,N,2) ;
+                        if( SC(Sx(Pyz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(Pyz(T2)),T1,N,2) ;
+                        if( SC(Sy(Pyz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(Pyz(T2)),T1,N,2) ;
+                        if( SC(Sz(Pyz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(Pyz(T2)),T1,N,2) ;
+
+                        if( SC(Pxz(T2),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Pxz(T2),T1,N,2) ;
+                        if( SC(Sx(Pxz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sx(Pxz(T2)),T1,N,2) ;
+                        if( SC(Sy(Pxz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sy(Pxz(T2)),T1,N,2) ;
+                        if( SC(Sz(Pxz(T2)),T1) == 0) printf("(%d,%d)",i2,i1),AddCube(&CC,Sz(Pxz(T2)),T1,N,2) ;
+
+                        
+                    }
+
+                
+//                    if( SC(T1,Sx(R1(T2))) == 0) AddCube(&CC,T1,Sx(R1(T2)),N) ;
+/*
                     TST_ORTHO1(&CC,T1.x,T1.y,T1.z,T2.x,T2.y,T2.z,N) ;
                     if(T2.x != T2.y && T2.y != T2.z) TST_ORTHO2(&CC,T1.x,T1.y,T1.z,T2.x,T2.y,T2.z,N) ;
                     TST_ORTHO3(&CC,T1.x,T1.y,T1.z,T2.x,T2.y,T2.z,N) ;
@@ -240,7 +402,7 @@ int PB579(PB_RESULT *pbR) {
                         if(T2.x != T2.y && T2.y != T2.z) TST_ORTHO2(&CC,T1.z,T1.y,T1.x,T2.x,T2.y,T2.z,N) ;
                         TST_ORTHO3(&CC,T1.z,T1.y,T1.x,T2.x,T2.y,T2.z,N) ;
                      }
-
+*/
                     
                 }
             }
