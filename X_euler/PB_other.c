@@ -14,7 +14,7 @@
 
 #include "PB_other.h"
 
-#define PB579_SIZE  50
+#define PB579_SIZE  5000
 #define PB579_MOD   1000000000
 typedef enum ClassV {
     Vabc = 0 ,/* Vaab = 1 , */ V0ab = 2 , V00c = 3
@@ -118,10 +118,7 @@ typedef struct CTX_Cube {
     int nbC ;
     int nbCand ;
     u_int64_t nbVertice ;
-    u_int32_t nbCube ;
-    u_int64_t nb8 ;
-    u_int64_t nb12 ;
-    u_int64_t nb24 ;
+    u_int64_t nbCube ;
 } CTX_Cube ;
 
 static inline V3 PVect( V3 T1,V3 T2,int N) {
@@ -156,7 +153,7 @@ static inline V3 PVectAbs( V3 T1,V3 T2,int N) {
 }
 
 #define IABS(x) ((x)>=0 ? (x) : -(x))
-void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
+void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int64_t N,int fact) {
     cubeO cube ;
     cube.A = T1 ;
     cube.B = T2 ;
@@ -201,7 +198,7 @@ void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
     if(sizez > sizexyz) sizexyz = sizez ;
     
     if(sizexyz <= PB579_SIZE) {
-        int k ;
+        int64_t k ;
         int d1 = PGCD(PGCD(IABS(cube.A.x),IABS(cube.A.y)),IABS(cube.A.z)) ;
         int d2 = PGCD(PGCD(IABS(cube.B.x),IABS(cube.B.y)),IABS(cube.B.z)) ;
         int d3 = PGCD(PGCD(IABS(cube.C.x),IABS(cube.C.y)),IABS(cube.C.z)) ;
@@ -211,15 +208,19 @@ void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
         CC->nbC++ ;
         for(k=1;k*sizexyz <= PB579_SIZE;k++) {
  //           int64_t nbCubes = (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact ;
-            int64_t nbCubes =  (((PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)) % PB579_MOD)
-            * (((PB579_SIZE-k*sizez+1) * fact) % PB579_MOD) ;
-            CC->nbCube += nbCubes ;
+            int64_t nbCubes = (  (((PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)) % PB579_MOD)
+            * (((PB579_SIZE-k*sizez+1) * fact) % PB579_MOD) ) %  PB579_MOD ;
+ //           printf(" C(%lld<->%lld)", nbCubes, (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact) ;
+            CC->nbCube = (CC->nbCube + nbCubes) % PB579_MOD ;
             // (k*N+1) (k*k*N*N+ (d1+d2+d3-N)*k +1 ) pour k=1
 //            int64_t nbVertices = (k*N+1) * (k*k*N*N+ (d1+d2+d3-N)*k +1 ) ;
-            int64_t nbVertices = ((k*N+1) * ( (int64_t)((k*k)% PB579_MOD ) * ((N*N)% PB579_MOD ) + (( (d1+d2+d3-N)*k )  % PB579_MOD) + 1)) % PB579_MOD ;
+            int64_t nbVertices = ((k*N+1) * ( ((k*k)% PB579_MOD ) * ((N*N)% PB579_MOD ) + (( (d1+d2+d3-N)*k )  % PB579_MOD) + 1)) % PB579_MOD ;
+ //           printf(" V(%lld<->%lld)", nbVertices, (k*N+1) * (k*k*N*N+ (d1+d2+d3-N)*k +1 )) ;
+            
  //           printf("k=%d %dc x %lldv=%lld\n,",k,nbCubes,nbVertices,nbCubes * nbVertices) ;
             CC->nbVertice = ( CC->nbVertice+((nbCubes * nbVertices) % PB579_MOD)) % PB579_MOD ;
        }
+ //       printf("nbV=%lld , nbC=%lld",CC->nbVertice,CC->nbCand) ;
     }
 
     
@@ -392,19 +393,19 @@ int PB579(PB_RESULT *pbR) {
     CTX_Cube CC ;
     V3GCD tbTrip[PB579_MAXT] ;
     u_int32_t n1,n2,n3;
-    u_int32_t N ;
+    int64_t N ;
     CC.nbC = 0 ;
     // on ajoute les cubes alignes sur le reseau
     N = PB579_SIZE ;
 //    CC.nbVertice =(((u_int64_t)(N))*(N+1)*(3 * N*N*N*N*N + 39 * N*N*N*N + 213 * N*N*N + 627 * N*N + 640 * N + 158 ))/ 420 ;
-    int k ;
+    int64_t k ;
     CC.nbVertice = 0 ;
     for(k=1;k<=N;k++) {
-        CC.nbVertice = (CC.nbVertice + ( (((N+2-k)*(N+2-k)*(N+2-k)) % PB579_MOD) * ((k*k*k) % PB579_MOD) )) % PB579_MOD ;
+        CC.nbVertice = (CC.nbVertice + ( ( (((N+2-k)*(N+2-k)*(N+2-k)) % PB579_MOD) * ((k*k*k) % PB579_MOD) ) % PB579_MOD)) % PB579_MOD ;
     }
     CC.nbCube = (((int64_t)N)*N * (N+1) * (N+1)) / 4 ;
-
-    CC.nb8 = CC.nb12 = CC.nb24 = 0L ;
+    printf("nbV=%lld , nbC=%lld",CC.nbVertice,CC.nbCand) ;
+   
     for(N=3;N<=PB579_SIZE;N+=2) {
         u_int32_t S1 = N*N ;
         int nbT = 0 ;
@@ -435,7 +436,7 @@ int PB579(PB_RESULT *pbR) {
         }
         if(nbT > 0) {
             int i1,i2 ;
-            printf("\n%d ",N);
+            printf("\n%d->%d ",N,nbT);
             for(i1=0;i1<nbT;i1++){
                 for(i2=i1;i2<nbT;i2++) {
                     VerifCube(&CC,tbTrip,nbT,i1,i2,N) ;
@@ -444,8 +445,8 @@ int PB579(PB_RESULT *pbR) {
         }
     }
     printf("NBcand=%d NBC=%d\n",CC.nbCand, CC.nbC) ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d NbCubes=%d NBVertices=%lld V8=%lld V12=%lld V24=%lld\n"
-                              ,pbR->pbNum,CC.nbCube,CC.nbVertice,CC.nb8,CC.nb12,CC.nb24) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d NbCubes=%d NBVertices=%lld \n"
+                              ,pbR->pbNum,CC.nbCube,CC.nbVertice) ;
     sprintf(pbR->strRes,"%lld",CC.nbVertice);
     
     pbR->nbClock = clock() - pbR->nbClock ;
