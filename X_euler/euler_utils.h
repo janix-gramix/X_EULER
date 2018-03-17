@@ -37,9 +37,18 @@ typedef struct PB_CALL {
 u_int32_t PGCD(u_int32_t n1,u_int32_t n2 ) ;
 u_int64_t PGCD64(u_int64_t n1,u_int64_t n2 ) ;
 u_int64_t Sqrt64(u_int64_t val) ;
+u_int32_t Sqrt32(u_int32_t val) ;
+u_int16_t Sqrt16(u_int16_t val) ;
+
 
 void HeapSortUint8(u_int8_t *H,int n) ;
 void HeapSortUint8Rev(u_int8_t *H,int n) ;
+
+int NextPermut(u_int8_t *perm,int lg) ;
+int NextPermutRg(u_int8_t *perm,int lg,int rg) ;
+int ChkPermutRg(u_int8_t *perm,int lg,int rg) ;
+int NextPermutRev(u_int8_t *perm,int lg) ;
+int NextPermutRgRev(u_int8_t *perm,int lg,int rg) ;
 
 
 typedef  u_int32_t T_prime ;

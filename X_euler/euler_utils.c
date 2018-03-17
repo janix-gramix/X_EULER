@@ -92,6 +92,65 @@ void HeapSortUint8Rev(u_int8_t *H,int n) {
 
 
 
+// return -1 if last permutation, or the lower index of modification
+int NextPermut(u_int8_t *perm,int lg) {
+    int i ;
+    for(i=(--lg - 1);i>=0 && perm[i]>perm[i+1];i--) ;
+    if(i<0) return i ;
+    { int j ;
+        u_int8_t tmp = perm[i] ;
+        for(j=lg;perm[j]<tmp;j--) ;
+        perm[i] =perm[j] ;
+        perm[j] = tmp ;
+        for(j=i+1;j<lg;j++,lg--) {
+            tmp = perm[j] ; perm[j] =perm[lg] ; perm[lg] = tmp ;
+        }
+        return i ;
+    }
+}
+
+// force the change of rg (next value possible), return -1 if impossible
+int NextPermutRg(u_int8_t *perm,int lg,int rg) {
+    if(rg+1 >=lg || rg == 0) return -1 ;
+    HeapSortUint8Rev(perm+rg+1,lg-rg-1) ;
+    return NextPermut(perm,lg);
+}
+
+
+int ChkPermutRg(u_int8_t *perm,int lg,int rg) {
+    int i ;
+    for(i=(lg - 1);i>rg && perm[i]<perm[rg];i--) ;
+    return (i > rg) ;
+}
+
+
+// idem ordre reverse
+// return -1 if last permutation, or the lower index of modification
+int NextPermutRev(u_int8_t *perm,int lg) {
+    int i ;
+    for(i=(--lg - 1);i>=0 && perm[i]<perm[i+1];i--) ;
+    if(i<0) return i ;
+    { int j ;
+        u_int8_t tmp = perm[i] ;
+        for(j=lg;perm[j]>tmp;j--) ;
+        perm[i] =perm[j] ;
+        perm[j] = tmp ;
+        for(j=i+1;j<lg;j++,lg--) {
+            tmp = perm[j] ; perm[j] =perm[lg] ; perm[lg] = tmp ;
+        }
+        return i ;
+    }
+}
+
+int NextPermutRgRev(u_int8_t *perm,int lg,int rg) {
+    if(rg+1 >=lg || rg == 0) return -1 ;
+    HeapSortUint8(perm+rg+1,lg-rg-1) ;
+    return NextPermutRev(perm,lg);
+}
+
+
+
+
 struct  CTX_PRIMETABLE {
     u_int32_t   nbPrime ;
     T_prime     maxValue ;
@@ -294,8 +353,9 @@ int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) {
 
 u_int64_t Sqrt64(u_int64_t val) {
     // on utilse sqrt beaucoup plus efficace (30 fois)
-#if 0
-    return (u_int64_t) sqrt((double)val);
+#if 1
+ //   return (u_int64_t) sqrt((double)val);
+    return sqrtl(val);
 #else
     // Sylvain racine carre a la main classique
     uint64_t sq = 0, b = 1LL << (sizeof(val) * 8 - 2);
@@ -314,6 +374,53 @@ u_int64_t Sqrt64(u_int64_t val) {
     return sq ;
 #endif
 }
+
+u_int32_t Sqrt32(u_int32_t val) {
+#if 1
+//    return (u_int32_t) sqrt((double)val);
+    return sqrtl(val);
+#else
+    // Sylvain racine carre a la main classique
+    uint32_t sq = 0, b = 1L << (sizeof(val) * 8 - 2);
+    while (b > val) {
+        b >>= 2;
+    }
+    while (b) {
+        uint32_t c = sq | b;
+        sq >>= 1 ;
+        if (val >= c) {
+            val -= c;
+            sq |= b;
+        }
+        b >>= 2;
+    }
+    return sq ;
+#endif
+}
+
+u_int16_t Sqrt16(u_int16_t val) {
+#if 0
+    return (u_int16_t) sqrt((double)val);
+#else
+    // Sylvain racine carre a la main classique
+    uint16_t sq = 0, b = 1L << (sizeof(val) * 8 - 2);
+    while (b > val) {
+        b >>= 2;
+    }
+    while (b) {
+        uint16_t c = sq | b;
+        sq >>= 1 ;
+        if (val >= c) {
+            val -= c;
+            sq |= b;
+        }
+        b >>= 2;
+    }
+    return sq ;
+#endif
+}
+
+
 
 u_int32_t FindNbDiv(u_int64_t N, const T_prime *tbPrime) {
     u_int64_t sqr = Sqrt64(N) ;
