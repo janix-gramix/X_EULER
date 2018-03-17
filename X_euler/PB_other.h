@@ -13,6 +13,7 @@
 
 #include "euler_utils.h"
 
+PROTO_PB(579) ;
 PROTO_PB(622) ;
 
 #endif /* PB_other_h */
