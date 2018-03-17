@@ -15,7 +15,7 @@
 #include "PB_other.h"
 
 #define PB579_SIZE  50
-
+#define PB579_MOD   1000000000
 typedef enum ClassV {
     Vabc = 0 ,/* Vaab = 1 , */ V0ab = 2 , V00c = 3
 } ClassV ;
@@ -205,83 +205,26 @@ void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
         int d1 = PGCD(PGCD(IABS(cube.A.x),IABS(cube.A.y)),IABS(cube.A.z)) ;
         int d2 = PGCD(PGCD(IABS(cube.B.x),IABS(cube.B.y)),IABS(cube.B.z)) ;
         int d3 = PGCD(PGCD(IABS(cube.C.x),IABS(cube.C.y)),IABS(cube.C.z)) ;
-        printf("%dx%dx%d X%d (%d,%d,%d)+(%d,%d,%d)+(%d,%d,%d)\n"
-               ,sizex,sizey,sizez,fact
-               ,cube.A.x,cube.A.y,cube.A.z,cube.B.x,cube.B.y,cube.B.z,cube.C.x,cube.C.y,cube.C.z) ;
+ //       printf("%dx%dx%d X%d (%d,%d,%d)+(%d,%d,%d)+(%d,%d,%d)\n"
+ //              ,sizex,sizey,sizez,fact
+ //              ,cube.A.x,cube.A.y,cube.A.z,cube.B.x,cube.B.y,cube.B.z,cube.C.x,cube.C.y,cube.C.z) ;
         CC->nbC++ ;
         for(k=1;k*sizexyz <= PB579_SIZE;k++) {
-            int64_t nbCubes = (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact ;
+ //           int64_t nbCubes = (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact ;
+            int64_t nbCubes =  (((PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)) % PB579_MOD)
+            * (((PB579_SIZE-k*sizez+1) * fact) % PB579_MOD) ;
             CC->nbCube += nbCubes ;
             // (k*N+1) (k*k*N*N+ (d1+d2+d3-N)*k +1 ) pour k=1
-            int64_t nbVertices = (k*N+1) * (k*k*N*N+ (d1+d2+d3-N)*k +1 ) ;
+//            int64_t nbVertices = (k*N+1) * (k*k*N*N+ (d1+d2+d3-N)*k +1 ) ;
+            int64_t nbVertices = ((k*N+1) * ( (int64_t)((k*k)% PB579_MOD ) * ((N*N)% PB579_MOD ) + (( (d1+d2+d3-N)*k )  % PB579_MOD) + 1)) % PB579_MOD ;
  //           printf("k=%d %dc x %lldv=%lld\n,",k,nbCubes,nbVertices,nbCubes * nbVertices) ;
-            CC->nbVertice += nbCubes * nbVertices ;
-            if(fact==8) CC->nb8 += nbCubes * nbVertices ;
-            if(fact==12) CC->nb12 += nbCubes * nbVertices ;
-            if(fact==24) CC->nb24 += nbCubes * nbVertices ;
+            CC->nbVertice = ( CC->nbVertice+((nbCubes * nbVertices) % PB579_MOD)) % PB579_MOD ;
        }
     }
 
     
 }
 
-void AddCube1(CTX_Cube * CC,int32_t a1,int32_t b1,int32_t c1, int32_t a2,int32_t b2,int32_t c2, int N) {
-    cubeO cube ;
-    int offx, offy,offz ;
-    int sizex, sizey,sizez ;
-    cube.A.x = a1 ; cube.A.y = b1 ; cube.A.z = c1 ;
-    cube.B.x = a2 ; cube.B.y = b2 ; cube.B.z = c2 ;
-    cube.C.x = -(b1*c2 - c1*b2) / N ;
-    cube.C.y = -(c1*a2 - a1*c2) / N ;
-    cube.C.z = -(a1*b2 - b1*a2) / N ;
-    CC->nbCand++ ;
-    {
-        int min, max ;
-        min=0 ; max=0 ;
-        if(cube.A.x< 0) min += cube.A.x ;
-        else if(cube.A.x>0) max += cube.A.x ;
-        if(cube.B.x< 0) min += cube.B.x ;
-        else if(cube.B.x>0) max += cube.B.x ;
-        if(cube.C.x< 0) min += cube.C.x ;
-        else if(cube.C.x>0) max += cube.C.x ;
-        offx = -min ;
-        sizex = max + offx ;
-
-        min=0 ; max=0 ;
-        if(cube.A.y< 0) min += cube.A.y ;
-        else if(cube.A.y>0) max += cube.A.y ;
-        if(cube.B.y< 0) min += cube.B.y ;
-        else if(cube.B.y>0) max += cube.B.y ;
-        if(cube.C.y< 0) min += cube.C.y ;
-        else if(cube.C.y>0) max += cube.C.y ;
-        offy = -min ;
-        sizey = max + offy ;
-
-        min=0 ; max=0 ;
-        if(cube.A.z< 0) min += cube.A.z ;
-        else if(cube.A.z>0) max += cube.A.z ;
-        if(cube.B.z< 0) min += cube.B.z ;
-        else if(cube.B.z>0) max += cube.B.z ;
-        if(cube.C.z< 0) min += cube.C.z ;
-        else if(cube.C.z>0) max += cube.C.z ;
-        offz = -min ;
-        sizez = max + offz ;
-        
-    }
-    if(sizex <= PB579_SIZE && sizey <= PB579_SIZE && sizez <= PB579_SIZE) {
-        cubeMin cubeM ;
-        MinimizeCube(&cube,&cubeM);
-        printf("%dx%dx%d(%d,%d,%d)+(%d,%d,%d)+(%d,%d,%d)=>[0,%d,%d][%d,0,%d][%d,%d,0]\n"
-               ,sizex,sizey,sizez
-               ,cube.A.x,cube.A.y,cube.A.z,cube.B.x,cube.B.y,cube.B.z,cube.C.x,cube.C.y,cube.C.z
-               ,cubeM.Ay,cubeM.Az,cubeM.Bx,cubeM.Bz,cubeM.Cx,cubeM.Cy) ;
-        CC->nbC++ ;
-    }
-}
-
-#define TST_ORTHO1(ptC,a1,b1,c1,a2,b2,c2,N) if(-a1*a2+b1*b2+c1*c2 == 0) AddCube(ptC,a1,b1,c1,-a2,b2,c2,N)
-#define TST_ORTHO2(ptC,a1,b1,c1,a2,b2,c2,N) if(a1*a2-b1*b2+c1*c2 == 0)  AddCube(ptC,b1,a1,c1,-b2,a2,c2,N)
-#define TST_ORTHO3(ptC,a1,b1,c1,a2,b2,c2,N) if(a1*a2+b1*b2-c1*c2 == 0)  AddCube(ptC,c1,a1,b1,-c2,a2,b2,N)
 
 static inline V3 R1(V3 T) {
     V3 Tn   ; Tn.x = T.y    ; Tn.y = T.z    ; Tn.z = T.x    ; return Tn ;
@@ -453,8 +396,14 @@ int PB579(PB_RESULT *pbR) {
     CC.nbC = 0 ;
     // on ajoute les cubes alignes sur le reseau
     N = PB579_SIZE ;
-    CC.nbVertice =(((u_int64_t)(N))*(N+1)*(3 * N*N*N*N*N + 39 * N*N*N*N + 213 * N*N*N + 627 * N*N + 640 * N + 158 ))/ 420 ;
+//    CC.nbVertice =(((u_int64_t)(N))*(N+1)*(3 * N*N*N*N*N + 39 * N*N*N*N + 213 * N*N*N + 627 * N*N + 640 * N + 158 ))/ 420 ;
+    int k ;
+    CC.nbVertice = 0 ;
+    for(k=1;k<=N;k++) {
+        CC.nbVertice = (CC.nbVertice + ( (((N+2-k)*(N+2-k)*(N+2-k)) % PB579_MOD) * ((k*k*k) % PB579_MOD) )) % PB579_MOD ;
+    }
     CC.nbCube = (((int64_t)N)*N * (N+1) * (N+1)) / 4 ;
+
     CC.nb8 = CC.nb12 = CC.nb24 = 0L ;
     for(N=3;N<=PB579_SIZE;N+=2) {
         u_int32_t S1 = N*N ;
