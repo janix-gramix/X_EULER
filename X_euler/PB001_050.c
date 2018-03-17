@@ -1162,65 +1162,6 @@ int PB031(PB_RESULT *pbR) {
 }
 
 
-
-// return -1 if last permutation, or the lower index of modification
-static int NextPermut(u_int8_t *perm,int lg) {
-    int i ;
-    for(i=(--lg - 1);i>=0 && perm[i]>perm[i+1];i--) ;
-    if(i<0) return i ;
-    { int j ;
-        u_int8_t tmp = perm[i] ;
-        for(j=lg;perm[j]<tmp;j--) ;
-        perm[i] =perm[j] ;
-        perm[j] = tmp ;
-        for(j=i+1;j<lg;j++,lg--) {
-            tmp = perm[j] ; perm[j] =perm[lg] ; perm[lg] = tmp ;
-        }
-        return i ;
-    }
-}
-
-// force the change of rg (next value possible), return -1 if impossible
-static int NextPermutRg(u_int8_t *perm,int lg,int rg) {
-    if(rg+1 >=lg || rg == 0) return -1 ;
-    HeapSortUint8Rev(perm+rg+1,lg-rg-1) ;
-    return NextPermut(perm,lg);
-}
-
-
-int ChkPermutRg(u_int8_t *perm,int lg,int rg) {
-    int i ;
-    for(i=(lg - 1);i>rg && perm[i]<perm[rg];i--) ;
-    return (i > rg) ;
-}
-
-
-// idem ordre reverse
-// return -1 if last permutation, or the lower index of modification
-static int NextPermutRev(u_int8_t *perm,int lg) {
-    int i ;
-    for(i=(--lg - 1);i>=0 && perm[i]<perm[i+1];i--) ;
-    if(i<0) return i ;
-    { int j ;
-        u_int8_t tmp = perm[i] ;
-        for(j=lg;perm[j]>tmp;j--) ;
-        perm[i] =perm[j] ;
-        perm[j] = tmp ;
-        for(j=i+1;j<lg;j++,lg--) {
-            tmp = perm[j] ; perm[j] =perm[lg] ; perm[lg] = tmp ;
-        }
-        return i ;
-    }
-}
-
-int NextPermutRgRev(u_int8_t *perm,int lg,int rg) {
-    if(rg+1 >=lg || rg == 0) return -1 ;
-    HeapSortUint8(perm+rg+1,lg-rg-1) ;
-    return NextPermutRev(perm,lg);
-}
-
-
-
 int PB032(PB_RESULT *pbR) {
     u_int8_t dg[9] ;
     int Sum = 0 ;

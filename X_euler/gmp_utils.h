@@ -29,4 +29,7 @@ void FCG_GetDen(const FractContG * FCG,mpz_t op) ;
 
 int FCG_CmpDen0(FractContG * FCG,const mpz_t op) ;
 void FCG_GetDen0(const FractContG * FCG,mpz_t op) ;
+
+
+
 #endif /* gmp_utils_h */

@@ -152,6 +152,10 @@ static PB_CALL ALL_calls[] = {
     ,{ 88,  PB088,  "7587457", "Product-sum numbers"}
     ,{ 90,  PB090,  "1217", "Cube digit pairs"}
     ,{ 91,  PB091,  "14234", "Right triangles with integer coordinates"}
+    ,{ 93,  PB093,  "1258", "Arithmetic expressions"}
+// version recursive parametrable en nombre de digits
+//    ,{ 93,  PB093a,  "1258", "Arithmetic expressions"},
+
 // a revoir beaucoup trop lent
 //    ,{100,  PB100,  "756872327473"}
 //    ,{ 1000,  PB1000,  "179424673", "Test 10 000 000 prime numbers"}
@@ -172,8 +176,7 @@ static PB_CALL ALL_calls[] = {
 static PB_CALL CUR_calls[] = {
  //    { 51,  PB051,  "121313" ,   "Prime digit replacements" },
  //   {100,  PB100,  "756872327473"},
-    { 622,  PB622,  "3010983666182123972", "Riffle Shuffles"},
-
+    { 579,  PB579,  "3805524", "Lattice points in lattice cubes"},
 
     {  0,  NULL,   ""}
 } ;
@@ -187,7 +190,7 @@ int main(int argc, const char * argv[]) {
     ttr.isVerbose = 1 ;
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
-    int isCur = 0 ;
+    int isCur = 1 ;
     for(ptCall = (isCur) ? CUR_calls : ALL_calls ; ptCall->pbNum != 0 ; ptCall++) {
         Execute(&ttr,ptCall);
     }
