@@ -261,6 +261,20 @@ static inline int32_t SC (V3 S, V3 T) {
     return S.x*T.x + S.y*T.y + S.z*T.z ;
 }
 
+#define SC_Sx(S,T)  (-(S).x*(T).x + (S).y*(T).y + (S).z*(T).z)
+#define SC_Sy(S,T)  ((S).x*(T).x - (S).y*(T).y + (S).z*(T).z)
+#define SC_Sz(S,T)  ((S).x*(T).x + (S).y*(T).y - (S).z*(T).z)
+
+
+#define SC_Sx_R1(S,T)  (-(S).y*(T).x + (S).z*(T).y + (S).x*(T).z)
+#define SC_Sy_R1(S,T)  ((S).y*(T).x - (S).z*(T).y + (S).x*(T).z)
+#define SC_Sz_R1(S,T)  ((S).y*(T).x + (S).z*(T).y - (S).x*(T).z)
+
+#define SC_Sx_R2(S,T)  (-(S).z*(T).x + (S).x*(T).y + (S).y*(T).z)
+#define SC_Sy_R2(S,T)  ((S).z*(T).x - (S).x*(T).y + (S).y*(T).z)
+#define SC_Sz_R2(S,T)  ((S).z*(T).x + (S).x*(T).y - (S).y*(T).z)
+
+
 void MATCH(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N,V3 T1,V3 T2s, V3 T3) {
     int i3 ;
     for(i3=0;i3<nbT;i3++) {
@@ -324,33 +338,51 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     {
 //        T2s = T2 ; if( SC(T2s,T1) == 0) {
 //            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s =Sx(T2) ; if( SC(T2s,T1) == 0) {
+ 
+/*        T2s =Sx(T2) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sy(T2) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sz(T2) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+*/
+        if(SC_Sx(T2,T1)==0) {
+            T2s = Sx(T2) ; T3 = PVectAbs(T1,Sx(T2),N) ; goto MATCH ;}
+        if(SC_Sy(T2,T1)==0) {
+            T2s = Sy(T2) ; T3 = PVectAbs(T1,Sy(T2),N) ; goto MATCH ;}
+        if(SC_Sz(T2,T1)==0) {
+            T2s = Sz(T2) ; T3 = PVectAbs(T1,Sz(T2),N) ; goto MATCH ;}
+
         
         T2r = R1(T2);
- //       T2s = T2r ; if( SC(T2s,T1) == 0) {
- //           T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s =Sx(T2r) ; if( SC(T2s,T1) == 0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s =Sy(T2r) ; if( SC(T2s,T1) == 0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s =Sz(T2r) ; if( SC(T2s,T1) == 0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
 
+        if(SC_Sx_R1(T2,T1)==0) {
+            T2s = Sx(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        if(SC_Sy_R1(T2,T1)==0) {
+            T2s = Sy(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        if(SC_Sz_R1(T2,T1)==0) {
+            T2s= Sz(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+
+        
+        
         T2r = R2(T2);
  //       T2s = T2r ; if( SC(T2s,T1) == 0) {
  //           T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s =Sx(T2r) ; if( SC(T2s,T1) == 0) {
+/*        T2s =Sx(T2r) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sy(T2r) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sz(T2r) ; if( SC(T2s,T1) == 0) {
             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-
+*/
+        if(SC_Sx_R2(T2,T1)==0) {
+            T2s = Sx(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        if(SC_Sy_R2(T2,T1)==0) {
+            T2s = Sy(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        if(SC_Sz_R2(T2,T1)==0) {
+            T2s= Sz(T2r) ; T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        
+        
         T2r = Pxy(T2);
  //       T2s = T2r ; if( SC(T2s,T1) == 0) {
  //           T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
