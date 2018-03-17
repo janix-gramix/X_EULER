@@ -210,11 +210,11 @@ void AddCube(CTX_Cube * CC,V3 T1,V3 T2,int N,int fact) {
                ,cube.A.x,cube.A.y,cube.A.z,cube.B.x,cube.B.y,cube.B.z,cube.C.x,cube.C.y,cube.C.z) ;
         CC->nbC++ ;
         for(k=1;k*sizexyz <= PB579_SIZE;k++) {
-            int nbCubes = (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact ;
+            int64_t nbCubes = (PB579_SIZE-k*sizex+1)*(PB579_SIZE-k*sizey+1)*(PB579_SIZE-k*sizez+1) * fact ;
             CC->nbCube += nbCubes ;
             // (k*N+1) (k*k*N*N+ (d1+d2+d3-N)*k +1 ) pour k=1
             int64_t nbVertices = (k*N+1) * (k*k*N*N+ (d1+d2+d3-N)*k +1 ) ;
-            printf("k=%d %dc x %lldv=%lld\n,",k,nbCubes,nbVertices,nbCubes * nbVertices) ;
+ //           printf("k=%d %dc x %lldv=%lld\n,",k,nbCubes,nbVertices,nbCubes * nbVertices) ;
             CC->nbVertice += nbCubes * nbVertices ;
             if(fact==8) CC->nb8 += nbCubes * nbVertices ;
             if(fact==12) CC->nb12 += nbCubes * nbVertices ;
@@ -317,6 +317,35 @@ static inline int32_t SC (V3 S, V3 T) {
     return S.x*T.x + S.y*T.y + S.z*T.z ;
 }
 
+void MATCH(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N,V3 T1,V3 T2s, V3 T3) {
+    int i3 ;
+    for(i3=0;i3<nbT;i3++) {
+        if(memcmp(&T3,&(tbTrip[i3].T),sizeof(T3)) == 0 ) {
+            if(i3>= i2) {
+                int fact ;
+                printf("[%d,%d,%d]",i1,i2,i3) ;
+                if(i1==i2) {
+                    if(i3==i2) {
+                        fact = (N==3) ? 4 : 8 ;
+                    } else {//
+                        fact = 12 ;
+                    }
+                } else if(i2==i3) {
+                    fact = 12 ;
+                } else {
+                    fact = 24 ;
+                }
+                AddCube(CC,T1, T2s, N, fact);
+            } else {
+                printf("[*%d,%d,%d]",i1,i2,i3) ; AddCube(CC,T1, T2s, N, 11);
+            }
+            break ;
+        }
+    }
+    if(i3==nbT) {
+       printf("ERROR");
+    }
+}
 
 void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     if(PGCD(tbTrip[i1].gcd,tbTrip[i2].gcd) > 1) return ;
@@ -325,7 +354,7 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     V3 T2r,T2s ;
     V3 T3 ;
     int i3 ;
-    if(tbTrip[i1].cl >= V0ab) {
+/*    if(tbTrip[i1].cl >= V0ab) {
         if(tbTrip[i2].cl < V0ab ) return  ;
         if(tbTrip[i1].cl == tbTrip[i2].cl ) return  ;
         if(tbTrip[i1].cl == V0ab) {
@@ -335,7 +364,20 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
         }
     } else if(tbTrip[i2].cl >= V0ab) {
         return ; // T1 n'est pas V0ab ou V00c
-    }  else {
+    }  else
+*/
+    if(tbTrip[i1].cl == V00c) {
+        if(tbTrip[i2].cl == V0ab ) {
+            AddCube(CC,R1(T2),T1,N,6);
+        }
+        return ;
+    } else if(tbTrip[i2].cl == V00c) {
+        if(tbTrip[i1].cl == V0ab ) {
+            AddCube(CC,R1(T1),T2,N,6); // pas de test a faire cela est OK
+        }
+        return ;
+    }
+    {
         T2s = T2 ; if( SC(T2s,T1) == 0) { T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sx(T2) ; if( SC(T2s,T1) == 0) { T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
         T2s =Sy(T2) ; if( SC(T2s,T1) == 0) { T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
@@ -380,7 +422,7 @@ MATCH:
         if(memcmp(&T3,&(tbTrip[i3].T),sizeof(T3)) == 0 ) {
             if(i3>= i2) {
                 int fact ;
-//                printf("(%d,%d,%d)",i1,i2,i3) ;
+//                printf("[%d,%d,%d]",i1,i2,i3) ;
                 if(i1==i2) {
                     if(i3==i2) {
                         fact = (N==3) ? 4 : 8 ;
@@ -406,7 +448,8 @@ int PB579(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_Cube CC ;
     V3GCD tbTrip[PB579_MAXT] ;
-    u_int32_t n1,n2,n3 ,N ;
+    u_int32_t n1,n2,n3;
+    u_int32_t N ;
     CC.nbC = 0 ;
     // on ajoute les cubes alignes sur le reseau
     N = PB579_SIZE ;
@@ -419,7 +462,7 @@ int PB579(PB_RESULT *pbR) {
         for(n1=0;n1<N;n1++) {
             u_int32_t S2 = S1 - n1*n1 ;
             int n2Max =Sqrt32(S2>>1) ;
-            for(n2=n1;n2<=n2Max;n2++) {
+            for(n2=n1; n2<=n2Max;n2++) {
                 n3 =Sqrt32(S2-n2*n2) ;
                 if(n3*n3 == S2-n2*n2) {
                     int gcd  = PGCD(n1,n2);
@@ -443,7 +486,7 @@ int PB579(PB_RESULT *pbR) {
         }
         if(nbT > 0) {
             int i1,i2 ;
-//            printf("\n%d ",N);
+            printf("\n%d ",N);
             for(i1=0;i1<nbT;i1++){
                 for(i2=i1;i2<nbT;i2++) {
                     VerifCube(&CC,tbTrip,nbT,i1,i2,N) ;
