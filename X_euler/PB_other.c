@@ -243,7 +243,7 @@ static inline V3 Pxz(V3 T) {
     V3 Tn   ; Tn.x = T.z   ; Tn.y = T.y    ; Tn.z = T.x    ; return Tn ;
 }
 
-
+/*
 
 static inline V3 Sx(V3 T) {
     V3 Tn   ; Tn.x = -T.x   ; Tn.y = T.y    ; Tn.z = T.z    ; return Tn ;
@@ -254,76 +254,32 @@ static inline V3 Sy(V3 T) {
 static inline V3 Sz(V3 T) {
     V3 Tn   ; Tn.x = T.x    ; Tn.y = T.y    ; Tn.z = -T.z   ; return Tn ;
 }
+*/
 
 
 
 static inline int32_t SC (V3 S, V3 T) {
     return S.x*T.x + S.y*T.y + S.z*T.z ;
 }
+#define Sx(T)   (T).x = - (T).x
+#define Sy(T)   (T).y = - (T).y
+#define Sz(T)   (T).z = - (T).z
+
 
 #define SC_Sx(S,T)  (-(S).x*(T).x + (S).y*(T).y + (S).z*(T).z)
 #define SC_Sy(S,T)  ((S).x*(T).x - (S).y*(T).y + (S).z*(T).z)
 #define SC_Sz(S,T)  ((S).x*(T).x + (S).y*(T).y - (S).z*(T).z)
 
 
-#define SC_Sx_R1(S,T)  (-(S).y*(T).x + (S).z*(T).y + (S).x*(T).z)
-#define SC_Sy_R1(S,T)  ((S).y*(T).x - (S).z*(T).y + (S).x*(T).z)
-#define SC_Sz_R1(S,T)  ((S).y*(T).x + (S).z*(T).y - (S).x*(T).z)
 
-#define SC_Sx_R2(S,T)  (-(S).z*(T).x + (S).x*(T).y + (S).y*(T).z)
-#define SC_Sy_R2(S,T)  ((S).z*(T).x - (S).x*(T).y + (S).y*(T).z)
-#define SC_Sz_R2(S,T)  ((S).z*(T).x + (S).x*(T).y - (S).y*(T).z)
-
-
-void MATCH(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N,V3 T1,V3 T2s, V3 T3) {
-    int i3 ;
-    for(i3=0;i3<nbT;i3++) {
-        if(memcmp(&T3,&(tbTrip[i3].T),sizeof(T3)) == 0 ) {
-            if(i3>= i2) {
-                int fact ;
-                printf("[%d,%d,%d]",i1,i2,i3) ;
-                if(i1==i2) {
-                    if(i3==i2) {
-                        fact = (N==3) ? 4 : 8 ;
-                    } else {//
-                        fact = 12 ;
-                    }
-                } else if(i2==i3) {
-                    fact = 12 ;
-                } else {
-                    fact = 24 ;
-                }
-                AddCube(CC,T1, T2s, N, fact);
-            } else {
-                printf("[*%d,%d,%d]",i1,i2,i3) ; AddCube(CC,T1, T2s, N, 11);
-            }
-            break ;
-        }
-    }
-    if(i3==nbT) {
-       printf("ERROR");
-    }
-}
 
 void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     if(tbTrip[i1].gcd > 1 && tbTrip[i2].gcd > 1 && PGCD(tbTrip[i1].gcd,tbTrip[i2].gcd) > 1) return ;
     V3 T1 = tbTrip[i1].T ;
     V3 T2 = tbTrip[i2].T ;
-//    V3 T2r,T2s ;
     V3 T3 ;
     int i3 ;
-/*    if(tbTrip[i1].cl >= V0ab) {
-        if(tbTrip[i2].cl < V0ab ) return  ;
-        if(tbTrip[i1].cl == tbTrip[i2].cl ) return  ;
-        if(tbTrip[i1].cl == V0ab) {
-            AddCube(CC,R1(T1),T2,N,6); // pas de test a faire cela est OK
-        } else {
-            AddCube(CC,R1(T2),T1,N,6);
-        }
-    } else if(tbTrip[i2].cl >= V0ab) {
-        return ; // T1 n'est pas V0ab ou V00c
-    }  else
-*/
+
     if(tbTrip[i1].cl == V00c) {
         if(tbTrip[i2].cl == V0ab ) {
             AddCube(CC,R1(T2),T1,N,6);
@@ -336,66 +292,49 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
         return ;
     }
     {
-
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z ;
+        // pas de comparaison directe (tout positif)
+        // pas de Tx et Ty pour comparaison T1 T2 car x1<= y1 <= z1 et x2<= y2 <= z2
+        // de meme pas de Tx pour toutes les autres permutations
+        if(SC_Sz(T2,T1)==0) {
+            Sz(T2) ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
 
 
-        T2 = R1(T2);
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-             T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z;
-        
-
-        T2 = R1(T2) ; // car R1 x R1 = R2 
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z;
-        T2=R1(T2);
-        
-        T2 = Pxy(T2);
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z;
-        T2 = Pxy(T2);
-        
-        T2 = Pyz(T2);
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z;
-        T2 = Pyz(T2);
  
+        T2 = R1(tbTrip[i2].T) ;
+         if(SC_Sy(T2,T1)==0) {
+            T2.y = -T2.y ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+         if(SC_Sz(T2,T1)==0) {
+            T2.z = -T2.z ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+
+
+
+
+        T2 = R2(tbTrip[i2].T) ;
+
+         if(SC_Sy(T2,T1)==0) {
+            T2.y = -T2.y ;  T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+         if(SC_Sz(T2,T1)==0) {
+            T2.z = -T2.z ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+
         
-        T2 = Pxz(T2);
-        T2.x = -T2.x ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
-            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
-        T2.z = -T2.z;
-        T2 = Pxz(T2);
+        T2 = Pxy(tbTrip[i2].T) ;
+         if(SC_Sy(T2,T1)==0) {
+             T2.y = -T2.y ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+          if(SC_Sz(T2,T1)==0) {
+             T2.z = -T2.z ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+
+        T2 = Pyz(tbTrip[i2].T) ;
+        if(SC_Sy(T2,T1)==0) {
+              T2.y = -T2.y ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+          if(SC_Sz(T2,T1)==0) {
+             T2.z = -T2.z ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+
+
+        T2 = Pxz(tbTrip[i2].T) ;
+        if(SC_Sy(T2,T1)==0) {
+            T2.y = -T2.y ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+          if(SC_Sz(T2,T1)==0) {
+             T2.z = -T2.z ; T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
 
 
     }
