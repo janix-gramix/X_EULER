@@ -309,7 +309,7 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     if(tbTrip[i1].gcd > 1 && tbTrip[i2].gcd > 1 && PGCD(tbTrip[i1].gcd,tbTrip[i2].gcd) > 1) return ;
     V3 T1 = tbTrip[i1].T ;
     V3 T2 = tbTrip[i2].T ;
-    V3 T2r,T2s ;
+//    V3 T2r,T2s ;
     V3 T3 ;
     int i3 ;
 /*    if(tbTrip[i1].cl >= V0ab) {
@@ -337,57 +337,65 @@ void VerifCube(CTX_Cube *CC,V3GCD *tbTrip,int nbT, int i1, int i2,int N) {
     }
     {
 
-        T2s = T2 ;
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z ;
 
 
-        T2s = R1(T2);
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-             T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        T2 = R1(T2);
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+             T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z;
+        
 
+        T2 = R1(T2) ; // car R1 x R1 = R2 
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z;
+        T2=R1(T2);
         
+        T2 = Pxy(T2);
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z;
+        T2 = Pxy(T2);
         
-        T2s = R2(T2);
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        T2 = Pyz(T2);
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z;
+        T2 = Pyz(T2);
+ 
         
-        
-        T2s = Pxy(T2);
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        
-        T2s = Pyz(T2);
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-
-        T2s = Pxz(T2);
-        T2s.x = -T2s.x ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.x = -T2s.x ; T2s.y = -T2s.y ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
-        T2s.y = -T2s.y ; T2s.z = -T2s.z ; if(SC(T2s,T1)==0) {
-            T3 = PVectAbs(T1,T2s,N) ; goto MATCH ;}
+        T2 = Pxz(T2);
+        T2.x = -T2.x ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.x = -T2.x ; T2.y = -T2.y ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.y = -T2.y ; T2.z = -T2.z ; if(SC(T2,T1)==0) {
+            T3 = PVectAbs(T1,T2,N) ; goto MATCH ;}
+        T2.z = -T2.z;
+        T2 = Pxz(T2);
 
 
     }
@@ -414,7 +422,7 @@ MATCH:
                 } else {
                     fact = 24 ;
                 }
-                AddCube(CC,T1, T2s, N, fact);
+                AddCube(CC,T1,T2, N, fact);
             }
             break ;
         }
