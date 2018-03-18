@@ -10,6 +10,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 
 #include "PB051_100.h"
@@ -2172,18 +2173,16 @@ int PB092(PB_RESULT *pbR) {
 
 int PB092a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int8_t dig[PB092_NBDIG] ;
-    int16_t sum[PB092_NBDIG] ;
     int maxValue = 81*PB092_NBDIG ;
     u_int64_t nbT[PB092_T89+1] ;
     nbT[1] = 0 ;
     nbT[PB092_T89] = 0 ;
-    int i,n,lgBack  ;
+    int i,k, n,lgBack  ;
     u_int8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
     int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
-    terminal[1] = 1 ; // nbT[1]++ ;
-    terminal[89] = PB092_T89 ; // nbT[PB092_T89]++ ;
-    for(i=1;i<=maxValue;i++) {
+    terminal[1] = 1 ;
+    terminal[89] = PB092_T89 ;
+    for(i=1;i<=maxValue;i++) { // compute terminal pour possible sum
         n = i; lgBack = 0 ;
         while(n>maxValue || terminal[n]==0 ) {
             if(n<=maxValue) backTrace[lgBack++] = n ;
@@ -2193,25 +2192,23 @@ int PB092a(PB_RESULT *pbR) {
             }
             n = nxt ;
         }
-        int k ;
-        for(k=0;k<lgBack;k++) {
-            terminal[backTrace[k]] = terminal[n] ;
-        }
-//        nbT[terminal[n]] += lgBack ;
+        for(k=0;k<lgBack;k++) {  terminal[backTrace[k]] = terminal[n] ;  }
     }
     {
-        u_int64_t * histoSum[PB092_NBDIG] ,sum ;
+        u_int64_t * histoSum[PB092_NBDIG] ;
         int i,nb,is ;
         for(nb=0;nb<PB092_NBDIG;nb++) histoSum[nb] = calloc((81+1)*(nb+1),sizeof(histoSum[nb][0])) ;
-        for(i=0;i<10;i++) histoSum[0][i*i]++  ; // premier // digit
+        for(i=0;i<10;i++) histoSum[0][i*i]++  ; // first digit
         for(nb=1;nb<PB092_NBDIG;nb++) {
-            for(is=0;is<=81*nb;is++) {
+            u_int64_t sum =0;
+            for(is=0;is<=81*nb;is++) { // add a digit
                 for(i=0;i<10;i++) {
                     if(histoSum[nb-1][is]) histoSum[nb][is+i*i] += histoSum[nb-1][is] ;
+                    sum += histoSum[nb-1][is] ;
                 }
             }
-            nbT[1] = nbT[PB092_T89] = 0 ;
-            for(is=1;is<=81*nb;is++) {
+            nbT[0] = nbT[1] = nbT[PB092_T89] = 0 ;
+            for(is=0;is<=81*PB092_NBDIG;is++) {
                 nbT[terminal[is]] += histoSum[nb][is] ;
             }
             if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d %cTerm=89[%lld]\n",pbR->pbNum,(nb==PB092_NBASK-1) ? '*':' ',nbT[PB092_T89]) ;
@@ -2219,8 +2216,6 @@ int PB092a(PB_RESULT *pbR) {
         }
         for(i=0;i<PB092_NBDIG;i++) free(histoSum[i]) ;
     }
-    
-    
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -2438,6 +2433,81 @@ int PB093(PB_RESULT *pbR) {
         
     }
 }
+
+typedef struct FractCont64 {
+    u_int64_t N0 ;
+    u_int64_t D0 ;
+    u_int64_t N1 ;
+    u_int64_t D1 ;
+   
+} FractCont64 ;
+
+void NextFract(FractCont64 * F, int a) {
+    u_int64_t tmp = F->N0 ;
+    F->N0 = F->N1 ;
+    F->N1 = a * F->N0 + tmp ;
+    tmp = F->D0 ;
+    F->D0 = F->D1 ;
+    F->D1 = a * F->D0 + tmp ;
+}
+// Isocele triangle ,
+// For parity reason in pythagore, the base is the even length
+//  B) Length 2N+1,2N+1,2N
+//      (Py) (2N+1)*(2N+1) = N*N + h*h (primary pytha triangle because N and 2N-1 prime)
+//     (2N+1) = m*m+n*n et N=2*m*n (other case N=m*m-n*n impossible due to modulo 4)
+//     => m*m+n*n-4m*n = 1 <=> (m-2n)*(m-2n)=3*n*n + 1 ;
+//     so if d=m-2n n/d near 1/sqrt(3). Continuous fraction 1/sqrt(3) d*d=n*n+1 ;
+//     So m = d+2n ; N=2*m*n ; 2N+1 = m*m+n*n ; h = m*m-n*n ; P=6*N+2
+//     We check (Py)
+//  A) length 2N-1,2N-1,2N
+//     (Py) (2N-1)*(2N-1) = N*N + h*h (primary pytha triangle because N and 2N+1 prime)
+//     (2N-1) = m*m+n*n et N=m*m-n*n (other case N=2*m*n impossible  due to modulo 3)
+//     => m*m=3*n*n+1 so n/m near 1/sqrt(3). Continuous fraction 1/sqrt(3) d*d=n*n+1 ;
+//     Avec m=d N=m*m-n*n 2N-1 = m*m+n*n ; h = 2*m*n P=6*N-2
+//     Check (Py)
+
+#define PB094_MAX   1000000000
+int PB094(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    // continuous fraction for 1/sqrt(3) => 0 1 1 2 1 2 1 2 ...
+    FractCont64 Fsqrt3 = {0,1,1,0} ;
+    NextFract(&Fsqrt3,0);
+    NextFract(&Fsqrt3,1);
+    u_int64_t sumP = 0;
+    while(1) {
+        NextFract(&Fsqrt3,1);
+        int64_t d = Fsqrt3.D1 ;
+        int64_t n = Fsqrt3.N1 ;
+        assert(d*d - 3*n*n == 1 ) ;
+        { // cas A (2N-1)
+            int64_t m = d ;
+            int64_t N = m*m-n*n ;
+            int64_t h = 2*d*n ;
+            int64_t P = 6*N-2;
+            if(P >= PB094_MAX) break ;
+            assert((2*N-1)*(2*N-1) - h*h - N*N == 0 ); // check Pythagore
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d T(2x%lld,%lld) %lld^2 = %lld^2 + %lld^2\n"
+                    ,pbR->pbNum,2*N-1,2*N,2*N-1,N,h) ;
+            sumP += P ;
+        }
+        { // cas B (2N+1)
+            int64_t m = 2*n + d ;
+            int64_t N = 2*m*n ;
+            int64_t h= m*m - n*n ;
+            int64_t P = 6*N+2;
+            assert((2*N+1)*(2*N+1) - h*h - N*N == 0) ; // check Pythagore
+            if(P<PB094_MAX) sumP += P ;
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d T(2x%lld,%lld) %lld^2= %lld^2 + %lld^2\n"
+                                      ,pbR->pbNum,2*N+1,2*N,2*N+1,N,h) ;
+            
+        }
+        NextFract(&Fsqrt3,2);
+    }
+    sprintf(pbR->strRes,"%lld",sumP);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
 
 
 
