@@ -2103,6 +2103,127 @@ int PB091(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB092_NBDIG     19
+#define PB092_NBASK     7
+#define PB092_T89       2
+
+int PB092(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    u_int8_t dig[PB092_NBDIG] ;
+    int16_t sum[PB092_NBDIG] ;
+    int maxValue = 81*PB092_NBDIG ;
+    int nbT[PB092_T89+1] ;
+    nbT[1] = 0 ;
+    nbT[PB092_T89] = 0 ;
+    int i,n,lgBack  ;
+    u_int8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+    int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
+    terminal[1] = 1 ; nbT[1]++ ;
+    terminal[89] = PB092_T89 ; nbT[PB092_T89]++ ;
+    for(i=1;i<=maxValue;i++) {
+        n = i; lgBack = 0 ;
+        while(n>maxValue || terminal[n]==0 ) {
+            if(n<=maxValue) backTrace[lgBack++] = n ;
+            int nxt = 0 ;
+            while(n>0) {
+                nxt += (n % 10) * (n % 10) ;
+                n /= 10 ;
+            }
+            n = nxt ;
+        }
+        int k ;
+        for(k=0;k<lgBack;k++) {
+            terminal[backTrace[k]] = terminal[n] ;
+        }
+        nbT[terminal[n]] += lgBack ;
+    }
+    // on parcours tous les nombres au dela de max value
+    memset(sum,0,PB092_NBDIG*sizeof(sum[0])) ;
+    memset(dig,0,PB092_NBDIG*sizeof(dig[0])) ;
+    for(n=maxValue,i=PB092_NBDIG-1;n!=0;i--) {
+        dig[i] = n % 10 ;
+        sum[i] = dig[i]*dig[i] ;
+        n /= 10 ;
+    }
+    while(++i<=PB092_NBDIG-1) { sum[i] += sum[i-1] ; }
+    int is = PB092_NBDIG-1 ;
+    while(is >=0) {
+        if(dig[is] < 9) {
+            sum[is] += 2*dig[is]+1 ;
+            dig[is]++ ;
+            while(is <PB092_NBDIG-1){
+                is++ ;
+                sum[is] = sum[is-1] ;
+                dig[is] = 0 ;
+            }
+            nbT[terminal[sum[is]]]++ ;
+        } else {
+            is-- ;
+        }
+    }
+    
+    
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Term=1[%d] Term=89[%d]\n",pbR->pbNum,nbT[1],nbT[PB092_T89]) ;
+    sprintf(pbR->strRes,"%d",nbT[PB092_T89]);
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+int PB092a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    u_int8_t dig[PB092_NBDIG] ;
+    int16_t sum[PB092_NBDIG] ;
+    int maxValue = 81*PB092_NBDIG ;
+    u_int64_t nbT[PB092_T89+1] ;
+    nbT[1] = 0 ;
+    nbT[PB092_T89] = 0 ;
+    int i,n,lgBack  ;
+    u_int8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+    int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
+    terminal[1] = 1 ; // nbT[1]++ ;
+    terminal[89] = PB092_T89 ; // nbT[PB092_T89]++ ;
+    for(i=1;i<=maxValue;i++) {
+        n = i; lgBack = 0 ;
+        while(n>maxValue || terminal[n]==0 ) {
+            if(n<=maxValue) backTrace[lgBack++] = n ;
+            int nxt ;
+            for(nxt = 0 ; n > 0; n /= 10 ) {
+                nxt += (n % 10) * (n % 10) ;
+            }
+            n = nxt ;
+        }
+        int k ;
+        for(k=0;k<lgBack;k++) {
+            terminal[backTrace[k]] = terminal[n] ;
+        }
+//        nbT[terminal[n]] += lgBack ;
+    }
+    {
+        u_int64_t * histoSum[PB092_NBDIG] ,sum ;
+        int i,nb,is ;
+        for(nb=0;nb<PB092_NBDIG;nb++) histoSum[nb] = calloc((81+1)*(nb+1),sizeof(histoSum[nb][0])) ;
+        for(i=0;i<10;i++) histoSum[0][i*i]++  ; // premier // digit
+        for(nb=1;nb<PB092_NBDIG;nb++) {
+            for(is=0;is<=81*nb;is++) {
+                for(i=0;i<10;i++) {
+                    if(histoSum[nb-1][is]) histoSum[nb][is+i*i] += histoSum[nb-1][is] ;
+                }
+            }
+            nbT[1] = nbT[PB092_T89] = 0 ;
+            for(is=1;is<=81*nb;is++) {
+                nbT[terminal[is]] += histoSum[nb][is] ;
+            }
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d %cTerm=89[%lld]\n",pbR->pbNum,(nb==PB092_NBASK-1) ? '*':' ',nbT[PB092_T89]) ;
+            if(nb==PB092_NBASK-1 ) sprintf(pbR->strRes,"%lld",nbT[PB092_T89]); ;
+        }
+        for(i=0;i<PB092_NBDIG;i++) free(histoSum[i]) ;
+    }
+    
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
 
 
 
