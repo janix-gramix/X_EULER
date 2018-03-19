@@ -2508,8 +2508,8 @@ int PB094(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB095_MAX   1000000
-#define PB095_MAXLG 100
+#define PB095_MAX   100000000
+#define PB095_MAXLG 200
 int PB095(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE *ctxP ;
@@ -2518,18 +2518,22 @@ int PB095(PB_RESULT *pbR) {
         return 0 ;
     }
     int32_t *SumDiv = malloc(PB095_MAX*sizeof(SumDiv[0]));
-    int32_t Back[PB095_MAXLG] ;
-    int32_t BestChain[PB095_MAXLG] ;
+    int32_t Back[PB095_MAXLG+1] ;
+    int32_t BestChain[PB095_MAXLG+1] ;
 
     int i ;
+    int nbP = GetNbPrime(ctxP);
+    const u_int32_t *tbPrime = GetTbPrime(ctxP) ;
+    int sqrtMax = Sqrt32(PB095_MAX) ;
+    int np ;
+
     for(i=0;i<PB095_MAX;i++) {
         SumDiv[i]= 1 ;
     }
-    int nbP = GetNbPrime(ctxP);
-    const u_int32_t *tbPrime = GetTbPrime(ctxP) ;
-    int np ;
-    for(np=0 ; np<nbP ; np++ ) {
+    // compute Sum of divisor with prime P < sqrt(PB095_MAXLG)
+    for(np=0 ; np<nbP; np++ ) {
         u_int32_t P = tbPrime[np] ;
+        if(P> sqrtMax) break ;
         u_int32_t m_powP , m  ,powP , mulP , mGtP;
         for(mGtP=1,powP=P,mulP= (P+1);mGtP;powP *= P , mulP = mulP*P+1) {
             for(m=1,mGtP=0,m_powP = powP ; m_powP < PB095_MAX ; m++, m_powP+=powP ) {
@@ -2538,30 +2542,54 @@ int PB095(PB_RESULT *pbR) {
             }
         }
     }
+    
+    // only m x P**1 can occurs
+    for(;np < nbP ; np++) {
+        u_int32_t P = tbPrime[np] ;
+        u_int32_t m_P ;
+        for(m_P = P ; m_P < PB095_MAX ; m_P += P ) {
+            SumDiv[m_P] *= P+1 ;
+        }
+    }
     for(i=0;i<PB095_MAX;i++) {
-        SumDiv[i] -= i ;
+        if(SumDiv[i]-i<PB095_MAX ) {
+            SumDiv[i] = SumDiv[i] - i ;
+        } else {
+            SumDiv[i] = 0 ;
+        }
     }
     int lgMax = 0;
     int jmin = 0 ;
     for(i=0;i<PB095_MAX;i++) {
         if(SumDiv[i]==0) continue ;
-        int j =  i ;
-        int lg = 0 ;
-        while(SumDiv[j] > 0 && SumDiv[j] < PB095_MAX) {
+        int j , nj , lg ;
+        for(j=i,lg=0 ; SumDiv[j] > 0 ; j=nj) {
             Back[lg++] = j ;
-            int nj = SumDiv[j] ;
+            nj = SumDiv[j] ;
             SumDiv[j] = - lg ;
-            j = nj ;
+            if(lg >= PB095_MAXLG) {
+                fprintf(stdout,"\t PB%0.3d FATAL ERROR MAXLG=%d Reached\n",pbR->pbNum,PB095_MAXLG) ;
+                return 0 ;
+            }
         }
         if(SumDiv[j] < 0 ) {
             int lgChain = lg + SumDiv[j] + 1 ;
             if(lgChain > lgMax) {
                 lgMax = lgChain ;
-                jmin = j ;
-                int k ;
-                for(k=-SumDiv[j]-1;k<lg;k++) BestChain[k+SumDiv[j]+1]=Back[k];
-                BestChain[lgMax] = j ;
+                int k , kmin = 0  ;
+                jmin = PB095_MAX ;
+                for(k=lg - lgChain ;k<lg;k++) {
+                    if(Back[k] < jmin) {
+                        jmin = Back[k] ;
+                        kmin = k ;
+                    }
+                }
+                for(k=0;k<lgChain;k++) {
+                    BestChain[k] = (k+kmin < lg) ? Back[k+kmin] : Back[k+kmin - lgChain];
+                }
+                BestChain[lgChain] = jmin ;
             }
+
         }
         while(--lg >= 0) {
             SumDiv[Back[lg]] = 0 ;
@@ -2570,8 +2598,9 @@ int PB095(PB_RESULT *pbR) {
     Free_tablePrime(ctxP);
     free(SumDiv) ;
     if(pbR->isVerbose) {
+        int k ;
         fprintf(stdout,"\t PB%0.3d Chain[%d]=%d ",pbR->pbNum,jmin,lgMax) ;
-        for(i=0;i<=lgMax;i++) printf("%d%c",BestChain[i],(i==lgMax) ? '\n' : '>');
+        for(k=0;k<=lgMax;k++) printf("%d%c",BestChain[k],(k==lgMax) ? '\n' : '>');
     }
     sprintf(pbR->strRes,"%d",jmin) ;
     pbR->nbClock = clock() - pbR->nbClock ;
