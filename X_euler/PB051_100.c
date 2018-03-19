@@ -2508,7 +2508,7 @@ int PB094(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB095_MAX   100000000
+#define PB095_MAX   1000000
 #define PB095_MAXLG 200
 int PB095(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
@@ -2531,7 +2531,7 @@ int PB095(PB_RESULT *pbR) {
         SumDiv[i]= 1 ;
     }
     // compute Sum of divisor with prime P < sqrt(PB095_MAXLG)
-    for(np=0 ; np<nbP; np++ ) {
+    for(np=0;np<nbP; np++) {
         u_int32_t P = tbPrime[np] ;
         if(P> sqrtMax) break ;
         u_int32_t m_powP , m  ,powP , mulP , mGtP;
@@ -2551,6 +2551,7 @@ int PB095(PB_RESULT *pbR) {
             SumDiv[m_P] *= P+1 ;
         }
     }
+    // substract N, and remove too big by setting to zero
     for(i=0;i<PB095_MAX;i++) {
         if(SumDiv[i]-i<PB095_MAX ) {
             SumDiv[i] = SumDiv[i] - i ;
@@ -2560,38 +2561,39 @@ int PB095(PB_RESULT *pbR) {
     }
     int lgMax = 0;
     int jmin = 0 ;
+    // search loop
     for(i=0;i<PB095_MAX;i++) {
         if(SumDiv[i]==0) continue ;
         int j , nj , lg ;
         for(j=i,lg=0 ; SumDiv[j] > 0 ; j=nj) {
             Back[lg++] = j ;
             nj = SumDiv[j] ;
-            SumDiv[j] = - lg ;
+            SumDiv[j] = - lg ; // mark the current path by negative number
             if(lg >= PB095_MAXLG) {
                 fprintf(stdout,"\t PB%0.3d FATAL ERROR MAXLG=%d Reached\n",pbR->pbNum,PB095_MAXLG) ;
                 return 0 ;
             }
         }
-        if(SumDiv[j] < 0 ) {
-            int lgChain = lg + SumDiv[j] + 1 ;
-            if(lgChain > lgMax) {
+        if(SumDiv[j] < 0 ) { // loop detected
+            int lgChain = lg + SumDiv[j] + 1 ; // remove the initial branch
+            if(lgChain > lgMax) { // better loop ?
                 lgMax = lgChain ;
                 int k , kmin = 0  ;
                 jmin = PB095_MAX ;
-                for(k=lg - lgChain ;k<lg;k++) {
+                for(k=lg - lgChain ;k<lg;k++) { // search min value
                     if(Back[k] < jmin) {
                         jmin = Back[k] ;
                         kmin = k ;
                     }
                 }
-                for(k=0;k<lgChain;k++) {
+                for(k=0;k<lgChain;k++) { // save loop for final result
                     BestChain[k] = (k+kmin < lg) ? Back[k+kmin] : Back[k+kmin - lgChain];
                 }
                 BestChain[lgChain] = jmin ;
             }
 
         }
-        while(--lg >= 0) {
+        while(--lg >= 0) { // erase the current path 
             SumDiv[Back[lg]] = 0 ;
         }
     }
