@@ -2508,6 +2508,76 @@ int PB094(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB095_MAX   1000000
+#define PB095_MAXLG 100
+int PB095(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE *ctxP ;
+    if((ctxP = Gen_tablePrime(PB095_MAX)) == NULL) {
+        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        return 0 ;
+    }
+    int32_t *SumDiv = malloc(PB095_MAX*sizeof(SumDiv[0]));
+    int32_t Back[PB095_MAXLG] ;
+    int32_t BestChain[PB095_MAXLG] ;
+
+    int i ;
+    for(i=0;i<PB095_MAX;i++) {
+        SumDiv[i]= 1 ;
+    }
+    int nbP = GetNbPrime(ctxP);
+    const u_int32_t *tbPrime = GetTbPrime(ctxP) ;
+    int np ;
+    for(np=0 ; np<nbP ; np++ ) {
+        u_int32_t P = tbPrime[np] ;
+        u_int32_t m_powP , m  ,powP , mulP , mGtP;
+        for(mGtP=1,powP=P,mulP= (P+1);mGtP;powP *= P , mulP = mulP*P+1) {
+            for(m=1,mGtP=0,m_powP = powP ; m_powP < PB095_MAX ; m++, m_powP+=powP ) {
+                if(m==P) { m= 0; mGtP = 1 ; continue ; }
+                SumDiv[m_powP] *= mulP;
+            }
+        }
+    }
+    for(i=0;i<PB095_MAX;i++) {
+        SumDiv[i] -= i ;
+    }
+    int lgMax = 0;
+    int jmin = 0 ;
+    for(i=0;i<PB095_MAX;i++) {
+        if(SumDiv[i]==0) continue ;
+        int j =  i ;
+        int lg = 0 ;
+        while(SumDiv[j] > 0 && SumDiv[j] < PB095_MAX) {
+            Back[lg++] = j ;
+            int nj = SumDiv[j] ;
+            SumDiv[j] = - lg ;
+            j = nj ;
+        }
+        if(SumDiv[j] < 0 ) {
+            int lgChain = lg + SumDiv[j] + 1 ;
+            if(lgChain > lgMax) {
+                lgMax = lgChain ;
+                jmin = j ;
+                int k ;
+                for(k=-SumDiv[j]-1;k<lg;k++) BestChain[k+SumDiv[j]+1]=Back[k];
+                BestChain[lgMax] = j ;
+            }
+        }
+        while(--lg >= 0) {
+            SumDiv[Back[lg]] = 0 ;
+        }
+    }
+    Free_tablePrime(ctxP);
+    free(SumDiv) ;
+    if(pbR->isVerbose) {
+        fprintf(stdout,"\t PB%0.3d Chain[%d]=%d ",pbR->pbNum,jmin,lgMax) ;
+        for(i=0;i<=lgMax;i++) printf("%d%c",BestChain[i],(i==lgMax) ? '\n' : '>');
+    }
+    sprintf(pbR->strRes,"%d",jmin) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
 
 
 
