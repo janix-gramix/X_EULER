@@ -13,6 +13,7 @@
 #include "euler_utils.h"
 #include "PB001_050.h"
 #include "PB051_100.h"
+#include "PB101_150.h"
 #include "PB_gmp.h"
 #include "PB_other.h"
 
@@ -152,9 +153,15 @@ static PB_CALL ALL_calls[] = {
     ,{ 88,  PB088,  "7587457", "Product-sum numbers"}
     ,{ 90,  PB090,  "1217", "Cube digit pairs"}
     ,{ 91,  PB091,  "14234", "Right triangles with integer coordinates"}
+//    ,{ 92,  PB092,  "8581146", "Square digit chains"}
+    ,{ 92,  PB092a,  "8581146", "Square digit chains"}
     ,{ 93,  PB093,  "1258", "Arithmetic expressions"}
 // version recursive parametrable en nombre de digits
 //    ,{ 93,  PB093a,  "1258", "Arithmetic expressions"},
+    ,{ 94,  PB094,  "518408346", "Almost equilateral triangles"}
+    ,{ 95,  PB095,  "14316", "Amicable chains"}
+
+    ,{ 579,  PB579,  "3805524", "Lattice points in lattice cubes"}
 
 // a revoir beaucoup trop lent
 //    ,{100,  PB100,  "756872327473"}
@@ -176,7 +183,7 @@ static PB_CALL ALL_calls[] = {
 static PB_CALL CUR_calls[] = {
  //    { 51,  PB051,  "121313" ,   "Prime digit replacements" },
  //   {100,  PB100,  "756872327473"},
-    { 579,  PB579,  "3805524", "Lattice points in lattice cubes"},
+    { 101,  PB101,  "37076114526", "Optimum polynomial"},
 
     {  0,  NULL,   ""}
 } ;
@@ -190,8 +197,10 @@ int main(int argc, const char * argv[]) {
     ttr.isVerbose = 1 ;
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
-    int isCur = 1 ;
-    for(ptCall = (isCur) ? CUR_calls : ALL_calls ; ptCall->pbNum != 0 ; ptCall++) {
+//    int isALL = 100 ;
+    int isALL = 0 ;
+    int pbMax = (isALL == 0) ? 1000 : isALL ;
+    for(ptCall = (isALL==0) ? CUR_calls : ALL_calls ; ptCall->pbNum != 0 && ptCall->pbNum < pbMax ; ptCall++) {
         Execute(&ttr,ptCall);
     }
     fprintf(stdout,"### Execution of %d PB en %.06fs (%d en erreur)\n",ttr.nbPBOK+ttr.nbPBerror,(float) ttr.TotalClock / CLOCKS_PER_SEC,ttr.nbPBerror) ;

@@ -2593,7 +2593,7 @@ int PB095(PB_RESULT *pbR) {
             }
 
         }
-        while(--lg >= 0) { // erase the current path 
+        while(--lg >= 0) { // erase the current path
             SumDiv[Back[lg]] = 0 ;
         }
     }
