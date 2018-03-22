@@ -163,21 +163,8 @@ int PB101(PB_RESULT *pbR) {
 
 #define PB103_NB    7
 #define PB103_MAX_DELTA   300
-int Check(int *v) {
-    
-//    if(v[0] <= v[6]+v[5]+v[4]-v[3]-v[2]-v[1]) return 0 ;
+int CheckEquality(int *v) {
     int k ;
-    for(k=1;2*k<PB103_NB;k++) {
-        int j ;
-        int D =0 ;
-        for(j=0;j<k;j++){
-            D += v[PB103_NB-1-j] - v[j+1] ;
-            if(v[0] <= D) {
-                return 0 ;
-            }
-        }
-    }
-//    u_int8_t arr[PB103_NB] = { 0,1,2,3,4,5,6} ;
     for(k=2;2*k<=PB103_NB;k++) {
         int j ;
         u_int8_t arr[PB103_NB] ;
@@ -194,6 +181,37 @@ int Check(int *v) {
     }
     return 1;
 }
+int MinCheck(int * v) {
+    int k;
+    int minV0 = 0 ;
+    for(k=1;2*k<PB103_NB;k++) {
+        int j ;
+        int D =0 ;
+        for(j=0;j<k;j++){
+            D += v[PB103_NB-1-j] - v[j+1] ;
+            if(D > minV0) minV0 = D ;
+        }
+    }
+    return minV0+1 ;
+}
+
+int Check(int *v) {
+    if(v[0] < MinCheck(v)) return 0 ;
+/*    int k ;
+    for(k=1;2*k<PB103_NB;k++) {
+        int j ;
+        int D =0 ;
+        for(j=0;j<k;j++){
+            D += v[PB103_NB-1-j] - v[j+1] ;
+            if(v[0] <= D) {
+                return 0 ;
+            }
+        }
+    }
+ */
+    return CheckEquality(v);
+}
+
 
 int PB103(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
