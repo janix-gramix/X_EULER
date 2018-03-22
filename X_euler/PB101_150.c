@@ -161,33 +161,15 @@ int PB101(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB013_MAXNB     10
 #define PB103_NB   7
 #define PB103_MAX_DELTA   300
-/*
-int CheckEquality(int *v) {
+
+int CheckEquality(int *v,int lg) {
     int k ;
-    for(k=2;2*k<=PB103_NB;k++) {
+    for(k=2;2*k<=lg;k++) {
         int j ;
-        u_int8_t arr[PB103_NB] ;
-        for(j=0;j<PB103_NB;j++)arr[j] = j ;
-        do {
-            int D = 0 ;
-            for(j=0;j<k;j++){
-                D += v[arr[j]] - v[arr[j+k]] ;
-                if( D == 0) {
-                    return 0 ;
-                }
-            }
-        } while(NextArrangement(arr,2*k,PB103_NB) >= 0) ;
-    }
-    return 1;
-}
-*/
-int CheckEquality(int *v) {
-    int k ;
-    for(k=2;2*k<=PB103_NB;k++) {
-        int j ;
-        u_int8_t perm2[PB103_NB] ;
+        u_int8_t perm2[PB013_MAXNB] ;
         for(j=0;j<2*k;j++)perm2[j] = j ;
         do {
             int S = 0 ;
@@ -196,7 +178,7 @@ int CheckEquality(int *v) {
             }
             if (S & 1) continue ; // pas divisible par 2
             S  /= 2 ;
-            u_int8_t perm[PB103_NB] ;
+            u_int8_t perm[PB013_MAXNB] ;
             for(j=0;j<k;j++)perm[j] = j ;
             do {
                 int D = S ;
@@ -207,24 +189,26 @@ int CheckEquality(int *v) {
                     }
                 }
             } while(NextSub(perm,k,2*k) >= 0 ) ;
-        } while(NextSub(perm2,2*k,PB103_NB) >= 0) ;
+        } while(NextSub(perm2,2*k,lg) >= 0) ;
     }
     return 1;
 }
 
 
-int MinCheck(int * v) {
+
+int MinCheck(int * v,int lg) {
     int minV0 = 1 ;
     int j ;
-    for(j=0;j<(PB103_NB-1)/2;j++){
-        minV0 += v[PB103_NB-1-j] - v[j+1] ;
+    int lg2 = (lg-1)/2 ;
+    for(j=0;j<lg2;j++){
+        minV0 += v[lg-1-j] - v[j+1] ;
     }
     return minV0 ;
 }
 
-int Check(int *v) {
-    if(v[0] < MinCheck(v)) return 0 ;
-    return CheckEquality(v);
+int Check(int *v, int lg) {
+    if(v[0] < MinCheck(v,lg)) return 0 ;
+    return CheckEquality(v,lg);
 }
 
 
@@ -277,9 +261,9 @@ int PB103(PB_RESULT *pbR) {
 //                if(deltaS > Smin - PB103_NB * ((PB103_NB-1)/2) * ((PB103_NB-1)/2)) { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
                 if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
                 //               for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
-                v0 = MinCheck(values) ;
+                v0 = MinCheck(values,PB103_NB) ;
                 S += PB103_NB * v0 ;
-                if(S < Smin && CheckEquality(values))  {
+                if(S < Smin && CheckEquality(values,PB103_NB))  {
                     int j ;
                     Smin = S ;
                     if(v0 < minV0) minV0= v0 ;
