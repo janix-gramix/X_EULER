@@ -161,3 +161,105 @@ int PB101(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB103_NB    7
+#define PB103_MAX_DELTA   300
+int Check(int *v) {
+    
+//    if(v[0] <= v[6]+v[5]+v[4]-v[3]-v[2]-v[1]) return 0 ;
+    int k ;
+    for(k=1;2*k<PB103_NB;k++) {
+        int j ;
+        int D =0 ;
+        for(j=0;j<k;j++){
+            D += v[PB103_NB-1-j] - v[j+1] ;
+            if(v[0] <= D) {
+                return 0 ;
+            }
+        }
+    }
+//    u_int8_t arr[PB103_NB] = { 0,1,2,3,4,5,6} ;
+    for(k=2;2*k<=PB103_NB;k++) {
+        int j ;
+        u_int8_t arr[PB103_NB] ;
+        for(j=0;j<PB103_NB;j++)arr[j] = j ;
+        do {
+            int D = 0 ;
+            for(j=0;j<k;j++){
+                D += v[arr[j]] - v[arr[j+k]] ;
+                if( D == 0) {
+                    return 0 ;
+                }
+            }
+        } while(NextArrangement(arr,2*k,PB103_NB) >= 0) ;
+    }
+    return 1;
+}
+
+int PB103(PB_RESULT *pbR) {
+    pbR->nbClock = clock() - pbR->nbClock ;
+
+    int values[PB103_NB] ;
+    int vmin ;
+    int isNotFound = 1;
+    for(vmin=19;vmin<30 && isNotFound ;vmin++) {
+        values[0] = vmin ;
+        int j ;
+        int is = PB103_NB - 2 ;
+        int deltaS = 0 ;
+        int delta = deltaS ;
+        int Delta[PB103_NB] ;
+        for(j=0;j<PB103_NB;j++) Delta[j] = 0 ;
+        while(1) {
+           { int j ; for(j=1;j<PB103_NB;j++) values[j] = values[j-1]+Delta[j]+1 ;
+//                for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
+            }
+
+            if(Check(values))  {
+                int j ;
+                int S =0;
+                for(j=0;j<PB103_NB;j++) S += values[j] ;
+                printf("S=%d ",S) ;
+                int lg = 0 ;
+                for(j=0;j<PB103_NB;j++){
+                    printf("%d%c",values[j],(j==PB103_NB-1) ? '\n' : ',' ) ;
+                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]) ;
+                }
+                isNotFound = 0 ;
+                break ;
+            }
+            
+
+            while(PB103_NB-is > delta){
+                delta += (PB103_NB-is) * Delta[is] ;
+                Delta[is] = 0;
+                if(--is == 0 || PB103_NB-is > deltaS) break ;
+            }
+            if(is == 0) {
+//                printf("[%d]", deltaS) ;
+                if(deltaS > PB103_MAX_DELTA) {
+                    printf("vmin=%d\n",vmin) ;
+                    break ;
+                }
+                delta += (PB103_NB-1) * Delta[1] ;
+                Delta[1] = 0;
+                deltaS++ ;
+                delta = deltaS  ;
+                Delta[PB103_NB-1] = delta ;
+                is = PB103_NB-2 ;
+
+     //           delta = deltaS ;
+            } else if(PB103_NB-is <= delta) {
+                Delta[is]++ ; delta -= PB103_NB-is ;
+                Delta[PB103_NB-1] = delta ;
+                is = PB103_NB-2 ;
+            } else {
+                deltaS++ ;
+                delta = deltaS  ;
+                Delta[PB103_NB-1] = delta ;
+                is = PB103_NB-2 ;
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
