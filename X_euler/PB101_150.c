@@ -161,7 +161,7 @@ int PB101(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB103_NB    7
+#define PB103_NB    6
 #define PB103_MAX_DELTA   300
 int CheckEquality(int *v) {
     int k ;
@@ -202,7 +202,10 @@ int PB103(PB_RESULT *pbR) {
     int values[PB103_NB] ;
     int vmin ;
     int isNotFound = 1;
-    for(vmin=19;vmin<30 && isNotFound ;vmin++) {
+    int Smin = 10000000 ;
+//    for(vmin=19;vmin<30 && isNotFound ;vmin++)
+    for(vmin = 0;isNotFound;)
+    {
         values[0] = vmin ;
         int j ;
         int is = PB103_NB - 2 ;
@@ -211,22 +214,30 @@ int PB103(PB_RESULT *pbR) {
         int Delta[PB103_NB] ;
         for(j=0;j<PB103_NB;j++) Delta[j] = 0 ;
         while(1) {
-           { int j ; for(j=1;j<PB103_NB;j++) values[j] = values[j-1]+Delta[j]+1 ;
-//                for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
-            }
-
-            if(Check(values))  {
-                int j ;
-                int S =0;
-                for(j=0;j<PB103_NB;j++) S += values[j] ;
-                printf("S=%d ",S) ;
-                int lg = 0 ;
-                for(j=0;j<PB103_NB;j++){
-                    printf("%d%c",values[j],(j==PB103_NB-1) ? '\n' : ',' ) ;
-                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]) ;
+            int minV0, S=0 ;
+            { int j ;
+                for(j=1;j<PB103_NB;j++) {
+                    values[j] = values[j-1]+Delta[j]+1 ; S += values[j] ;
                 }
-                isNotFound = 0 ;
-                break ;
+                // car v0+v1+v2+v3 > v6+v5+v4 => S > 2*(v6+v5+v4) > (PB103_NB-1)/(PB103_NB) * deltaS ;
+//                if(deltaS*(PB103_NB-1) > Smin * PB103_NB) { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
+                // S = deltaS + 7 * v0 et v0 > (v6-v3)+(v5-v2)+(v4-v1) >= ((PB103_NB-1)/2) * ((PB103_NB-1)/2))
+                if(deltaS > Smin - PB103_NB * ((PB103_NB-1)/2) * ((PB103_NB-1)/2)) { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
+ //               for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
+                minV0 = MinCheck(values) ;
+                S += PB103_NB * minV0 ;
+                if(S < Smin && CheckEquality(values))  {
+                    int j ;
+                    Smin = S ;
+                    printf("S=%d,%d ",S,deltaS) ;
+                    int lg = 0 ;
+                    for(j=0;j<PB103_NB;j++){
+                        printf("%d%c",values[j]+minV0,(j==PB103_NB-1) ? '\n' : ',' ) ;
+                        lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+minV0) ;
+                    }
+  //              isNotFound = 0 ;
+  //              break ;
+                }
             }
             
 
