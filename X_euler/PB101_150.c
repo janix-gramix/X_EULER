@@ -182,33 +182,16 @@ int CheckEquality(int *v) {
     return 1;
 }
 int MinCheck(int * v) {
-    int k;
-    int minV0 = 0 ;
-    for(k=1;2*k<PB103_NB;k++) {
-        int j ;
-        int D =0 ;
-        for(j=0;j<k;j++){
-            D += v[PB103_NB-1-j] - v[j+1] ;
-            if(D > minV0) minV0 = D ;
-        }
+    int minV0 = 1 ;
+    int j ;
+    for(j=0;j<(PB103_NB-1)/2;j++){
+        minV0 += v[PB103_NB-1-j] - v[j+1] ;
     }
-    return minV0+1 ;
+    return minV0 ;
 }
 
 int Check(int *v) {
     if(v[0] < MinCheck(v)) return 0 ;
-/*    int k ;
-    for(k=1;2*k<PB103_NB;k++) {
-        int j ;
-        int D =0 ;
-        for(j=0;j<k;j++){
-            D += v[PB103_NB-1-j] - v[j+1] ;
-            if(v[0] <= D) {
-                return 0 ;
-            }
-        }
-    }
- */
     return CheckEquality(v);
 }
 
