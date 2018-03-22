@@ -14,6 +14,7 @@
 
 
 #include "PB101_150.h"
+#include "p105_data.h"
 
 #define PB101_DEG   10
 int64_t P(int32_t n) {
@@ -161,8 +162,8 @@ int PB101(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB013_MAXNB     10
-#define PB103_NB   7
+#define PB013_MAXNB     16
+#define PB103_NB   8
 #define PB103_MAX_DELTA   300
 
 int CheckEquality(int *v,int lg) {
@@ -194,6 +195,39 @@ int CheckEquality(int *v,int lg) {
     return 1;
 }
 
+#define PB103_MAXS  20000
+int CheckEquality2(int *v,int lg,int v0) {
+    int k ;
+    static  u_int8_t isVal0[PB103_MAXS] ;
+    static u_int8_t isVal1[PB103_MAXS] ;
+    u_int8_t *antVal = isVal0, *curVal=isVal1 ;
+    int S  = 0 , antS ;
+    antVal[0] = 1 ;
+//    { int i; for(i=0;i<lg;i++) printf("%d%c",v[i],(i==lg-1) ? '\n' : ',') ; }
+    for(k=0;k<lg-1;k++) {
+        antS=S ;
+        int vk = v[k]+v0 ;
+        S += vk ;
+        int j ;
+        for(j=0;j<=S;j++)  {
+            if( j<= antS) curVal[j] = antVal[j];
+            else curVal[j] = 0 ;
+            int jvk = (j>=vk) ? (j-vk) : (vk-j) ;
+            if(jvk <=antS && antVal[jvk]) curVal[j] = 1;
+            else if (j+vk<=antS && antVal[j+vk]) curVal[j] = 1;
+        }
+        if(v[k+1]+v0 <= S && curVal[v[k+1]+v0]) {
+            return 0 ;
+        }
+//        { int i; printf("%d ", vk) ;for(i=0;i<=S;i++) { if((i%10)==0) printf(" ");  printf("%d",curVal[i]);  } printf("\n"); }
+        u_int8_t *tmp = antVal ;
+        antVal = curVal ;
+        curVal = tmp ;
+        
+    }
+    return 1 ;
+}
+
 
 
 int MinCheck(int * v,int lg) {
@@ -213,7 +247,7 @@ int Check(int *v, int lg) {
 
 
 int PB103(PB_RESULT *pbR) {
-    pbR->nbClock = clock() - pbR->nbClock ;
+    pbR->nbClock = clock() ;
 
     int values[PB103_NB] ;
     int vmin ;
@@ -263,7 +297,8 @@ int PB103(PB_RESULT *pbR) {
                 //               for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
                 v0 = MinCheck(values,PB103_NB) ;
                 S += PB103_NB * v0 ;
-                if(S < Smin && CheckEquality(values,PB103_NB))  {
+//                if(S < Smin && CheckEquality(values,PB103_NB))  {
+                if(S < Smin && CheckEquality2(values,PB103_NB,v0))  {
                     int j ;
                     Smin = S ;
                     if(v0 < minV0) minV0= v0 ;
@@ -306,6 +341,31 @@ int PB103(PB_RESULT *pbR) {
             }
         }
     }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+int Cmpint16(const void *el1, const void *el2) {
+    return ((int16_t *)el1)[0] - ((int16_t *)el2)[0] ;
+}
+
+int PB105(PB_RESULT *pbR) {
+    pbR->nbClock = clock()  ;
+    int32_t * * tbSub = P105_GetData() ;
+    int nt ;
+    u_int32_t S =0 ;
+    for(nt=0;tbSub[nt] != 0; nt++){
+        int32_t * sub = tbSub[nt] ;
+        int lg ;
+        for(lg=0;sub[lg]!=0;lg++) ;
+        heapsort(sub,lg,sizeof(sub[0]),Cmpint16) ;
+        if(sub[0] >= MinCheck(sub,lg)  && CheckEquality2(sub,lg,0)) {
+            int i;
+            for(i=0;i<lg;i++) S += sub[i] ;
+            printf("%d ",nt);
+        }
+    }
+    sprintf(pbR->strRes,"%d",S) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
