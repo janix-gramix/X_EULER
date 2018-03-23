@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB013_MAXNB     16
-#define PB103_NB   7
+#define PB103_NB   8
 #define PB103_MAX_DELTA   300
 
 int CheckEquality(int *v,int lg) {
@@ -244,63 +244,51 @@ int PB103(PB_RESULT *pbR) {
     {
         values[0] = vmin ;
         int j ;
-        int is = PB103_NB - 2 ;
+        int is = 1 ;
         int deltaS = 0 ;
         int delta = deltaS ;
         int Delta[PB103_NB] ;
-        for(j=0;j<PB103_NB;j++) Delta[j] = 0;
+        for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
         Delta[PB103_NB-1] = deltaS ;
         while(1) {
-            int v0, S=0 ;
-            { int j ;
-                for(j=1;j<PB103_NB;j++) {
-                    values[j] = values[j-1]+Delta[j]+1 ; S += values[j] ;
-                }
-                // car v0+v1+v2+v3 > v6+v5+v4 => S > 2*(v6+v5+v4) > (PB103_NB-1)/(PB103_NB) * deltaS ;
-//                if(deltaS*(PB103_NB-1) > Smin * PB103_NB) { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-                // S = deltaS + 7 * v0 et v0 > (v6-v3)+(v5-v2)+(v4-v1) >= ((PB103_NB-1)/2) * ((PB103_NB-1)/2))
-//                if(deltaS > Smin - PB103_NB * ((PB103_NB-1)/2) * ((PB103_NB-1)/2)) { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-                if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-                //               for(j=0;j<PB103_NB;j++)printf("%d%c",values[j],(j==PB103_NB-1) ? ' ' : ',' ) ;
-                v0 = MinCheck(values,PB103_NB) ;
-                S += PB103_NB * v0 ;
-                if(S < Smin && CheckEquality(values,PB103_NB))  {
-                    int j ;
-                    Smin = S ;
-                    if(v0 < minV0) minV0= v0 ;
-                    printf("S=%d,Delta=%d,minv0=%d,DeltaMax=%d ",S,deltaS,minV0,Smin - AntMinV0) ;
-                    int lg = 0 ;
-                    for(j=0;j<PB103_NB;j++){
-                        printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? '\n' : ',' ) ;
-                        lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
-                    }
-  //              isNotFound = 0 ;
-  //              break ;
-                }
+//            int S ;
+            for(/*is=1,S=0*/;is<PB103_NB;is++) {
+                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
             }
-            
-
-            Delta[PB103_NB-1] = delta ;
+/*            if(S != deltaS + (PB103_NB*(PB103_NB-1))/2 ) {
+                printf(".");
+            }
+*/
+            // S = deltaS + 7 * v0 et v0 > (v6-v3)+(v5-v2)+(v4-v1) >= ((PB103_NB-1)/2) * ((PB103_NB-1)/2))
+            if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
+            int v0 = MinCheck(values,PB103_NB) ;
+            int S = deltaS + PB103_NB * v0 /* + (PB103_NB*(PB103_NB-1))/2  */;
+//            S += PB103_NB * v0 ;
+            if(S < Smin && CheckEquality(values,PB103_NB))  {
+                int j ;
+                Smin = S ;
+                if(v0 < minV0) minV0= v0 ;
+                printf("S=%d,Delta=%d,minv0=%d,DeltaMax=%d ",S+(PB103_NB*(PB103_NB-1))/2,deltaS,minV0,Smin - AntMinV0+(PB103_NB*(PB103_NB-1))/2) ;
+                int lg = 0 ;
+                for(j=0;j<PB103_NB;j++){
+                    printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? '\n' : ',' ) ;
+                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                }
+           }
             is = PB103_NB-2 ;
-            while(PB103_NB-is > delta){
+            while(PB103_NB-is > delta && is){
                 delta += (PB103_NB-is) * Delta[is] ;
-                Delta[is] = 0;
-                if(--is == 0 || PB103_NB-is > deltaS) break ;
+                Delta[is-- ] = 0;
             }
             if(is == 0) {
-                if((deltaS & 15)==0)printf("[%d]", deltaS) ;
-//                delta += (PB103_NB-1) * Delta[1] ;
-//                Delta[1] = 0;
                 deltaS++ ;
                 delta = deltaS  ;
-
-     //           delta = deltaS ;
-            } else if(PB103_NB-is <= delta) {
-                Delta[is]++ ; delta -= PB103_NB-is ;
+                is = 1 ;
             } else {
-                deltaS++ ;
-                delta = deltaS  ;
+                Delta[is]++ ; delta -= PB103_NB-is ;
             }
+            Delta[PB103_NB-1] = delta ;
+
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
