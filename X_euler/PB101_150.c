@@ -162,7 +162,7 @@ int PB101(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB013_MAXNB     16
+#define PB103_MAXNB     16
 #define PB103_NB   8
 #define PB103_MAX_DELTA   300
 
@@ -170,7 +170,7 @@ int CheckEquality(int *v,int lg) {
     int k ;
     for(k=2;2*k<=lg;k++) {
         int j ;
-        u_int8_t perm2[PB013_MAXNB] ;
+        u_int8_t perm2[PB103_MAXNB] ;
         for(j=0;j<2*k;j++)perm2[j] = j ;
         do {
             int S = 0 ;
@@ -179,7 +179,7 @@ int CheckEquality(int *v,int lg) {
             }
             if (S & 1) continue ; // pas divisible par 2
             S  /= 2 ;
-            u_int8_t perm[PB013_MAXNB] ;
+            u_int8_t perm[PB103_MAXNB] ;
             for(j=0;j<k;j++)perm[j] = j ;
             do {
                 int D = S ;
@@ -246,29 +246,25 @@ int PB103(PB_RESULT *pbR) {
         int j ;
         int is = 1 ;
         int deltaS = 0 ;
+//        int deltaS = 227 ;
         int delta = deltaS ;
         int Delta[PB103_NB] ;
         for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
         Delta[PB103_NB-1] = deltaS ;
+        int offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
         while(1) {
-//            int S ;
-            for(/*is=1,S=0*/;is<PB103_NB;is++) {
+            for(;is<PB103_NB;is++) {
                 values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
             }
-/*            if(S != deltaS + (PB103_NB*(PB103_NB-1))/2 ) {
-                printf(".");
-            }
-*/
             // S = deltaS + 7 * v0 et v0 > (v6-v3)+(v5-v2)+(v4-v1) >= ((PB103_NB-1)/2) * ((PB103_NB-1)/2))
             if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
             int v0 = MinCheck(values,PB103_NB) ;
-            int S = deltaS + PB103_NB * v0 /* + (PB103_NB*(PB103_NB-1))/2  */;
-//            S += PB103_NB * v0 ;
+            int S = deltaS + PB103_NB * v0 ;
             if(S < Smin && CheckEquality(values,PB103_NB))  {
                 int j ;
                 Smin = S ;
                 if(v0 < minV0) minV0= v0 ;
-                printf("S=%d,Delta=%d,minv0=%d,DeltaMax=%d ",S+(PB103_NB*(PB103_NB-1))/2,deltaS,minV0,Smin - AntMinV0+(PB103_NB*(PB103_NB-1))/2) ;
+                printf("S=%d,Delta=%d,minv0=%d,DeltaMax=%d ",S+offsetDeltaS,deltaS,minV0,Smin+offsetDeltaS - AntMinV0) ;
                 int lg = 0 ;
                 for(j=0;j<PB103_NB;j++){
                     printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? '\n' : ',' ) ;
@@ -312,10 +308,103 @@ int PB105(PB_RESULT *pbR) {
         if(sub[0] >= MinCheck(sub,lg)  && CheckEquality(sub,lg) ) {
             int i;
             for(i=0;i<lg;i++) S += sub[i] ;
-            printf("%d ",nt);
+//            printf("%d ",nt);
         }
     }
     sprintf(pbR->strRes,"%d",S) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
+typedef struct AlterPaths {
+    int maxK ;  // k max for the path length (k in 2k)
+    int * nbK ; // number of path for lenght k  (nb=1 por k=2, nk=5, for k= 3
+                //   nb(k) = 1/2 k(-1)/(k+1) x C[2k,k]
+    int * begK ;// index for the first path of lengh k
+                // a path is k indexes  in [0, 2k[
+    int16_t *path ;
+} AlterPaths ;
+
+AlterPaths * FreeAlterPath(AlterPaths * AltP) {
+    if(AltP != NULL) {
+        free(AltP->begK) ;
+        free(AltP->nbK);
+        free(AltP->path);
+        free(AltP);
+    }
+    return NULL ;
+}
+AlterPaths * GetAlterPath(int maxk) {
+    AlterPaths * AltP = calloc(1,sizeof(AltP[0])) ;
+    AltP->nbK = malloc(maxk*sizeof(AltP->nbK[0])) ;
+    AltP->begK = malloc(maxk*sizeof(AltP->begK[0])) ;
+    int k ;
+    AltP->nbK[0] = 0 ;
+    AltP->begK[0] = 0 ;
+    AltP->maxK = maxk ;
+    for(k=1;k<maxk;k++) {
+        AltP->begK[k] = AltP->begK[k-1]+k*AltP->nbK[k-1] ; //AltP->nbK[k-1] de longueur k
+        int j;
+        int k1= k+1 ; // pour tenir compte du decalage d'indice
+        u_int64_t N = k1-1;
+        for(j=k1+2;j<=2*k1;j++) { N *= j ;} ; // on par de k1+2 car 1/(k1+1)
+        for(j=2;j<=k1;j++) N /= j ;
+        AltP->nbK[k] = (int) N/2 ;
+    }
+    AltP->path = malloc((AltP->begK[maxk-1]+ maxk * AltP->nbK[maxk-1]) * sizeof(AltP->path[0])) ;
+    u_int8_t ind[PB103_MAXNB] ;
+    for(k=1;k<maxk;k++) { // on va generer les path
+        int k1= k+1 ; // pour tenir compte du decalage d'indice
+        int is = AltP->begK[k] ;
+        int j ;
+        for(j=0;j<k1-1;j++) ind[j]=j ; // choix de k1-1 parmis 2k1
+ //       printf("*****Gen %d, beg=%d \n",k1,is) ;
+        do {
+            // on recopie ind[0..2k1] en appliquant la reverse path(2n,-2) => path(2n,0)
+            int ij,  s = 1 ; // car premier element force a 1
+            AltP->path[is++] = ind[0];
+            for(j=1,ij=1;j<2*k1;j++) {
+                if(ij < k1-1 && j==ind[ij]) { // +1
+                    s++ ;
+                    AltP->path[is++] = j ;
+                    ij++ ;
+                } else { // -1
+                    s-- ;
+                    if(s==-1) { j++ ; break ;} // on arrive en mode reverse
+                }
+            }
+            for(;j<2*k1;j++) {
+                if(ij < k1-1 && j==ind[ij]) { // +1
+                    ij++ ;
+                    s-- ;  // normalement inutile de compter
+                } else { // -1
+                    s++ ;
+                    AltP->path[is++] = j ;
+                }
+            }
+ //           for(j=0;j<k1;j++) printf("%d%c",AltP->path[is-k1+j],j==k1-1 ? '\n' : ',') ;
+        } while(NextSub(ind+1, k1-2, 2*k1)>=0) ; // on contraint le premier a etre +1 pour gerer la symetrie
+ //       printf("*****End %d, beg=%d \n",k1,is) ;
+    }
+    return AltP ;
+}
+#define PB106_ASK   12
+int PB106(PB_RESULT *pbR) {
+    pbR->nbClock = clock()  ;
+    AlterPaths * altP = GetAlterPath(PB106_ASK/2) ;
+    int S =0;
+    int k ;
+    for(k=2 ; 2*k <= PB106_ASK ; k++) {
+        int j ;
+        u_int64_t CN2k = 1;
+        for(j=0;j<2*k;j++) { CN2k *= PB106_ASK-j ; }
+        for(j=2;j<=2*k;j++) { CN2k /= j ; }
+        
+        S += altP->nbK[k-1]*(int)CN2k;
+    }
+    FreeAlterPath(altP);
+    sprintf(pbR->strRes,"%d",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
