@@ -166,14 +166,16 @@ int PB101(PB_RESULT *pbR) {
 #define PB103_NB   8
 #define PB103_MAX_DELTA   300
 
-int CheckEquality(int *v,int lg) {
+typedef int32_t sum103_t ;
+
+int CheckEquality(sum103_t *v,int lg) {
     int k ;
     for(k=2;2*k<=lg;k++) {
         int j ;
         u_int8_t perm2[PB103_MAXNB] ;
         for(j=0;j<2*k;j++)perm2[j] = j ;
         do {
-            int S = 0 ;
+            sum103_t S = 0 ;
             for(j=0;j<2*k;j++){
                 S += v[perm2[j]] ;
             }
@@ -345,14 +347,14 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
     
 }
 
-int CheckEquality2(int *v,int lg,AlterPaths * AltP) {
+int CheckEquality2(sum103_t *v,int lg,AlterPaths * AltP) {
     int k ;
     for(k=2;2*k<=lg;k++) {
         int j ;
         u_int8_t perm2[PB103_MAXNB] ;
         for(j=0;j<2*k;j++)perm2[j] = j ;
         do {
-            int S = 0 ;
+            sum103_t S = 0 ;
             for(j=0;j<2*k;j++){
                 S += v[perm2[j]] ;
             }
@@ -375,7 +377,7 @@ int CheckEquality2(int *v,int lg,AlterPaths * AltP) {
 }
 
 
-int CheckEquality3(int *v,int lg,CheckPaths * chkP) {
+int CheckEquality3(sum103_t *v,int lg,CheckPaths * chkP) {
     int k ;
     for(k=2;2*k<=lg;k++) {
         int j ;
@@ -383,7 +385,7 @@ int CheckEquality3(int *v,int lg,CheckPaths * chkP) {
         int16_t * ind  = chkP->indSum + chkP->begK[k-1] ;
         int nbSum = chkP->nsumK[k-1] ;
         while (nbPerm-- > 0) {
-            int S0 = 0 , S = 0 ;
+            sum103_t S0 = 0 , S = 0 ;
             for(j=0;j<k;j++) S0 += v[*ind++] ; // sum complementaire
             for(j=0;j<k;j++) S += v[*ind++] ; // first sum
            if(S==S0) return 0 ;
@@ -392,7 +394,7 @@ int CheckEquality3(int *v,int lg,CheckPaths * chkP) {
             S/=2;
             int nb = nbSum - 2 ;
             while(nb-- > 0) {
-                int D = S ;
+                int16_t D = S ;
                 for(j=0;j<k;j++) {
                     D -=v[*ind++] ;
                 }
@@ -406,21 +408,9 @@ int CheckEquality3(int *v,int lg,CheckPaths * chkP) {
     return 1;
 }
 
-int CheckEquality4(int *v,int lg,AlterPaths *altP, CheckPaths * chkP) {
-    int r1 = CheckEquality2(v,lg,altP) ;
-    printf(" r1=%d\n",r1);
-    int r2 = CheckEquality3(v,lg,chkP) ;
-    printf(" r2=%d\n",r2);
-    if(r1 != r2) {
-        printf(" DIFF") ;
-        r1 = CheckEquality2(v,lg,altP) ;
-        r2 = CheckEquality3(v,lg,chkP) ;
-    }
-    return r1 ;
-}
 
-int MinCheck(int * v,int lg) {
-    int minV0 = 1 ;
+sum103_t MinCheck(sum103_t * v,int lg) {
+    sum103_t minV0 = 1 ;
     int j ;
     int lg2 = (lg-1)/2 ;
     for(j=0;j<lg2;j++){
@@ -429,7 +419,8 @@ int MinCheck(int * v,int lg) {
     return minV0 ;
 }
 
-int Check(int *v, int lg) {
+
+int Check(int16_t *v, int lg) {
     if(v[0] < MinCheck(v,lg)) return 0 ;
     return CheckEquality(v,lg);
 }
@@ -438,15 +429,15 @@ int Check(int *v, int lg) {
 int PB103(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
 
-    int values[PB103_NB] ;
+    sum103_t values[PB103_NB] ;
     int vmin ;
     int isNotFound = 1;
-    int minV0 = 10000000 ;
+    sum103_t minV0 = 32000 ;
     static int MinSmin[] = {1,3,4,9,21,51,115,255,567} ;
     static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
 //    int Smin = 255 + 39 * PB103_NB  + 1  ;
 //    int Smin = 567 + 78 * PB103_NB  + 1  ;
-    int Smin = 1000000 ;
+    int16_t Smin = 32000 ;
 
     int AntMinV0 ;
 /*    {
@@ -472,23 +463,23 @@ int PB103(PB_RESULT *pbR) {
         int is = 1 ;
         int deltaS = 0 ;
 //        int deltaS = 227 ;
-        int delta = deltaS ;
-        int Delta[PB103_NB] ;
+//        int deltaS = 500 ;
+        sum103_t delta = deltaS ;
+        sum103_t Delta[PB103_NB] ;
         for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
         Delta[PB103_NB-1] = deltaS ;
-        int offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
+        sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
         while(1) {
             for(;is<PB103_NB;is++) {
                 values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
             }
             // S = deltaS + 7 * v0 et v0 > (v6-v3)+(v5-v2)+(v4-v1) >= ((PB103_NB-1)/2) * ((PB103_NB-1)/2))
             if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-            int v0 = MinCheck(values,PB103_NB) ;
-            int S = deltaS + PB103_NB * v0 ;
+            sum103_t v0 = MinCheck(values,PB103_NB) ;
+            sum103_t S = deltaS + PB103_NB * v0 ;
 //          if(S < Smin && CheckEquality(values,PB103_NB))  {
 //          if(S < Smin && CheckEquality2(values,PB103_NB,AltP))  {
-          if(S < Smin && CheckEquality3(values,PB103_NB,chkP))  {
-//            if(S < Smin && CheckEquality4(values,PB103_NB,AltP,chkP))  {
+            if(S < Smin && CheckEquality3(values,PB103_NB,chkP))  {
                 int j ;
                 Smin = S ;
                 if(v0 < minV0) minV0= v0 ;
@@ -520,6 +511,7 @@ int PB103(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
 
 int Cmpint16(const void *el1, const void *el2) {
     return ((int16_t *)el1)[0] - ((int16_t *)el2)[0] ;
