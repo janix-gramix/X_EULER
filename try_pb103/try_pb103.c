@@ -1,7 +1,13 @@
+//
+//  main.c
+//  try_pb103
+//
+//
+
 #include<stdio.h>
 #include<string.h>
-#define maxsum 3000
-#define maxsize 8
+#define maxsum 5000
+#define maxsize 9
 
 #define startsum (1+2*1)
 #define startsize 2
@@ -16,34 +22,42 @@ int min,size,sumsize;
 
 long long int count=0;
 char hit[maxsum];
-int v[maxsize-1],vmin[maxsize-1];
+int v[maxsize],vmin[maxsize];
+
+typedef struct TEST {
+    int sum ;
+    char ok ;
+} TEST ;
+
+void test(int min, int todo,TEST *tt,int n){
+    int x;todo--;
+    for(x=min;tt->ok&&x<n-todo;x++){
+        tt->sum+=v[x];
+        if(todo)test(x+1,todo,tt,n);
+        if(!todo)if(hit[tt->sum]++)tt->ok=0;
+        tt->sum-=v[x];
+    }
+}
+
 
 char check(int *v, char n) {
     if(n<3) return 1;
-    char ok=1; int sum=0;
-    
-    void test(int min, int todo){
-        int x;todo--;
-        for(x=min;ok&&x<n-todo;x++){
-            sum+=v[x];
-            if(todo)test(x+1,todo);
-            if(!todo)if(hit[sum]++)ok=0;
-            sum-=v[x];
-        }
-    }
+    TEST tt ;
+    tt.ok = 1;
+    tt.sum = 0 ;
     
     int sumsize=(n+1)/2,i;
-    for(i=0;i<sumsize;i++)sum+=v[n-1-i];
-    memset(hit,0,sum+1);
+    for(i=0;i<sumsize;i++)tt.sum+=v[n-1-i];
+    memset(hit,0,tt.sum+1);
     
-    sum=0;
-    test(0,sumsize);
-    if(ok)test(0,sumsize-1);
-    return ok;
+    tt.sum=0;
+    test(0,sumsize,&tt,n);
+    if(tt.ok)test(0,sumsize-1,&tt,n);
+    return tt.ok;
 }
 
 void loop(int *v, int i){
-    int a,max,j,k,n,s,ds,dn;
+    int a,max,j,k,n,s,ds,dn=0;
     
     v[i]=a=(i?v[i-1]+1:1);
     
@@ -54,18 +68,21 @@ void loop(int *v, int i){
     
     if(i<sumsize){dn=i;ds=(size+1)*sumsize-(size-1)*(sumsize-i);}
     else {dn+=size-i-1;ds=(size+1)*(size-1-i);}
-    if(size%2==0)
+    if(size%2==0){
         if(i<sumsize) ds++;
         else if(i==sumsize) {dn--;ds-=(size+1)-1;}
+    }
     
-    for(;s<=min;v[i]=++a,s+=ds,n+=dn)if(check(v,i+1)){
-        if(i==size-2) {
-            for(j=0;j<size;j++)printf("%d ",vmin[j]=n+(j?v[j-1]:0));
-            printf("(sum=%d)\n",s);
-            min=s;
+    for(;s<=min;v[i]=++a,s+=ds,n+=dn) {
+        if(check(v,i+1)){
+            if(i==size-2) {
+                for(j=0;j<size;j++)printf("%d ",vmin[j]=n+(j?v[j-1]:0));
+                printf("(sum=%d)\n",s);
+                min=s;
+            } else {
+                loop(v,i+1);
+            }
         }
-        else
-            loop(v,i+1);
     }
 }
 
