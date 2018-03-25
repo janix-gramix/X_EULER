@@ -1,13 +1,7 @@
-//
-//  main.c
-//  try_pb103
-//
-//
-
 #include<stdio.h>
 #include<string.h>
 #define maxsum 3000
-#define maxsize 9
+#define maxsize 8
 
 #define startsum (1+2*1)
 #define startsize 2
@@ -24,39 +18,28 @@ long long int count=0;
 char hit[maxsum];
 int v[maxsize-1],vmin[maxsize-1];
 
-typedef struct TEST {
-    char ok ;
-    int sum ;
-    int n;
-} TEST ;
-
-void test(int min, int todo,TEST *tt){
-    int x;todo--;
-    for(x=min;tt->ok&&x<tt->n-todo;x++){
-        tt->sum+=v[x];
-        if(todo)test(x+1,todo,tt);
-        if(!todo)if(hit[tt->sum]++)tt->ok=0;
-        tt->sum-=v[x];
-    }
-}
-
-
 char check(int *v, char n) {
     if(n<3) return 1;
-    TEST tt ;
-    tt.ok = 1;
-    tt.sum = 0 ;
-    tt.n = n ;
+    char ok=1; int sum=0;
     
+    void test(int min, int todo){
+        int x;todo--;
+        for(x=min;ok&&x<n-todo;x++){
+            sum+=v[x];
+            if(todo)test(x+1,todo);
+            if(!todo)if(hit[sum]++)ok=0;
+            sum-=v[x];
+        }
+    }
     
     int sumsize=(n+1)/2,i;
-    for(i=0;i<sumsize;i++)tt.sum+=v[n-1-i];
-    memset(hit,0,tt.sum+1);
+    for(i=0;i<sumsize;i++)sum+=v[n-1-i];
+    memset(hit,0,sum+1);
     
-    tt.sum=0;
-    test(0,sumsize,&tt);
-    if(tt.ok)test(0,sumsize-1,&tt);
-    return tt.ok;
+    sum=0;
+    test(0,sumsize);
+    if(ok)test(0,sumsize-1);
+    return ok;
 }
 
 void loop(int *v, int i){
