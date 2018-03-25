@@ -291,9 +291,10 @@ CheckPaths * FreeCheckPath(CheckPaths * chkP) {
     return NULL ;
 }
 
-CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
+CheckPaths * GetCheckPath(int N, AlterPaths * altP,int isSup) {
     CheckPaths * chkP = calloc(1,sizeof(chkP[0])) ;
     int maxk = N/2 ;
+    int dN1 = isSup ? 1 : 0 ;
     chkP->nsumK = malloc(maxk*sizeof(chkP->nsumK[0])) ;
     chkP->npermK = malloc(maxk*sizeof(chkP->npermK[0])) ;
     chkP->begK = malloc(maxk*sizeof(chkP->begK[0])) ;
@@ -307,8 +308,8 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
         int k1= k+1 ; // pour tenir compte du decalage d'indice
         chkP->begK[k] = chkP->begK[k-1]+k*chkP->nsumK[k-1]*chkP->npermK[k-1] ; //chkP->nbK[k-1] de longueur k
         u_int64_t CN2k = 1;
-        for(j=0;j<2*k1;j++) { CN2k *= N-j ; }
-        for(j=2;j<=2*k1;j++) { CN2k /= j ; }
+        for(j=0;j<2*k1-dN1;j++) { CN2k *= N-dN1-j ; }
+        for(j=2;j<=2*k1-dN1;j++) { CN2k /= j ; }
         chkP->npermK[k] = (int) CN2k ;
         chkP->nsumK[k] = (altP->nbK[k] + 1)  ;
     }
@@ -318,8 +319,9 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
         int k1= k+1 ; // pour tenir compte du decalage d'indice
         int is = chkP->begK[k] ;
         int j ;
-        for(j=0;j<2*k1;j++)perm2[j] = j ;
-//        printf("*****Gen %d, beg=%d \n",k1,is) ;
+        if(dN1) perm2[2*k1-1] = N-1 ;
+        for(j=0;j<2*k1-dN1;j++)perm2[j] = j ;
+ //       printf("*****Gen %d, beg=%d \n",k1,is) ;
         do {
             int16_t * ind  = altP->path + altP->begK[k] ;
             int nb = altP->nbK[k] ;
@@ -331,7 +333,7 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
                 }
                 ind++; ij++ ;
             }
-  //          for(j=0;j<k1;j++) printf("%d%c",chkP->indSum[is-k1+j],j==k1-1 ? ' ' : '.') ;
+ //           for(j=0;j<k1;j++) printf("%d%c",chkP->indSum[is-k1+j],j==k1-1 ? ' ' : '.') ;
             ind -= k1 ;
             while(nb-- > 0) {
                 for(j=0;j<k1;j++) {
@@ -339,7 +341,7 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP) {
                 }
   //              for(j=0;j<k1;j++) printf("%d%c",chkP->indSum[is-k1+j],j==k1-1 ? '\n' : ',') ;
             }
-        } while(NextSub(perm2,2*k1,N) >= 0) ; //
+        } while(NextSub(perm2,2*k1-dN1,N-dN1) >= 0) ; //
   //      printf("*****End %d, beg=%d \n",k1,is) ;
     }
     return chkP ;
@@ -413,26 +415,34 @@ int CheckEquality2S(sum103_t *v,int lg,AlterPaths * AltP) {
 int CheckEquality3(sum103_t *v,int lg,CheckPaths * chkP) {
     int k ;
  //   for(k=2;2*k<=lg;k++) {
+ /*   if(isSup) {
+        if(v[lg-1] >= MaxCheck(v,lg)) return 1 ;
+    }*/
    for(k=(lg>>1);k>1;k--) {
         int j ;
         int nbPerm = chkP->npermK[k-1] ;
         int16_t * ind  = chkP->indSum + chkP->begK[k-1] ;
-        int nbSum = chkP->nsumK[k-1] ;
+        int nbSum = chkP->nsumK[k-1] -2 ;
         while (nbPerm-- > 0) {
-            sum103_t S0 = 0 , S = 0 ;
-            for(j=0;j<k;j++) S0 += v[*ind++] ; // sum complementaire
-            for(j=0;j<k;j++) S += v[*ind++] ; // first sum
-           if(S==S0) return 0 ;
+            int16_t * indk = ind+k ;
+            sum103_t S0 = v[*ind++] , S = v[*indk++] ;
+            
+//            for(j=0;j<k;j++) S0 += v[*ind++] ; // sum complementaire
+//            for(j=0;j<k;j++) S += v[*ind++] ; // first sum
+            for(j=1;j<k;j++) { S0 += v[*ind++] ; S += v[*indk++] ; }
+            ind = indk ;
+            
+            if(S==S0) return 0 ;
             S += S0 ; // sum total
-            if(S & 1) { ind += k * (nbSum -2) ; continue ; }
+            if(S & 1) { ind += k * (nbSum) ; continue ; }
             S >>= 1;
-            int nb = nbSum - 2 ;
+            int nb = nbSum ;
             while(nb-- > 0) {
-                int16_t D = S ;
-                for(j=0;j<k;j++) {
-                    D -=v[*ind++] ;
+                int16_t D = v[*ind++] ;
+                for(j=1;j<k;j++) {
+                    D +=v[*ind++] ;
                 }
-                if( D == 0) {
+                if( D == S) {
                     return 0 ;
                 }
                 
@@ -498,7 +508,7 @@ int PB103(PB_RESULT *pbR) {
         AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
   
     for(vmin = 0;isNotFound;)
     {
@@ -606,7 +616,7 @@ int PB103a(PB_RESULT *pbR) {
         AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
     
     
     
@@ -750,7 +760,7 @@ int PB103b(PB_RESULT *pbR) {
         AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
     
 
     int j ;
@@ -892,7 +902,7 @@ int PB103c(PB_RESULT *pbR) {
         AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
     
     
     int j ;
@@ -1001,26 +1011,8 @@ int PB103d(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     
     sum103_t values[PB103_NB] ;
-    int vmin ;
-    int isNotFound = 1;
-    sum103_t minV0 = 32000 ;
-    static int MinSmin[] = {1,3,4,9,21,51,115,255,567} ;
-    static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
-    //    int Smin = 255 + 39 * PB103_NB  + 1  ;
-    //    int Smin = 567 + 78 * PB103_NB  + 1  ;
     sum103_t Smin = 32000 ;
-    sum103_t deltaMax = 20000 ;
-    int AntMinV0 ;
-    /*
-     int lg2 = (lg-1)/2 ;
-     for(j=0;j<lg2;j++){
-     minV0 += v[lg-1-j] - v[j+1] ;
-     }
-     */
-    
-    
     sum103_t pondDelta[PB103_NB] ;
-    sum103_t minPond ;
     { int i ;
         pondDelta[0] = 0 ; // inutilise
         for(i=1;i<PB103_NB;i++) {
@@ -1037,17 +1029,14 @@ int PB103d(PB_RESULT *pbR) {
                 pondDelta[k]-= PB103_NB ;
             }
         }
-        minPond = pondDelta[1] ;
-        for(i=2;i<PB103_NB;i++) if(pondDelta[i]< minPond) minPond = pondDelta[i] ;
         for(i=0;i<PB103_NB;i++) { printf("%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
-    if(PB103_NB*sizeof(MinV0[0]) <= sizeof(MinV0)) {
-        AntMinV0 = MinV0[PB103_NB-1] * PB103_NB ;
-    } else {
-        AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
-    }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
+    CheckPaths *chkPS =GetCheckPath(PB103_NB,AltP,1) ;
+    CheckPaths *chkPS8 =GetCheckPath(8,AltP,1) ;
+    CheckPaths *chkPS7 =GetCheckPath(7,AltP,1) ;
+    CheckPaths *chkPS6 =GetCheckPath(6,AltP,1) ;
     
     
     
@@ -1080,17 +1069,7 @@ int PB103d(PB_RESULT *pbR) {
             for(j=0;j<PB103_NB;j++) Smin += values[j] ;
             printf("Smin=%d\n",Smin) ;
         }
-        values[0] = 0 ;
-        
-        int j ;
-        int is = 1 ;
-        int deltaS = 0 ;
-        //        int deltaS = 227 ;
-        //        int deltaS = 500 ;
-        sum103_t delta = deltaS ;
-        sum103_t Delta[PB103_NB] ;
-        for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
-        Delta[PB103_NB-1] = deltaS ;
+      
         sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
         
         sum103_t S1,S2,S3,S4,S5,S6,S7,S8 ;
@@ -1107,23 +1086,26 @@ int PB103d(PB_RESULT *pbR) {
                         if(!CheckEquality2S(values, 5, AltP)) continue ;
                         values[5] = values[4] + 1 ;
                         for(S5=S4;S5<=Smin;values[5]++ , S5 += pondDelta[5]) {
-                            if(!CheckEquality2S(values, 6, AltP)) continue ;
+//                            if(!CheckEquality2S(values, 6, AltP)) continue ;
+                            if(!CheckEquality3(values, 6, chkPS6)) continue ;
                             values[6] = values[5] + 1 ;
                             for(S6=S5;S6<=Smin;values[6]++ , S6 += pondDelta[6]) {
-                                if(!CheckEquality2S(values, 7, AltP)) continue ;
+//                                if(!CheckEquality2S(values, 7, AltP)) continue ;
+                                if(!CheckEquality3(values, 7, chkPS7)) continue ;
                                 values[7] = values[6] + 1 ;
                                 sum103_t mx7 = MaxCheck(values,8) ;
                                 for(S7=S6;S7<=Smin;values[7]++ , S7 += pondDelta[7]) {
-                                    if(values[7] < mx7 && !CheckEquality2S(values,8,AltP)) continue ;
+//                                    if(values[7] < mx7 && !CheckEquality2S(values,8,AltP)) continue ;
+                                    if(!CheckEquality3(values,8,chkPS8)) continue ;
                                     values[8] = values[7] + 1 ;
                                     sum103_t mx8 = MaxCheck(values,9) ;
                                     for(S8=S7;S8<=Smin;values[8]++ , S8 += pondDelta[8]) {
-                                        if(values[8] >= mx8 || CheckEquality2S(values,PB103_NB,AltP)) {
+//                                        if(values[8] >= mx8 || CheckEquality2S(values,PB103_NB,AltP)) {
+                                        if(values[8] >= mx8 || CheckEquality3(values,PB103_NB,chkPS)) {
                                             sum103_t v0 = MinCheck(values,PB103_NB) ;
                                             int j ;
                                             Smin = S8 ;
-                                            if(v0 < minV0) minV0= v0 ;
-                                            printf("S=%d,SI=%d minv0=%d ",S8,S8-v0 * PB103_NB,minV0 ) ;
+                                            printf("S=%d  ",S8 ) ;
                                             int lg = 0 ;
                                             
                                             for(j=0;j<PB103_NB;j++){
@@ -1183,7 +1165,7 @@ int PB105(PB_RESULT *pbR) {
 int PB106(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     AlterPaths * altP = GetAlterPath(PB106_ASK/2) ;
-    CheckPaths * chkP = GetCheckPath(PB106_ASK,altP) ;
+    CheckPaths * chkP = GetCheckPath(PB106_ASK,altP,0) ;
     int S =0;
     int k ;
     for(k=2 ; 2*k <= PB106_ASK ; k++) {
