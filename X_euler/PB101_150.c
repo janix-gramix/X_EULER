@@ -376,6 +376,39 @@ int CheckEquality2(sum103_t *v,int lg,AlterPaths * AltP) {
     return 1;
 }
 
+// version ou l'on sait que sans le dernier element c'est verifie
+int CheckEquality2S(sum103_t *v,int lg,AlterPaths * AltP) {
+//    int k ;
+    int k ;
+    for(k=2;2*k<=lg;k++) {
+        int j ;
+        u_int8_t perm2[PB103_MAXNB] ;
+        for(j=0;j<2*k-1;j++)perm2[j] = j ;
+        perm2[2*k-1] = lg - 1 ;
+        do {
+            sum103_t S = 0 ;
+            for(j=0;j<2*k;j+=2){
+                S += v[perm2[j]]+v[perm2[j+1]] ;
+            }
+            if (S & 1) continue ; // pas divisible par 2
+            S  >>= 1 ;
+            int16_t * ind  = AltP->path + AltP->begK[k-1] ;
+            int nb = AltP->nbK[k-1] ;
+            while(nb-- > 0) {
+                int D = S ;
+                for(j=0;j<k;j++) {
+                    D -=v[perm2[*ind++]] ;
+                }
+                if( D == 0) {
+                    return 0 ;
+                }
+            }
+        } while(NextSub(perm2,2*k-1,lg-1) >= 0) ;
+    }
+    return 1;
+}
+
+
 
 int CheckEquality3(sum103_t *v,int lg,CheckPaths * chkP) {
     int k ;
@@ -1068,23 +1101,24 @@ int PB103d(PB_RESULT *pbR) {
             for(S2=S1;S2<=Smin;values[2]++ , S2 += pondDelta[2]) {
                 values[3] = values[2] + 1 ;
                 for(S3=S2;S3<=Smin;values[3]++ , S3 += pondDelta[3]) {
+                    if(!CheckEquality2(values, 4, AltP)) continue ;
                     values[4] = values[3] + 1 ;
                     for(S4=S3;S4<=Smin;values[4]++ , S4 += pondDelta[4]) {
-                        if(!CheckEquality2(values, 5, AltP)) continue ;
+                        if(!CheckEquality2S(values, 5, AltP)) continue ;
                         values[5] = values[4] + 1 ;
                         for(S5=S4;S5<=Smin;values[5]++ , S5 += pondDelta[5]) {
-                            if(!CheckEquality2(values, 6, AltP)) continue ;
+                            if(!CheckEquality2S(values, 6, AltP)) continue ;
                             values[6] = values[5] + 1 ;
                             for(S6=S5;S6<=Smin;values[6]++ , S6 += pondDelta[6]) {
-                                if(!CheckEquality2(values, 7, AltP)) continue ;
+                                if(!CheckEquality2S(values, 7, AltP)) continue ;
                                 values[7] = values[6] + 1 ;
                                 sum103_t mx7 = MaxCheck(values,8) ;
                                 for(S7=S6;S7<=Smin;values[7]++ , S7 += pondDelta[7]) {
-                                    if(values[7] < mx7 && !CheckEquality2(values,8,AltP)) continue ;
+                                    if(values[7] < mx7 && !CheckEquality2S(values,8,AltP)) continue ;
                                     values[8] = values[7] + 1 ;
                                     sum103_t mx8 = MaxCheck(values,9) ;
                                     for(S8=S7;S8<=Smin;values[8]++ , S8 += pondDelta[8]) {
-                                        if(values[8] >= mx8 || CheckEquality2(values,PB103_NB,AltP)) {
+                                        if(values[8] >= mx8 || CheckEquality2S(values,PB103_NB,AltP)) {
                                             sum103_t v0 = MinCheck(values,PB103_NB) ;
                                             int j ;
                                             Smin = S8 ;
