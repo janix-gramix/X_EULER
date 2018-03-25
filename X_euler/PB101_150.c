@@ -1032,11 +1032,14 @@ int PB103d(PB_RESULT *pbR) {
         for(i=0;i<PB103_NB;i++) { printf("%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
-    CheckPaths *chkPS =GetCheckPath(PB103_NB,AltP,1) ;
-    CheckPaths *chkPS8 =GetCheckPath(8,AltP,1) ;
-    CheckPaths *chkPS7 =GetCheckPath(7,AltP,1) ;
-    CheckPaths *chkPS6 =GetCheckPath(6,AltP,1) ;
+//     CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
+    CheckPaths * chkPS[PB103_NB] ;
+    
+    { int i ; for(i=4;i<PB103_NB;i++) chkPS[i] = GetCheckPath(i+1,AltP,1) ; }
+//    CheckPaths *chkPS =GetCheckPath(PB103_NB,AltP,1) ;
+//    CheckPaths *chkPS8 =GetCheckPath(8,AltP,1) ;
+//    CheckPaths *chkPS7 =GetCheckPath(7,AltP,1) ;
+//    CheckPaths *chkPS6 =GetCheckPath(6,AltP,1) ;
     
     
     
@@ -1072,40 +1075,78 @@ int PB103d(PB_RESULT *pbR) {
       
         sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
         
-        sum103_t S1,S2,S3,S4,S5,S6,S7,S8 ;
+        sum103_t S[PB103_NB] ;
         
-        values[0] = 0 ; values[1] = 1 ;
-        for(S1=0;S1<=Smin;values[1]++, S1 += pondDelta[1]) {
+        values[0] = 0 ; values[1] = 1 ; S[1] = 0 ;
+        int is = 1 ;
+        do {
+            while(1) {
+                 if(S[is] <= Smin) {
+                    
+                     if(is <= 3) {
+                        if(is== 3 && !CheckEquality2(values,is+1,AltP) ) {
+                            values[is]++ ; S[is] += pondDelta[is] ;
+                            break ;
+                        }
+                    } else if(is < PB103_NB) {
+                        if(!CheckEquality3(values,is+1,chkPS[is]) ) {
+                            values[is]++ ; S[is] += pondDelta[is] ; break ;
+                        } else if(is==PB103_NB-1) {
+                            // new solution
+                            sum103_t v0 = MinCheck(values,PB103_NB) ;
+                            int j ;
+                            Smin = S[is] ;
+                            printf("S=%d  ",Smin ) ;
+                            int lg = 0 ;
+                            for(j=0;j<PB103_NB;j++){
+                                printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                                lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                            }
+                            
+                            for(j=1;j<PB103_NB;j++){
+                                printf("%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                            }
+                            values[is]++ ; S[is] += pondDelta[is] ; break ;
+                        }
+                    }
+                    is++ ;
+                    S[is] = S[is-1] ;   values[is] = values[is-1] + 1 ;
+                } else {
+                    is-- ;
+                    values[is]++ ; S[is] += pondDelta[is] ;
+                    break ;
+                }
+            }
+            
+        } while(is != 0) ;
+/*
+        for(S[1]=0;S[1]<=Smin;values[1]++, S[1] += pondDelta[1]) {
             values[2] = values[1] + 1 ;
-            for(S2=S1;S2<=Smin;values[2]++ , S2 += pondDelta[2]) {
+            for(S[2]=S[1];S[2]<=Smin;values[2]++ , S[2] += pondDelta[2]) {
                 values[3] = values[2] + 1 ;
-                for(S3=S2;S3<=Smin;values[3]++ , S3 += pondDelta[3]) {
+                for(S[3]=S[2];S[3]<=Smin;values[3]++ , S[3] += pondDelta[3]) {
                     if(!CheckEquality2(values, 4, AltP)) continue ;
                     values[4] = values[3] + 1 ;
-                    for(S4=S3;S4<=Smin;values[4]++ , S4 += pondDelta[4]) {
+                    for(S[4]=S[3];S[4]<=Smin;values[4]++ , S[4] += pondDelta[4]) {
                         if(!CheckEquality2S(values, 5, AltP)) continue ;
                         values[5] = values[4] + 1 ;
-                        for(S5=S4;S5<=Smin;values[5]++ , S5 += pondDelta[5]) {
-//                            if(!CheckEquality2S(values, 6, AltP)) continue ;
+                        for(S[5]=S[4];S[5]<=Smin;values[5]++ , S[5] += pondDelta[5]) {
                             if(!CheckEquality3(values, 6, chkPS6)) continue ;
                             values[6] = values[5] + 1 ;
-                            for(S6=S5;S6<=Smin;values[6]++ , S6 += pondDelta[6]) {
-//                                if(!CheckEquality2S(values, 7, AltP)) continue ;
+                            for(S[6]=S[5];S[6]<=Smin;values[6]++ , S[6] += pondDelta[6]) {
                                 if(!CheckEquality3(values, 7, chkPS7)) continue ;
                                 values[7] = values[6] + 1 ;
-                                sum103_t mx7 = MaxCheck(values,8) ;
-                                for(S7=S6;S7<=Smin;values[7]++ , S7 += pondDelta[7]) {
-//                                    if(values[7] < mx7 && !CheckEquality2S(values,8,AltP)) continue ;
+ //                               sum103_t mx7 = MaxCheck(values,8) ;
+                                for(S[7]=S[6];S[7]<=Smin;values[7]++ , S[7]+= pondDelta[7]) {
                                     if(!CheckEquality3(values,8,chkPS8)) continue ;
                                     values[8] = values[7] + 1 ;
                                     sum103_t mx8 = MaxCheck(values,9) ;
-                                    for(S8=S7;S8<=Smin;values[8]++ , S8 += pondDelta[8]) {
-//                                        if(values[8] >= mx8 || CheckEquality2S(values,PB103_NB,AltP)) {
+                                    for(S[8]=S[7];S[8]<=Smin;values[8]++ , S[8] += pondDelta[8]) {
                                         if(values[8] >= mx8 || CheckEquality3(values,PB103_NB,chkPS)) {
                                             sum103_t v0 = MinCheck(values,PB103_NB) ;
                                             int j ;
-                                            Smin = S8 ;
-                                            printf("S=%d  ",S8 ) ;
+                                            Smin = S[8] ;
+                                            printf("S=%d  ",Smin ) ;
                                             int lg = 0 ;
                                             
                                             for(j=0;j<PB103_NB;j++){
@@ -1125,8 +1166,9 @@ int PB103d(PB_RESULT *pbR) {
                 }
             }
         }
+*/
     }
-    FreeCheckPath(chkP) ;
+ //   FreeCheckPath(chkP) ;
     FreeAlterPath(AltP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
