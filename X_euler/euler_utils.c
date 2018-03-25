@@ -90,6 +90,26 @@ void HeapSortUint8Rev(u_int8_t *H,int n) {
     }
 }
 
+// return -1 if last sous-ensemble, or the lower index of modification
+int NextSub(u_int8_t *sub,int k, int n) {
+    int j,i ;
+    for(i=k-1;i>=0;i--) {
+        if(sub[i]<n-k+i) {
+            sub[i]++ ;
+            for(j=i+1;j<k;j++) {
+                sub[j] = sub[i]+j-i ;
+            }
+            return i ;
+        }
+    }
+    return -1 ;
+}
+
+// return -1 if last arrangement, or the lower index of modification
+int NextArrangement(u_int8_t *arr,int k, int n) {
+    HeapSortUint8Rev(arr+k,n-k) ;
+    return NextPermut(arr,n);
+}
 
 
 // return -1 if last permutation, or the lower index of modification
