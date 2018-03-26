@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB   7
+#define PB103_NB   9
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -458,8 +458,6 @@ int Check(sum103_t *v, int lg) {
 int PB103(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     sum103_t values[PB103_NB] ;
-    int vmin ;
-    int isNotFound = 1;
     sum103_t minV0 = 32000 ;
     static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
     int16_t Smin = 32000 ;
@@ -471,50 +469,56 @@ int PB103(PB_RESULT *pbR) {
     }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
     CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
-    for(vmin = 0;isNotFound;)
-    {
-        values[0] = vmin ;
+        values[0] = 0 ;
         int j ;
         int is = 1 ;
         int deltaS = 0 ;
         sum103_t delta = deltaS ;
+        sum103_t deltaMax = Smin - AntMinV0 ;
         sum103_t Delta[PB103_NB] ;
         for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
         Delta[PB103_NB-1] = deltaS ;
         sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
-        while(1) {
-            for(;is<PB103_NB;is++) {
-                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
-            }
-            if(deltaS > Smin - AntMinV0 )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-            sum103_t v0 = MinCheck(values,PB103_NB) ;
-            sum103_t S = deltaS + PB103_NB * v0 ;
-            if(S <= Smin && CheckEqualityPreN(values,PB103_NB,chkP))  {
-                    int j ;
-                    Smin = S ;
-                    if(v0 < minV0) minV0= v0 ;
-                    printf("S=%d,Delta=%d,minv0=%d,DeltaMax=%d ",S+offsetDeltaS,deltaS,minV0,Smin+offsetDeltaS - AntMinV0) ;
-                    int lg = 0 ;
-                    for(j=0;j<PB103_NB;j++){
-                        printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? '\n' : ',' ) ;
-                        lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
-                    }
-            }
-            is = PB103_NB-2 ;
-            while(PB103_NB-is > delta && is){
-                delta += (PB103_NB-is) * Delta[is] ;
-                Delta[is-- ] = 0;
-            }
-            if(is == 0) {
-                deltaS++ ;
-                delta = deltaS  ;
-                is = 1 ;
-            } else {
-                Delta[is]++ ; delta -= PB103_NB-is ;
-            }
-            Delta[PB103_NB-1] = delta ;
-
+        while(deltaS <= deltaMax) {
+        for(;is<PB103_NB;is++) {
+            values[is] = values[is-1]+Delta[is]+1 ;
         }
+        sum103_t v0 = MinCheck(values,PB103_NB) ;
+        sum103_t S = deltaS + PB103_NB * v0 ;
+        if(S <= Smin && CheckEqualityPreN(values,PB103_NB,chkP))  {
+            int j ;
+            Smin = S ;
+            deltaMax = Smin - AntMinV0 ;
+            if(v0 < minV0) minV0= v0 ;
+        
+            if(pbR->isVerbose) {
+                fprintf(stdout,"\t PB%3.3d S=%d Delta=%d,minv0=%d,DeltaMax=%d ",pbR->pbNum,S+offsetDeltaS,deltaS,minV0,deltaMax ) ;
+                for(j=0;j<PB103_NB;j++){
+                    fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                }
+                for(j=1;j<PB103_NB;j++){
+                    fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                }
+            }
+            int lg = 0 ;
+            for(j=0;j<PB103_NB;j++){
+                lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+            }
+        }
+        is = PB103_NB-2 ;
+        while(PB103_NB-is > delta && is){
+            delta += (PB103_NB-is) * Delta[is] ;
+            Delta[is-- ] = 0;
+        }
+        if(is == 0) {
+            deltaS++ ;
+            delta = deltaS  ;
+            is = 1 ;
+        } else {
+            Delta[is]++ ; delta -= PB103_NB-is ;
+        }
+        Delta[PB103_NB-1] = delta ;
+
     }
     FreeCheckPath(chkP) ;
     FreeAlterPath(AltP) ;
@@ -587,278 +591,60 @@ sum103_t InitPondSum(sum103_t * pondDelta,int lgAsk , AlterPaths *AltP) {
 }
 
 
+// version avec ponderation, mais le parcours se fait en tenant compte
+// pour l'ordre de toutes les ponderations sauf la derniere valeur
+// Du coup nombre de cas excede largement Smin et sont rejetes au dernier moment
+// Utilise CheckEqualityPreN
 
 int PB103a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    
     sum103_t values[PB103_NB] ;
-    int vmin ;
-    int isNotFound = 1;
-    sum103_t minV0 = 32000 ;
-    static int MinSmin[] = {1,3,4,9,21,51,115,255,567} ;
-    static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
-    //    int Smin = 255 + 39 * PB103_NB  + 1  ;
-    //    int Smin = 567 + 78 * PB103_NB  + 1  ;
     sum103_t Smin = 32000 ;
     sum103_t deltaMax = 20000 ;
-    int AntMinV0 ;
-    /*
-     int lg2 = (lg-1)/2 ;
-     for(j=0;j<lg2;j++){
-     minV0 += v[lg-1-j] - v[j+1] ;
-     }
-     */
-    
-    
     sum103_t pondDelta[PB103_NB] ;
-    sum103_t minPond ;
-    { int i ;
-        pondDelta[0] = 0 ; // inutilise
-        for(i=1;i<PB103_NB;i++) {
-            pondDelta[i] = PB103_NB - i ;
-        }
-        //            pondDelta[i] = PB103_NB - i ;
-        int lg2 = (PB103_NB-1)/2 ;
-        for(i=0;i<lg2;i++) {
-            int k ;
-            for(k=1;k<=PB103_NB-1-i;k++) {
-                pondDelta[k]+= PB103_NB ;
-            }
-            for(k=1;k<=i+1;k++) {
-                pondDelta[k]-= PB103_NB ;
-            }
-        }
-        minPond = pondDelta[1] ;
-        for(i=2;i<PB103_NB;i++) if(pondDelta[i]< minPond) minPond = pondDelta[i] ;
-        for(i=0;i<PB103_NB;i++) { printf("%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
-    }
-    if(PB103_NB*sizeof(MinV0[0]) <= sizeof(MinV0)) {
-        AntMinV0 = MinV0[PB103_NB-1] * PB103_NB ;
-    } else {
-        AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
-    }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
     CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
+    Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
+    sum103_t offsetSum = pondDelta[0]  ;
     
-    
-    
-    {
-        
-        {
-            //on va initialiser avec une valeur pour filtre
-            values[0] = 0 ;   values[1] = 2 ;  values[2] = 3 ;      values[3] = 4 ;
-            int j,lg ;
-            for(lg=3;;lg++) {
-                sum103_t v0 = MinCheck(values,lg+1) ;
-                for(j=0;j<=lg;j++) values[j] += v0 ;
-                if(CheckEqualityAlt(values,lg,AltP,0) ) {
-                    for(j=0;j<=lg;j++){ printf("%d%c",values[j],(j==lg) ? '\n' : ',' ) ; }
-                } else {
-                    printf("Error\n" );
-                }
-                if(lg < PB103_NB-1) {
-                    for(j=lg;j>=0;j--) values[j+1] = values[j] ;
-                    values[0] = 0 ;
-                } else {
-                    break ;
-                }
-            }
-            Smin = 0 ;
-            for(j=0;j<PB103_NB;j++) Smin += values[j] ;
-            printf("Smin=%d\n",Smin) ;
-        }
-        values[0] = 0 ;
-        
-        int j ;
-        int is = 1 ;
-        int deltaS = 0 ;
-        //        int deltaS = 227 ;
-        //        int deltaS = 500 ;
-        sum103_t delta = deltaS ;
-        sum103_t Delta[PB103_NB] ;
-        for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
-        Delta[PB103_NB-1] = deltaS ;
-        sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
-        while(1) {
-            if(deltaS > deltaMax )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-            //           Delta[PB103_NB-1] /= pondDelta[PB103_NB-1] ;
-            
-            for(;is<PB103_NB;is++) {
-                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
-            }
-            //            sum103_t S = 0 ; { int i ; for(i=0;i<PB103_NB;i++) S += v0 + values[i]  ; }
-            //            sum103_t S = deltaS ;
-            sum103_t S = deltaS + Delta[PB103_NB-1] * ( pondDelta[PB103_NB-1]-1) ;
-            if( S <= Smin &&  CheckEqualityPreN(values,PB103_NB,chkP))  {
-                
-                sum103_t v0 = MinCheck(values,PB103_NB) ;
-                
-                int j ;
-                Smin = S ;
-                deltaMax = S ;
-                if(v0 < minV0) minV0= v0 ;
-                printf("S=%d,SI=%d Delta=%d,minv0=%d,DeltaMax=%d ",S,S-v0 * PB103_NB,deltaS,minV0,deltaMax) ;
-                int lg = 0 ;
-                
-                for(j=0;j<PB103_NB;j++){
-                    printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
-                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
-                }
-                
-                for(j=0;j<PB103_NB;j++){
-                    printf("%d%c",Delta[j],(j==PB103_NB-1) ? '\n' : '.' ) ;
-                }
-            }
-            
-            is = PB103_NB-2 ;
-            //            while(PB103_NB-is > delta && is){
-            //                delta += (PB103_NB-is) * Delta[is] ;
-            while(pondDelta[is] > delta && is){
-                delta += pondDelta[is] * Delta[is];
-                Delta[is-- ] = 0;
-            }
-            if(is == 0) {
-                deltaS++ ;
-                delta = deltaS  ;
-                is = 1 ;
-            } else {
-                //                Delta[is]++ ; delta -= PB103_NB-is ;
-                Delta[is]++ ; delta -= pondDelta[is] ;
-            }
-            Delta[PB103_NB-1] = delta ;
-            
-        }
+    if(pbR->isVerbose) {
+        int i ;
+        fprintf(stdout,"\t PB%3.3da Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
-    FreeCheckPath(chkP) ;
-    FreeAlterPath(AltP) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
-}
-
-
-
-
-int PB103b(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    
-    sum103_t values[PB103_NB] ;
-    int isNotFound = 1;
-    sum103_t minV0 = 32000 ;
-    static int MinSmin[] = {1,3,4,9,21,51,115,255,567} ;
-    static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
-    sum103_t Smin = 32000 ;
-    sum103_t deltaMax = 20000 ;
-    int AntMinV0 ;
-    
-    sum103_t pondDelta[PB103_NB] ;
-    sum103_t minPond ;
-    { int i ;
-        pondDelta[0] = 0 ; // inutilise
-        for(i=1;i<PB103_NB;i++) {
-            pondDelta[i] = PB103_NB - i ;
-        }
-        //            pondDelta[i] = PB103_NB - i ;
-        int lg2 = (PB103_NB-1)/2 ;
-        for(i=0;i<lg2;i++) {
-            int k ;
-            for(k=1;k<=PB103_NB-1-i;k++) {
-                pondDelta[k]+= PB103_NB ;
-            }
-            for(k=1;k<=i+1;k++) {
-                pondDelta[k]-= PB103_NB ;
-            }
-        }
-        minPond = pondDelta[1] ;
-        for(i=2;i<PB103_NB;i++) if(pondDelta[i]< minPond) minPond = pondDelta[i] ;
-        for(i=0;i<PB103_NB;i++) { printf("%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
-    }
-    if(PB103_NB*sizeof(MinV0[0]) <= sizeof(MinV0)) {
-        AntMinV0 = MinV0[PB103_NB-1] * PB103_NB ;
-    } else {
-        AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
-    }
-    AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
-    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
-    
-
+    values[0] = 0 ;
     int j ;
-    //        int deltaS = 227 ;
-    //        int deltaS = 500 ;
-    {
-        //on va initialiser avec une valeur pour filtre
-        values[0] = 0 ;
-        values[1] = 2 ;
-        values[2] = 3 ;
-        values[3] = 4 ;
-        
-        int lg ;
-        for(lg=3;;lg++) {
-            sum103_t v0 = MinCheck(values,lg+1) ;
-            for(j=0;j<=lg;j++) values[j] += v0 ;
-           if(CheckEqualityAlt(values,lg,AltP,0) ) {
-                for(j=0;j<=lg;j++){ printf("%d%c",values[j],(j==lg) ? '\n' : ',' ) ; }
-            } else {
-                printf("Error\n" );
-            }
-            if(lg < PB103_NB-1) {
-                for(j=lg;j>=0;j--) values[j+1] = values[j] ;
-                values[0] = 0 ;
-            } else {
-                break ;
-            }
-        }
-        Smin = 0 ;
-        for(j=0;j<PB103_NB;j++) Smin += values[j] ;
-        printf("Smin=%d\n",Smin) ;
-    }
     int is = 1 ;
     int deltaS = 0 ;
-
-    values[0] = 0 ;
     sum103_t delta = deltaS ;
     sum103_t Delta[PB103_NB] ;
     for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
     Delta[PB103_NB-1] = deltaS ;
-    sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
-    while(1) {
-        if(deltaS > deltaMax )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-
-        
-/*        for(;is<PB103_NB;is++) {
-            values[is] = values[is-1]+Delta[is]+1 ;
+    while(deltaS<=deltaMax) {
+        for(;is<PB103_NB;is++) {
+            values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
         }
-    */
-        if(( Delta[PB103_NB-1] * pondDelta[PB103_NB-1])  == delta ){
-  //          Delta[PB103_NB-1] /= pondDelta[PB103_NB-1] ;
-            for(is=1;is<PB103_NB;is++) {
-                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
+        sum103_t S = deltaS + Delta[PB103_NB-1] * ( pondDelta[PB103_NB-1]-1) ;
+        if( S <= Smin &&  CheckEqualityPreN(values,PB103_NB,chkP))  {
+            sum103_t v0 = MinCheck(values,PB103_NB) ;
+            int j ;
+            Smin = S ;
+            deltaMax = S ;
+            if(pbR->isVerbose) {
+                fprintf(stdout,"\t PB%3.3da S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                for(j=0;j<PB103_NB;j++){
+                    fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                }
+                for(j=1;j<PB103_NB;j++){
+                    fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                }
             }
-//            values[PB103_NB-1] = values[PB103_NB-2] + Delta[PB103_NB-1]/pondDelta[PB103_NB-1] +1 ;
-//            sum103_t S = deltaS + Delta[PB103_NB-1] * ( pondDelta[PB103_NB-1]-1) ;
-            sum103_t S = deltaS  ;
-            if( S <= Smin &&  CheckEqualityPreN(values,PB103_NB,chkP))  {
-                sum103_t v0 = MinCheck(values,PB103_NB) ;
-               
-                int j ;
-                Smin = S ;
-                deltaMax = S ;
-                if(v0 < minV0) minV0= v0 ;
-                printf("S=%d,SI=%d Delta=%d,minv0=%d,DeltaMax=%d ",S,S-v0 * PB103_NB,deltaS,minV0,deltaMax) ;
-                int lg = 0 ;
-                
-                for(j=0;j<PB103_NB;j++){
-                    printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
-                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
-                }
-                
-                for(j=0;j<PB103_NB;j++){
-                    printf("%d%c",Delta[j],(j==PB103_NB-1) ? '\n' : '.' ) ;
-                }
+            int lg = 0 ;
+            for(j=0;j<PB103_NB;j++){
+                lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
             }
         }
         is = PB103_NB-2 ;
-//            while(PB103_NB-is > delta && is){
-//                delta += (PB103_NB-is) * Delta[is] ;
         while(pondDelta[is] > delta && is){
             delta += pondDelta[is] * Delta[is];
             Delta[is-- ] = 0;
@@ -868,11 +654,9 @@ int PB103b(PB_RESULT *pbR) {
             delta = deltaS  ;
             is = 1 ;
         } else {
-//                Delta[is]++ ; delta -= PB103_NB-is ;
             Delta[is]++ ; delta -= pondDelta[is] ;
         }
-//        Delta[PB103_NB-1] = delta ;
-        Delta[PB103_NB-1] = delta / pondDelta[PB103_NB-1] ;
+        Delta[PB103_NB-1] = delta ;
     }
     FreeCheckPath(chkP) ;
     FreeAlterPath(AltP) ;
@@ -880,80 +664,115 @@ int PB103b(PB_RESULT *pbR) {
     return 1 ;
 }
 
-int PB103c(PB_RESULT *pbR) {
+
+
+// version avec ponderation, mais le parcours se fait en tenant compte
+// pour l'ordre de toutes les ponderations sauf la derniere valeur
+// Mais on ne teste que si la derniere valeur est un multiple de la ponderation
+// Donc economie de test par rapport a la version a)
+// Ne sort que les solutions correctes (puisque parcourrues ds l'ordre croissant
+// Utilise CheckEqualityPreN
+int PB103b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     
     sum103_t values[PB103_NB] ;
-    int isNotFound = 1;
-    sum103_t minV0 = 32000 ;
-    static int MinSmin[] = {1,3,4,9,21,51,115,255,567} ;
-    static int MinV0[] ={1,1,1,2,3,6,11,20,39} ;
     sum103_t Smin = 32000 ;
     sum103_t deltaMax = 20000 ;
-    int AntMinV0 ;
     
     sum103_t pondDelta[PB103_NB] ;
-    sum103_t minPond ;
-    { int i ;
-        pondDelta[0] = 0 ; // inutilise
-        for(i=1;i<PB103_NB;i++) {
-            pondDelta[i] = PB103_NB - i ;
-        }
-        //            pondDelta[i] = PB103_NB - i ;
-        int lg2 = (PB103_NB-1)/2 ;
-        for(i=0;i<lg2;i++) {
-            int k ;
-            for(k=1;k<=PB103_NB-1-i;k++) {
-                pondDelta[k]+= PB103_NB ;
-            }
-            for(k=1;k<=i+1;k++) {
-                pondDelta[k]-= PB103_NB ;
-            }
-        }
-        minPond = pondDelta[1] ;
-        for(i=2;i<PB103_NB;i++) if(pondDelta[i]< minPond) minPond = pondDelta[i] ;
-        for(i=0;i<PB103_NB;i++) { printf("%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
-    }
-    if(PB103_NB*sizeof(MinV0[0]) <= sizeof(MinV0)) {
-        AntMinV0 = MinV0[PB103_NB-1] * PB103_NB ;
-    } else {
-        AntMinV0 = (((PB103_NB-1)/2) * ((PB103_NB-1)/2)) *  PB103_NB ;
-    }
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
     CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,0) ;
+ 
+    Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
+    sum103_t offsetSum = pondDelta[0]  ;
     
-    
+    if(pbR->isVerbose) {
+        int i ;
+        fprintf(stdout,"\t PB%3.3db Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
+    }
+
+
     int j ;
-    //        int deltaS = 227 ;
-    //        int deltaS = 500 ;
-    {
-        //on va initialiser avec une valeur pour filtre
-        values[0] = 0 ;
-        values[1] = 2 ;
-        values[2] = 3 ;
-        values[3] = 4 ;
-        
-        int lg ;
-        for(lg=3;;lg++) {
-            sum103_t v0 = MinCheck(values,lg+1) ;
-            for(j=0;j<=lg;j++) values[j] += v0 ;
-            if(CheckEqualityAlt(values,lg,AltP,0) ) {
-                for(j=0;j<=lg;j++){ printf("%d%c",values[j],(j==lg) ? '\n' : ',' ) ; }
-            } else {
-                printf("Error\n" );
+    int is = 1 ;
+    int deltaS = 0 ;
+    values[0] = 0 ;
+    sum103_t delta = deltaS ;
+    sum103_t Delta[PB103_NB] ;
+    for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
+    Delta[PB103_NB-1] = deltaS ;
+    while(deltaS<=deltaMax) {
+        if(( Delta[PB103_NB-1] * pondDelta[PB103_NB-1])  == delta ){
+            for(is=1;is<PB103_NB;is++) {
+                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
             }
-            if(lg < PB103_NB-1) {
-                for(j=lg;j>=0;j--) values[j+1] = values[j] ;
-                values[0] = 0 ;
-            } else {
-                break ;
+            sum103_t S = deltaS  ;
+            if( S <= Smin &&  CheckEqualityPreN(values,PB103_NB,chkP))  {
+                sum103_t v0 = MinCheck(values,PB103_NB) ;
+                int j ;
+                Smin = S ;
+                deltaMax = S ;
+                if(pbR->isVerbose) {
+                    fprintf(stdout,"\t PB%3.3db S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                    for(j=0;j<PB103_NB;j++){
+                        fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                    }
+                    for(j=1;j<PB103_NB;j++){
+                        fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                    }
+                }
+                int lg = 0 ;
+                for(j=0;j<PB103_NB;j++){
+                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                }
             }
         }
-        Smin = 0 ;
-        for(j=0;j<PB103_NB;j++) Smin += values[j] ;
-        printf("Smin=%d\n",Smin) ;
+        is = PB103_NB-2 ;
+        while(pondDelta[is] > delta && is){
+            delta += pondDelta[is] * Delta[is];
+            Delta[is-- ] = 0;
+        }
+        if(is == 0) {
+            deltaS++ ;
+            delta = deltaS  ;
+            is = 1 ;
+        } else {
+            Delta[is]++ ; delta -= pondDelta[is] ;
+        }
+        Delta[PB103_NB-1] = delta / pondDelta[PB103_NB-1] ;
     }
-    int is = 1 ;
+    FreeCheckPath(chkP) ;
+    FreeAlterPath(AltP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+// version avec ponderation, avec parcours en tenant compte
+// de l'ordre de toutes les ponderations a l'ordre PB103_NB-1
+// Si c'est correct, on teste otus les cas possible en balayant les valeurs
+// possible pour le dernier delta.
+// Utilise CheckEqualityAlt pour PB103_NB-1,
+// CheckEqualityPreN pour PB103_NB (avec isSup=1)
+
+
+int PB103c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    sum103_t values[PB103_NB] ;
+    sum103_t Smin = 32000 ;
+    sum103_t deltaMax = 20000 ;
+    
+    sum103_t pondDelta[PB103_NB] ;
+    AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
+    CheckPaths *chkP =GetCheckPath(PB103_NB,AltP,1) ;
+
+    Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
+    sum103_t offsetSum = pondDelta[0]  ;
+    
+    if(pbR->isVerbose) {
+        int i ;
+        fprintf(stdout,"\t PB%3.3dc Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
+    }
+    int j, is = 1 ;
     int deltaS = 0 ;
     
     values[0] = 0 ;
@@ -961,39 +780,32 @@ int PB103c(PB_RESULT *pbR) {
     sum103_t Delta[PB103_NB] ;
     for(j=0;j<PB103_NB-1;j++) Delta[j] = 0;
     Delta[PB103_NB-1] = deltaS ;
-    sum103_t offsetDeltaS = (PB103_NB*(PB103_NB-1))/2  ;
-    while(1) {
-        if(deltaS > deltaMax )  { isNotFound = 0; printf("DeltaS=%d\n",deltaS); break ; }
-        
-        
+    while(deltaS<=deltaMax) {
         if(delta == 0 ){
-            //          Delta[PB103_NB-1] /= pondDelta[PB103_NB-1] ;
             for(is=1;is<PB103_NB-1;is++) {
-                values[is] = values[is-1]+Delta[is]+1 ; /*S+= values[is] ;*/
+                values[is] = values[is-1]+Delta[is]+1 ;
             }
             if(CheckEqualityAlt(values,PB103_NB-1 ,AltP,0)) {
                 values[PB103_NB-1] = values[PB103_NB-2]+1 ;
                 sum103_t S = deltaS  ;
                 while(S<=Smin) {
-                    //            values[PB103_NB-1] = values[PB103_NB-2] + Delta[PB103_NB-1]/pondDelta[PB103_NB-1] +1 ;
-                    //            sum103_t S = deltaS + Delta[PB103_NB-1] * ( pondDelta[PB103_NB-1]-1) ;
                     if(CheckEqualityPreN(values,PB103_NB,chkP))  {
                         sum103_t v0 = MinCheck(values,PB103_NB) ;
-                        
                         int j ;
                         Smin = S ;
                         deltaMax = S ;
-                        if(v0 < minV0) minV0= v0 ;
-                        printf("S=%d,SI=%d Delta=%d,minv0=%d,DeltaMax=%d ",S,S-v0 * PB103_NB,deltaS,minV0,deltaMax) ;
-                        int lg = 0 ;
-                        
-                        for(j=0;j<PB103_NB;j++){
-                            printf("%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
-                            lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                        if(pbR->isVerbose) {
+                            fprintf(stdout,"\t PB%3.3dc S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                            for(j=0;j<PB103_NB;j++){
+                                fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                            }
+                            for(j=1;j<PB103_NB;j++){
+                                fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                            }
                         }
-                        
+                        int lg = 0 ;
                         for(j=0;j<PB103_NB;j++){
-                            printf("%d%c",Delta[j],(j==PB103_NB-1) ? '\n' : '.' ) ;
+                            lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
                         }
                         break ;
                     }
@@ -1002,8 +814,6 @@ int PB103c(PB_RESULT *pbR) {
             }
         }
         is = PB103_NB-2 ;
-        //            while(PB103_NB-is > delta && is){
-        //                delta += (PB103_NB-is) * Delta[is] ;
         while(pondDelta[is] > delta && is){
             delta += pondDelta[is] * Delta[is];
             Delta[is-- ] = 0;
@@ -1013,11 +823,8 @@ int PB103c(PB_RESULT *pbR) {
             delta = deltaS  ;
             is = 1 ;
         } else {
-            //                Delta[is]++ ; delta -= PB103_NB-is ;
             Delta[is]++ ; delta -= pondDelta[is] ;
         }
-        //        Delta[PB103_NB-1] = delta ;
-//        Delta[PB103_NB-1] = delta / pondDelta[PB103_NB-1] ;
     }
     FreeCheckPath(chkP) ;
     FreeAlterPath(AltP) ;
@@ -1027,7 +834,10 @@ int PB103c(PB_RESULT *pbR) {
 //
 //
 // Parcours en incrementant les delta[is) tt que somme pondere inferieur a dmin
+// Et l'on ne developpe que si les ordres inferieurs sont valides
 // Pas dans l'ordre de dmin croissant, mais a chque nouvelle valeur on tient compte de l'amelioration de dmin
+// utilise CheckEqualityAlt pour is =3
+// utilise CheckEqualityPreN aves isSup pour les ordres superieurs
 //
 int PB103d(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
@@ -1040,7 +850,7 @@ int PB103d(PB_RESULT *pbR) {
     { int i ; for(i=4;i<PB103_NB;i++) chkPS[i] = GetCheckPath(i+1,AltP,1) ; }
   
     Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
-    sum103_t offsetSum = pondDelta[0] ; ;
+    sum103_t offsetSum = pondDelta[0]  ;
 
     if(pbR->isVerbose) {
         int i ;
