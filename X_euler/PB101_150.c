@@ -1101,8 +1101,6 @@ int PB103e(PB_RESULT *pbR) {
     return 1 ;
 }
 
-// parcours decroissant
-//
 int PB103f(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     sum103_t values[PB103_NB] ;
@@ -1120,85 +1118,81 @@ int PB103f(PB_RESULT *pbR) {
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     sum103_t S[PB103_NB] ;
-    values[0] = 0 ;
-    S[0] = 0 ;
-    S[1] = 0 ;
-    values[1] = 1 ;
+    sum103_t SRev=0 ;
+    values[0] = 0 ; values[1] = 1 ; S[1] = 0 ;
     int is = 1 ;
-    sum103_t Smax = Smin ;
-    S[1] = (Smax / pondDelta[1]) * pondDelta[1]  ;
-    values[1] = (S[1]/ pondDelta[1]) + 1 ;
-    Smin = 0 ;
     while(is>0) {
-//        if(S[is] <= Smin) {
-//        { int k; printf("Is=%d ",is); for(k=0;k<=is;k++) printf("%d,",values[k]) ; for(k=0;k<=is;k++) printf("%d-",S[k]) ;  printf("\n") ;}
-        if(S[is] >= S[is-1]) {
+        if(S[is] <= Smin || SRev <= Smin ) {
             if(is <= 3) {
                 if(is== 3 && !CheckEqualityAlt(values,is+1,AltP,0) ) {
-//                    values[is]++ ; S[is] += pondDelta[is] ;
-                    values[is]-- ; S[is] -= pondDelta[is] ;
+                    values[is]++ ; S[is] += pondDelta[is] ;
+                    SRev += pondDelta[PB103_NB-is] ;
                     continue ;
                 }
             } else if(is < PB103_NB) {
                 if(!CheckEqualityPreH(values,hlfP[is]) ) {
-//                    values[is]++ ; S[is] += pondDelta[is] ; continue;
-                    values[is]-- ; S[is] -= pondDelta[is] ; continue;
+                    values[is]++ ; S[is] += pondDelta[is] ;  SRev += pondDelta[PB103_NB-is] ;  continue;
                 } else if(is==PB103_NB-1) {
-                    // new solution
-                    sum103_t v0 = MinCheck(values,PB103_NB) ;
                     int j ;
-                    Smax = S[is] ;
-                    if(pbR->isVerbose) {
-                        fprintf(stdout,"\t PB%3.3df S=%d D=%d  ",pbR->pbNum,Smax+offsetSum,Smax ) ;
-                        for(j=0;j<PB103_NB;j++){
-                            fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
-                        }
-                        for(j=1;j<PB103_NB;j++){
-                            fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
-                        }
-                    }
-                    // on va tester le reverse
-/*                    {
-                        sum103_t Srev = 0 ;
-                        sum103_t vRev[PB103_NB] ;
-                        vRev[0] = 0 ;
-                        for(j=1;j<PB103_NB;j++){
-                            Srev += (values[PB103_NB-j]-values[PB103_NB-j-1]-1) * pondDelta[j] ;
-                            vRev[j] = vRev[j-1] + values[PB103_NB-j]-values[PB103_NB-j-1] ;
-                        }
-                        if(Srev < Smax) {
-                            sum103_t vR0 = MinCheck(values,PB103_NB) ;
-                            if(CheckEqualityPreH(vRev,hlfP[is]))
-                            {
-                                fprintf(stdout,"\t PB%3.3de [R] S=%d D=%d  ",pbR->pbNum,Srev+offsetSum,Srev ) ;
+                    {// new solution
+                        sum103_t v0 = MinCheck(values,PB103_NB) ;
+                        if(S[is] <= Smin)  {
+                            Smin = S[is] ;
+                            if(pbR->isVerbose) {
+                                fprintf(stdout,"\t PB%3.3df S=%d D=%d  ",pbR->pbNum,Smin+offsetSum,Smin ) ;
                                 for(j=0;j<PB103_NB;j++){
-                                    fprintf(stdout,"%d%c",vRev[j]+vR0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                                    fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                                 }
                                 for(j=1;j<PB103_NB;j++){
-                                    fprintf(stdout,"%d%c",vRev[j]-vRev[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                                    fprintf(stdout,"%d%c",values[j]-values[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
                                 }
-                                Smax = Srev ;
                             }
                         }
+                        // on va tester le reverse
+                        if(SRev < Smin) {
+                            sum103_t Srev = 0 ;
+                            sum103_t vRev[PB103_NB] ;
+                            sum103_t SR[PB103_NB] ;
+                            vRev[0] = SR[0] = 0 ;
+                            for(j=1;j<PB103_NB;j++){
+                                Srev += (values[PB103_NB-j]-values[PB103_NB-j-1]-1) * pondDelta[j] ;
+                                SR[j] = Srev ;
+                                vRev[j] = vRev[j-1] + values[PB103_NB-j]-values[PB103_NB-j-1] ;
+                            }
+                            {
+                                sum103_t vR0 = MinCheck(vRev,PB103_NB) ;
+                                if(CheckEqualityPreH(vRev,hlfP[is])) {
+                                    fprintf(stdout,"\t PB%3.3de [R] S=%d D=%d,%d  ",pbR->pbNum,Srev+offsetSum,Srev,SRev ) ;
+                                    for(j=0;j<PB103_NB;j++){
+                                        fprintf(stdout,"%d%c",vRev[j]+vR0,(j==PB103_NB-1) ? ' ' : ',' ) ;
+                                    }
+                                    for(j=1;j<PB103_NB;j++){
+                                        fprintf(stdout,"%d%c",vRev[j]-vRev[j-1]-1,(j==PB103_NB-1) ? '\n' : '.' ) ;
+                                    }
+                                    Smin = Srev ;
+                                    SRev = S[is] ;
+                                    for(j=0;j<PB103_NB;j++){
+                                        S[j] = SR[j] ;
+                                        values[j] = vRev[j] ;
+                                    }
+                                    
+                                }
+                            }
+                        }
+                        int lg = 0 ;
+                        for(j=0;j<PB103_NB;j++){
+                            lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                        }
                     }
-                    
-*/
-                    
-                    int lg = 0 ;
-                    for(j=0;j<PB103_NB;j++){
-                        lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
-                    }
-//                    values[is]++ ; S[is] += pondDelta[is] ; continue;
-                    values[is]-- ; S[is] -= pondDelta[is] ; continue;
+                    values[is]++ ; S[is] += pondDelta[is] ; SRev += pondDelta[PB103_NB-is] ; continue;
                 }
             }
             is++ ;
-            sum103_t d = (Smax- S[is-1]) / pondDelta[is] ;
-            S[is] = S[is-1] + d * pondDelta[is]  ;  values[is] = values[is-1] + d  + 1 ;
+            S[is] = S[is-1] ;  values[is] = values[is-1] + 1 ;
         } else {
+            SRev -= (values[is] - values[is-1] - 1) * pondDelta[PB103_NB-is] ;
             is-- ;
-//            values[is]++ ; S[is] += pondDelta[is] ;
-            values[is]-- ; S[is] -= pondDelta[is] ;
+            values[is]++ ; S[is] += pondDelta[is] ; SRev += pondDelta[PB103_NB-is] ;
         }
     }
     { int i ; for(i=4;i<PB103_NB;i++) FreeHalfPath(hlfP[i]) ;  }
