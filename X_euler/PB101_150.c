@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  7
+#define PB103_NB  10
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -947,7 +947,7 @@ int PB103d(PB_RESULT *pbR) {
 
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%sd Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%s Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
         sum103_t S[PB103_NB] ;
@@ -1014,7 +1014,7 @@ int PB103e(PB_RESULT *pbR) {
     //    Smin = 2773 - offsetSum ; // valeur optimum pour 10
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%se Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%s Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     sum103_t S[PB103_NB] ;
@@ -1087,6 +1087,150 @@ int PB103e(PB_RESULT *pbR) {
             values[is]++ ; S[is] += pondDelta[is] ; SRev += pondDelta[PB103_NB-is] ;
         }
     }
+    { int i ; for(i=4;i<PB103_NB;i++) FreeHalfPath(hlfP[i]) ;  }
+    FreeAlterPath(AltP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+int Cmp103f(const void *el1,const void *el2) {
+    static int size = 0;
+    if(el2==NULL) {
+        size = ((int *)el1)[0] ;
+        return size ;
+    }
+    return memcmp(el1,el2,size) ;
+}
+
+int PB103f(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    sum103_t values[PB103_NB] ;
+    sum103_t Smin = 32000 ;
+    sum103_t pondDelta[PB103_NB] ;
+    AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
+    HalfPaths * hlfP[PB103_NB] ;
+    { int i ; for(i=4;i<PB103_NB;i++) hlfP[i] = GetHalfPath(i+1) ; }
+    Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
+    sum103_t offsetSum = pondDelta[0]  ;
+    if(pbR->isVerbose) {
+        int i ;
+        fprintf(stdout,"\t PB%s Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
+        for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
+    }
+    sum103_t d1,d2,d3 ;
+    
+    sum103_t deltas0[PB103_NB] = {0,0,0,1,2} ;
+    sum103_t deltas[PB103_NB] ;
+    
+    sum103_t indFirst[PB103_NB] ;
+    sum103_t nb[PB103_NB] ;
+    sum103_t *vv = malloc(10000000*sizeof(vv[0])) ;
+    
+#define MAX_VAR 8
+    int is,j ;
+    is = 3 ;
+    values[0] = 0 ;
+    indFirst[is] = 0 ;
+    nb[is] = 1 ;
+    sum103_t *vals, * vald = vv + indFirst[is] ;
+    vald[0] = 0 ;
+    for(j=1;j<=is;j++) {
+        vald[j] = vald[j-1] + deltas0[j] + 1 ;
+    }
+    indFirst[is+1] = indFirst[is] + (is+1) * nb[is] ;
+    for(;++is<PB103_NB;) {
+        int sizeV = (is+1) * sizeof(vv[0]) ;
+        if(Cmp103f(&sizeV,NULL) != sizeV) {
+            printf("ERROR SIZE\n") ;
+            exit(0) ;
+        }
+          for(d1=0,vals=vv + indFirst[is-1],vald = vv + indFirst[is],nb[is] = 0 ;d1<nb[is-1];d1++) {
+            memcpy(values,vals,is*sizeof(vals[0])) ;
+            vals += is ;
+            values[is] = values[is-1] + 1 ;
+            sum103_t ib,ibb ;
+            sum103_t S=0;
+            sum103_t Srev=0 ;
+            for(j=1;j<=is;j++) { S+= (values[j] - values[j-1]-1) *pondDelta[j] ; Srev += (values[j] - values[j-1]-1) *pondDelta[is+1-j] ; }
+            for(ib=0,ibb=0;ibb<MAX_VAR;ib++) {
+                if(CheckEqualityPreH(values,hlfP[is])) {
+                    if(is<PB103_NB -1){
+                        memcpy(vald,values,(is+1)*sizeof(vald[0])) ;
+                        vald += is + 1;
+                    }
+                    nb[is]++ ;
+                    ibb++;
+//                    if((is==6) || (is == PB103_NB -1 && S <= Smin)) {
+                    if( (is == PB103_NB -1 && S <= Smin)) {
+                        if(S<= Smin) {Smin = S ; }
+                        printf("S=%d,%d ",S+offsetSum,S) ;
+                        for(j=0;j<=is;j++) printf("%d%c",values[j],(j==is) ? ' ' : ',') ;
+                        for(j=1;j<=is;j++) printf("%d%c",values[j]-values[j-1]-1,(j==is) ? '\n' : '.') ;
+                    }
+//                    if((is==6) || (is == PB103_NB -1 && Srev <= Smin)) {
+                    if((is == PB103_NB -1 && Srev <= Smin)) {
+                        if(Srev<= Smin) {Smin = Srev ; }
+                        printf("S[r]=%d,%d ",Srev+offsetSum,Srev) ;
+                        for(j=0;j<=is;j++) printf("%d%c",values[j],(j==is) ? ' ' : ',') ;
+                        for(j=1;j<=is;j++) printf("%d%c",values[j]-values[j-1]-1,(j==is) ? '\n' : '.') ;
+                    }
+                }
+                values[is]++ ; S += pondDelta[is] ; Srev += pondDelta[1] ;
+            }
+        
+            for(j=1;j<is;j++) { deltas[j] = values[j] - values[j-1] -1 ; }
+            for(j=1;j<is;j++) { values[j] = values[j-1] + deltas[is-j] + 1; }
+            values[is] = values[is-1] + 1;
+            S=0;
+            Srev=0 ;
+            for(j=1;j<=is;j++) { S+= (values[j] - values[j-1]-1) *pondDelta[j] ; Srev += (values[j] - values[j-1]-1) *pondDelta[is+1-j] ; }
+             for(ib=0,ibb=0;ibb<MAX_VAR;ib++) {
+                if(CheckEqualityPreH(values,hlfP[is])) {
+                    if(is<PB103_NB -1){
+                        memcpy(vald,values,(is+1)*sizeof(vald[0])) ;
+                        vald += is + 1;
+                    }
+                    nb[is]++ ;
+                    ibb++;
+//                    if((is==6) || (is == PB103_NB -1 && S <= Smin)) {
+                    if( (is == PB103_NB -1 && S <= Smin)) {
+                        if(S<= Smin) {Smin = S ; }
+                        printf("*S=%d,%d ",S+offsetSum,S) ;
+                        for(j=0;j<=is;j++) printf("%d%c",values[j],(j==is) ? ' ' : ',') ;
+                        for(j=1;j<=is;j++) printf("%d%c",values[j]-values[j-1]-1,(j==is) ? '\n' : '.') ;
+                    }
+//                    if((is==6) || (is == PB103_NB -1 && Srev <= Smin)) {
+                    if((is == PB103_NB -1 && Srev <= Smin)) {
+                       if(Srev<= Smin) {Smin = Srev ;}
+                        printf("*S[R]=%d,%d ",Srev+offsetSum,Srev) ;
+                        for(j=0;j<=is;j++) printf("%d%c",values[j],(j==is) ? ' ' : ',') ;
+                        for(j=1;j<=is;j++) printf("%d%c",values[j]-values[j-1]-1,(j==is) ? '\n' : '.') ;
+                    }
+                }
+                values[is]++ ; S += pondDelta[is] ; Srev += pondDelta[1] ;
+            }
+        }
+        if(is < PB103_NB-1) {
+            heapsort(vv+indFirst[is],nb[is],(is+1)*sizeof(vv[0]),Cmp103f) ;
+            sum103_t newNb = 1;
+            for(d1=1,vals=vv+indFirst[is]+(is+1),vald=vv+indFirst[is];d1<nb[is];d1++) {
+                if(Cmp103f(vals,vald)!=0) {
+                    vald += is+1 ;
+                    if(vald != vals) {
+                        memcpy(vald,vals,sizeV);
+                    }
+                    newNb++ ;
+                }
+                vals += is+1 ;
+                
+            }
+            printf("%d,OldNb=%d,nexNb=%d\n",is,nb[is], newNb) ;
+            nb[is] = newNb ;
+            indFirst[is+1] = indFirst[is] + (is+1) * nb[is] ;
+        }
+    }
+    
+    
     { int i ; for(i=4;i<PB103_NB;i++) FreeHalfPath(hlfP[i]) ;  }
     FreeAlterPath(AltP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
