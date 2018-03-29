@@ -33,12 +33,12 @@ int PB051(PB_RESULT *pbR) {
     T_prime p ;
     pbR->nbClock = clock()  ;
     if( PB051_SQMAXP*PB051_SQMAXP< 10*PB051_MAXP) {
-        fprintf(stdout,"\t PB%d Need more Prime %d < %lld \n",pbR->pbNum,PB051_SQMAXP,Sqrt64(10*PB051_MAXP));
+        fprintf(stdout,"\t PB%s Need more Prime %d < %lld \n",pbR->ident,PB051_SQMAXP,Sqrt64(10*PB051_MAXP));
         return 0 ;
         
     }
     if((ctxP = Gen_tablePrime(PB051_SQMAXP)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
@@ -106,7 +106,7 @@ int PB051(PB_RESULT *pbR) {
                                     pattern[i] = (p1 % 10) + '0' ;
                                 }
                             }
-                            fprintf(stdout,"\t PB%d ",pbR->pbNum);
+                            fprintf(stdout,"\t PB%s ",pbR->ident);
                             while(i-- > 0) fprintf(stdout,"%c",pattern[i]);
                             fprintf(stdout,"->[%d] ",nbP);
                             for(i=0;i<nbP;i++) fprintf(stdout,"%d%c",tbP[i],(i==nbP-1) ? '\n' : ',');
@@ -165,7 +165,7 @@ int PB052(PB_RESULT *pbR) {
             int i ;
             u_int32_t n =0 ;
             for(i=1;i<=nbDig;i++) { n = n*10 + digX[nbDig-i] ; }
-            if(pbR->isVerbose)  fprintf(stdout,"\t PB%d %d,%d,%d,%d,%d,%d \n",pbR->pbNum,n,2*n,3*n,4*n,5*n,6*n) ;
+            if(pbR->isVerbose)  fprintf(stdout,"\t PB%s %d,%d,%d,%d,%d,%d \n",pbR->ident,n,2*n,3*n,4*n,5*n,6*n) ;
             sprintf(pbR->strRes,"%d",n);
             pbR->nbClock = clock() - pbR->nbClock ;
             return 1 ;
@@ -212,7 +212,7 @@ int PB052a(PB_RESULT *pbR) {
             if(memcmp(digXsort,digXxk,nbDig) != 0)  break ;
         }
         if(k==1) {
-            if(pbR->isVerbose)  fprintf(stdout,"\t PB%da %d,%d,%d,%d,%d,%d \n",pbR->pbNum,n,2*n,3*n,4*n,5*n,6*n) ;
+            if(pbR->isVerbose)  fprintf(stdout,"\t PB%s %d,%d,%d,%d,%d,%d \n",pbR->ident,n,2*n,3*n,4*n,5*n,6*n) ;
             sprintf(pbR->strRes,"%d",n);
             pbR->nbClock = clock() - pbR->nbClock ;
             return 1 ;
@@ -397,7 +397,7 @@ int PB058(PB_RESULT *pbR) {
     int nbPoint, nbPrime , DL  ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(PB058_MAXN)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     nbPoint = 1 ;
@@ -481,7 +481,7 @@ int PB059(PB_RESULT *pbR) {
             Sum += PB59_encrypted[j] ;
         }
     }
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%d \"%30.30s ...\"\n",pbR->pbNum,PB59_encrypted) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s \"%30.30s ...\"\n",pbR->ident,PB59_encrypted) ;
     
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%d",Sum);
@@ -502,7 +502,7 @@ int PB060(PB_RESULT *pbR) {
     int32_t maxS, minS = 0 ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(PB060_MAXP)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
@@ -519,7 +519,7 @@ int PB060(PB_RESULT *pbR) {
     
     NP = NPMAX ;
     maxS = tbPrime[NP-1] ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d NPMAX=%d,maxS=%d,maxP=%d\n",pbR->pbNum,NP,maxS,maxP);
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s NPMAX=%d,maxS=%d,maxP=%d\n",pbR->ident,NP,maxS,maxP);
     pow10 = calloc(NP, sizeof(pow10[0])) ;
     {
         int i ;
@@ -557,7 +557,7 @@ int PB060(PB_RESULT *pbR) {
             }
             if(isOK) {
                 if(i == 4) {
-                    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d  %lld = %lld + %lld + %lld + %lld + %lld\n",pbR->pbNum,SP+P[4],P[0],P[1],P[2],P[3],P[4]);
+                    if(pbR->isVerbose)fprintf(stdout,"\t PB%s  %lld = %lld + %lld + %lld + %lld + %lld\n",pbR->ident,SP+P[4],P[0],P[1],P[2],P[3],P[4]);
                     if(SP+P[4] < maxS) {
                         minS = maxS =(int32_t) (SP+P[4]) ;
                     }
@@ -631,7 +631,7 @@ int PB061(PB_RESULT *pbR) {
                         T_values[ind] = Ts ;
                     }else {
                         if(ind >= IND(Ts/100,s)+ PB061_MAXBYPREF-1) {
-                            fprintf(stdout,"\t PB%0.3d Too many identical prefix(%d) pour Type %d\n",pbR->pbNum, Ts/100,s) ;
+                            fprintf(stdout,"\t PB%s Too many identical prefix(%d) pour Type %d\n",pbR->ident, Ts/100,s) ;
                             return 0 ;
                         }
                         T_values[ind] = Ts % 100 ; // on ne stocke que le suffixe
@@ -682,7 +682,7 @@ int PB061(PB_RESULT *pbR) {
                                 if(S < Smin) {
                                     Smin = S ;
                                     if(pbR->isVerbose){
-                                        fprintf(stdout,"\t PB%0.3d S=%d,Nb=%d ",pbR->pbNum,S,nbSol);
+                                        fprintf(stdout,"\t PB%s S=%d,Nb=%d ",pbR->ident,S,nbSol);
                                         if(PB061_NS>6) {
                                             for(i=0;i<PB061_NS;i++) fprintf(stdout,"%d(%d)%c",permTyp[i],Tc[i],(i==PB061_NS-1) ? '\n' :' ') ;
                                         }else {
@@ -727,7 +727,7 @@ int PB061(PB_RESULT *pbR) {
     }
     free(T_values);
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3d S=%d,Nb=%d\n",pbR->pbNum,Smin,nbSol);
+        fprintf(stdout,"\t PB%s S=%d,Nb=%d\n",pbR->ident,Smin,nbSol);
     }
     if(nbSol > 0) sprintf(pbR->strRes,"%d",Smin);
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -807,7 +807,7 @@ int PB062(PB_RESULT *pbR) {
                         bestCub = seuil[nbDig-1]+index[i-nbSim]/(nbDig+1) ;
                         bestCub = bestCub *bestCub * bestCub ;
                         if(pbR->isVerbose){
-                            fprintf(stdout,"\t PB%d %d %lld ",pbR->pbNum, nbEqualMax,bestCub);
+                            fprintf(stdout,"\t PB%s %d %lld ",pbR->ident, nbEqualMax,bestCub);
                             for(k=0;k<nbSim;k++)fprintf(stdout,"%d%c",seuil[nbDig-1]+index[i-nbSim+k]/(nbDig+1) ,(k==nbSim-1) ? '\n' : ' ' );
                         }
                     }
@@ -998,7 +998,7 @@ int PB069a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     for(i=0;i<N;i++) phi[i]=i ;
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3da ",pbR->pbNum) ;
+        fprintf(stdout,"\t PB%sa ",pbR->ident) ;
     }
     for(i=2;i<N;i++) {
         if(phi[i] == i) { // nouveau nombre premier
@@ -1013,7 +1013,7 @@ int PB069a(PB_RESULT *pbR) {
         }
     }
     if(pbR->isVerbose){
-        fprintf(stdout,"\n\t PB%0.3da best n/phi %.2f for %d\n",pbR->pbNum,((float) nBest)/phi[nBest] ,nBest) ;
+        fprintf(stdout,"\n\t PB%sa best n/phi %.2f for %d\n",pbR->ident,((float) nBest)/phi[nBest] ,nBest) ;
     }
     
     sprintf(pbR->strRes,"%d",nBest);
@@ -1031,7 +1031,7 @@ int PB069b(PB_RESULT *pbR) {
     int32_t phi = 1 ;
     pbR->nbClock = clock() ;
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3db ",pbR->pbNum) ;
+        fprintf(stdout,"\t PB%sb ",pbR->ident) ;
     }
     // ss optimiser les nbre premiers
     int p ;
@@ -1045,7 +1045,7 @@ int PB069b(PB_RESULT *pbR) {
     }
     
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3db best n/phi %.2f for %d\n",pbR->pbNum,((float) P)/phi ,P) ;
+        fprintf(stdout,"\t PB%sb best n/phi %.2f for %d\n",pbR->ident,((float) P)/phi ,P) ;
     }
     
     sprintf(pbR->strRes,"%d",P);
@@ -1081,7 +1081,7 @@ int PB070(PB_RESULT *pbR) {
         }
     }
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3d best n/phi %.6f for %d phi=%d\n",pbR->pbNum,((float) nBest)/phi[nBest] ,nBest,phi[nBest]) ;
+        fprintf(stdout,"\t PB%s best n/phi %.6f for %d phi=%d\n",pbR->ident,((float) nBest)/phi[nBest] ,nBest,phi[nBest]) ;
     }
     
     sprintf(pbR->strRes,"%d",nBest);
@@ -1098,7 +1098,7 @@ int PB070a(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(N/2+1)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     int i,j,jmax, nBest = 2 , phiBest = 1 ;
@@ -1131,7 +1131,7 @@ int PB070a(PB_RESULT *pbR) {
         }
     }
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3d best n/phi %.6f for %d phi=%d\n",pbR->pbNum,((float) nBest)/phiBest ,nBest,phiBest) ;
+        fprintf(stdout,"\t PB%s best n/phi %.6f for %d phi=%d\n",pbR->ident,((float) nBest)/phiBest ,nBest,phiBest) ;
     }
     
     sprintf(pbR->strRes,"%d",nBest);
@@ -1153,7 +1153,7 @@ int PB071(PB_RESULT *pbR) {
     int d = 5 + 7 * i ;
     int n = 2 + 3 * i ;
     if(pbR->isVerbose){
-        fprintf(stdout,"\t PB%0.3d The fraction before 3/7 is %d/%d\n",pbR->pbNum,n,d) ;
+        fprintf(stdout,"\t PB%s The fraction before 3/7 is %d/%d\n",pbR->ident,n,d) ;
     }
     sprintf(pbR->strRes,"%d",n);
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -1407,8 +1407,8 @@ int PB074(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%d  lg=%d seen %d first for %d\n"
-                              ,pbR->pbNum
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s  lg=%d seen %d first for %d\n"
+                              ,pbR->ident
                               ,bestLg,nbCount,kBest);
     sprintf(pbR->strRes,"%d",nbCount);
 #if PB074_PRINT
@@ -1437,7 +1437,7 @@ int PB074a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int d1,d2,d3,d4,d5,d6 ;
     int dhist[10] = {0,0,0,0,0,0,0,0,0,0} ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3da ",pbR->pbNum);
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s ",pbR->ident);
     for(d1=0;d1<=9;d1++) {
         dhist[d1]++ ;
         for(d2=d1;d2<=9;d2++) {
@@ -1480,8 +1480,8 @@ int PB074a(PB_RESULT *pbR) {
         dhist[d1]-- ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\n\t PB%d seen %d \n"
-                              ,pbR->pbNum,nbCount);
+    if(pbR->isVerbose)fprintf(stdout,"\n\t PB%s seen %d \n"
+                              ,pbR->ident,nbCount);
     sprintf(pbR->strRes,"%d",nbCount);
 #if PB074_PRINT
     {
@@ -1609,7 +1609,7 @@ int PB077(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE *ctxP ;
     if((ctxP = Gen_tablePrime(PB077_MAXN)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     u_int32_t nbPrime = GetNbPrime(ctxP) ;
@@ -1635,8 +1635,8 @@ int PB077(PB_RESULT *pbR) {
     for(kmin=0;kmin<PB077_MAXN;kmin++) {
         //        printf("%d ",Epn[(ctxP->nbPrime-1)*PB077_MAXN + kmin]) ;
         if(Epn[(nbPrime-1)*PB077_MAXN + kmin]-1 > PB077_NB_ASK) {
-            if(pbR->isVerbose) fprintf(stdout,"\t PB%0.3d %d a %d decompositions en premiers\n"
-                                       ,pbR->pbNum,kmin,Epn[(nbPrime-1)*PB077_MAXN + kmin]-1);
+            if(pbR->isVerbose) fprintf(stdout,"\t PB%s %d a %d decompositions en premiers\n"
+                                       ,pbR->ident,kmin,Epn[(nbPrime-1)*PB077_MAXN + kmin]-1);
             break ;
         }
     }
@@ -1829,7 +1829,7 @@ int PB085(PB_RESULT *pbR) {
         }
         
     }
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%0.3d For %d,%d np=%d Nb rectangles=%d\n",pbR->pbNum,nBest,pBest,nBest*pBest,(nBest*(nBest+1)*pBest*(pBest+1))/4) ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s For %d,%d np=%d Nb rectangles=%d\n",pbR->ident,nBest,pBest,nBest*pBest,(nBest*(nBest+1)*pBest*(pBest+1))/4) ;
     sprintf(pbR->strRes,"%d",nBest*pBest);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -1890,7 +1890,7 @@ int PB086(PB_RESULT *pbR) {
         if(histoM[minM]>PB086_NBASK) break ;
     }
     free(histoM) ;
-    if(pbR->isVerbose)printf("\t PB%0.3d Nb[%d]=%d => Nb[%d]=%d\n",pbR->pbNum,minM-1,histoM[minM-1],minM,histoM[minM]) ;
+    if(pbR->isVerbose)printf("\t PB%s Nb[%d]=%d => Nb[%d]=%d\n",pbR->ident,minM-1,histoM[minM-1],minM,histoM[minM]) ;
     sprintf(pbR->strRes,"%d",minM);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -1909,7 +1909,7 @@ int PB087(PB_RESULT *pbR) {
     pow3 = malloc(n_sqr3*sizeof(pow3[0])) ;
     pow4 = malloc(n_sqr4*sizeof(pow4[0])) ;
     if((ctxP = Gen_tablePrime(n_sqr2)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     
@@ -2097,7 +2097,7 @@ int PB091(PB_RESULT *pbR) {
             
         }
     }
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (O:%d,P:%d,Q:%d)\n",pbR->pbNum,nbO+nbp+nbq, nbO,nbp,nbq) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Nb=%d (O:%d,P:%d,Q:%d)\n",pbR->ident,nbO+nbp+nbq, nbO,nbp,nbq) ;
     sprintf(pbR->strRes,"%d",nbO+nbp+nbq);
     
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -2164,7 +2164,7 @@ int PB092(PB_RESULT *pbR) {
     }
     
     
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Term=1[%d] Term=89[%d]\n",pbR->pbNum,nbT[1],nbT[PB092_T89]) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Term=1[%d] Term=89[%d]\n",pbR->ident,nbT[1],nbT[PB092_T89]) ;
     sprintf(pbR->strRes,"%d",nbT[PB092_T89]);
     
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -2211,7 +2211,7 @@ int PB092a(PB_RESULT *pbR) {
             for(is=0;is<=81*PB092_NBDIG;is++) {
                 nbT[terminal[is]] += histoSum[nb][is] ;
             }
-            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d %cTerm=89[%lld]\n",pbR->pbNum,(nb==PB092_NBASK-1) ? '*':' ',nbT[PB092_T89]) ;
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%s %cTerm=89[%lld]\n",pbR->ident,(nb==PB092_NBASK-1) ? '*':' ',nbT[PB092_T89]) ;
             if(nb==PB092_NBASK-1 ) sprintf(pbR->strRes,"%lld",nbT[PB092_T89]); ;
         }
         for(i=0;i<PB092_NBDIG;i++) free(histoSum[i]) ;
@@ -2347,10 +2347,10 @@ int PB093a(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     if(maxCons < PB095_EXPMAX) {
         sprintf(pbR->strRes,"%s",maxABCD);
-        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%s)\n",pbR->pbNum,maxCons,maxABCD) ;
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%s Nb=%d (%s)\n",pbR->ident,maxCons,maxABCD) ;
         return 1 ;
     } else {
-        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d ERROR MAX_PRESUMED=%d reached for (%s)\n",pbR->pbNum,maxCons,maxABCD) ;
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%s ERROR MAX_PRESUMED=%d reached for (%s)\n",pbR->ident,maxCons,maxABCD) ;
         return 0 ;
         
     }
@@ -2425,10 +2425,10 @@ int PB093(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     if(maxCons < PB095_EXPMAX) {
         sprintf(pbR->strRes,"%d",maxABCD);
-        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d Nb=%d (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%s Nb=%d (%d)\n",pbR->ident,maxCons,maxABCD) ;
         return 1 ;
     } else {
-        if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d ERROR MAX_PRESUMED=%d reached for (%d)\n",pbR->pbNum,maxCons,maxABCD) ;
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%s ERROR MAX_PRESUMED=%d reached for (%d)\n",pbR->ident,maxCons,maxABCD) ;
         return 0 ;
         
     }
@@ -2486,8 +2486,8 @@ int PB094(PB_RESULT *pbR) {
             int64_t P = 6*N-2;
             if(P >= PB094_MAX) break ;
             assert((2*N-1)*(2*N-1) - h*h - N*N == 0 ); // check Pythagore
-            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d T(2x%lld,%lld) %lld^2 = %lld^2 + %lld^2\n"
-                    ,pbR->pbNum,2*N-1,2*N,2*N-1,N,h) ;
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%s T(2x%lld,%lld) %lld^2 = %lld^2 + %lld^2\n"
+                    ,pbR->ident,2*N-1,2*N,2*N-1,N,h) ;
             sumP += P ;
         }
         { // cas B (2N+1)
@@ -2497,8 +2497,8 @@ int PB094(PB_RESULT *pbR) {
             int64_t P = 6*N+2;
             assert((2*N+1)*(2*N+1) - h*h - N*N == 0) ; // check Pythagore
             if(P<PB094_MAX) sumP += P ;
-            if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d T(2x%lld,%lld) %lld^2= %lld^2 + %lld^2\n"
-                                      ,pbR->pbNum,2*N+1,2*N,2*N+1,N,h) ;
+            if(pbR->isVerbose)fprintf(stdout,"\t PB%s T(2x%lld,%lld) %lld^2= %lld^2 + %lld^2\n"
+                                      ,pbR->ident,2*N+1,2*N,2*N+1,N,h) ;
             
         }
         NextFract(&Fsqrt3,2);
@@ -2514,7 +2514,7 @@ int PB095(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE *ctxP ;
     if((ctxP = Gen_tablePrime(PB095_MAX)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     int32_t *SumDiv = malloc(PB095_MAX*sizeof(SumDiv[0]));
@@ -2570,7 +2570,7 @@ int PB095(PB_RESULT *pbR) {
             nj = SumDiv[j] ;
             SumDiv[j] = - lg ; // mark the current path by negative number
             if(lg >= PB095_MAXLG) {
-                fprintf(stdout,"\t PB%0.3d FATAL ERROR MAXLG=%d Reached\n",pbR->pbNum,PB095_MAXLG) ;
+                fprintf(stdout,"\t PB%s FATAL ERROR MAXLG=%d Reached\n",pbR->ident,PB095_MAXLG) ;
                 return 0 ;
             }
         }
@@ -2601,7 +2601,7 @@ int PB095(PB_RESULT *pbR) {
     free(SumDiv) ;
     if(pbR->isVerbose) {
         int k ;
-        fprintf(stdout,"\t PB%0.3d Chain[%d]=%d ",pbR->pbNum,jmin,lgMax) ;
+        fprintf(stdout,"\t PB%s Chain[%d]=%d ",pbR->ident,jmin,lgMax) ;
         for(k=0;k<=lgMax;k++) printf("%d%c",BestChain[k],(k==lgMax) ? '\n' : '>');
     }
     sprintf(pbR->strRes,"%d",jmin) ;
@@ -2686,7 +2686,7 @@ int PB100(PB_RESULT *pbR) {
     p2 = 2*p ;
     
 #if PB100_DEBUG
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%d delta=%lld\t; p=%lld\t; n=%lld\t; d=%lld ;\n",pbR->pbNum,delta ,p2 >> 1,n,d) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s delta=%lld\t; p=%lld\t; n=%lld\t; d=%lld ;\n",pbR->ident,delta ,p2 >> 1,n,d) ;
 #endif
     while(1) {
         d -= (n * 2) + 1 ;
@@ -2698,15 +2698,15 @@ int PB100(PB_RESULT *pbR) {
             p2 += 2 ;
             if(delta == 0) {
 #if PB100_DEBUG
-                if(pbR->isVerbose)fprintf(stdout,"\t PB%d delta=%lld\t; p=%lld\t; n=%lld\t; d=%lld ;\n",pbR->pbNum, delta ,p2 >> 1,n,d) ;
+                if(pbR->isVerbose)fprintf(stdout,"\t PB%s delta=%lld\t; p=%lld\t; n=%lld\t; d=%lld ;\n",pbR->ident, delta ,p2 >> 1,n,d) ;
 #endif
                 if(n > PB100_MIN_N ) break ;
             }
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%d blue=%lld total=%lld %lldx%lld=2x%lldx%lld \n"
-                              ,pbR->pbNum
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s blue=%lld total=%lld %lldx%lld=2x%lldx%lld \n"
+                              ,pbR->ident
                               ,(p2>>1)+1, n+1, n,n+1,(p2>>1),(p2>>1)+1
                               );
     sprintf(pbR->strRes,"%lld",(p2>>1)+1);

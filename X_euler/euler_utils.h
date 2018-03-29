@@ -14,7 +14,7 @@
 #define PB_MAX_STRLEN   100
 
 typedef struct PB_RESULT {
-    int     pbNum ;
+    const char    *ident ;
     int     isVerbose ;
     char    strRes[PB_MAX_STRLEN] ;
     clock_t nbClock ;
@@ -24,7 +24,7 @@ typedef int(*PB_FIND)(PB_RESULT *pbR);
 
 
 typedef struct PB_CALL {
-    int             pbNum ;
+    const char      *ident  ;
     PB_FIND         pbSolve ;
     const   char *  Solution ;
     const   char *  name ;
@@ -44,6 +44,8 @@ u_int16_t Sqrt16(u_int16_t val) ;
 void HeapSortUint8(u_int8_t *H,int n) ;
 void HeapSortUint8Rev(u_int8_t *H,int n) ;
 
+int NextArrangement(u_int8_t *arr,int k, int n) ;
+int NextSub(u_int8_t *sub,int k, int n) ;
 int NextPermut(u_int8_t *perm,int lg) ;
 int NextPermutRg(u_int8_t *perm,int lg,int rg) ;
 int ChkPermutRg(u_int8_t *perm,int lg,int rg) ;

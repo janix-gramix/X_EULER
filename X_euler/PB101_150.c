@@ -149,7 +149,7 @@ int PB101(PB_RESULT *pbR) {
    
     int64_t S=0 ;
     int k ;
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%0.3d S",pbR->pbNum);
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s S",pbR->ident);
     for(k=1;k<PB101_DEG+2;k++) {
         if(D[k]) {
             S += Q[k] ;
@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  9
+#define PB103_NB  7
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -585,7 +585,7 @@ int PB103(PB_RESULT *pbR) {
             if(v0 < minV0) minV0= v0 ;
         
             if(pbR->isVerbose) {
-                fprintf(stdout,"\t PB%3.3d S=%d Delta=%d,minv0=%d,DeltaMax=%d ",pbR->pbNum,S+offsetDeltaS,deltaS,minV0,deltaMax ) ;
+                fprintf(stdout,"\t PB%s S=%d Delta=%d,minv0=%d,DeltaMax=%d ",pbR->ident,S+offsetDeltaS,deltaS,minV0,deltaMax ) ;
                 for(j=0;j<PB103_NB;j++){
                     fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                 }
@@ -702,7 +702,7 @@ int PB103a(PB_RESULT *pbR) {
     
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%3.3da Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%3s Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     values[0] = 0 ;
@@ -724,7 +724,7 @@ int PB103a(PB_RESULT *pbR) {
             Smin = S ;
             deltaMax = S ;
             if(pbR->isVerbose) {
-                fprintf(stdout,"\t PB%3.3da S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                fprintf(stdout,"\t PB%s S=%d Delta=%d DeltaMax=%d ",pbR->ident,Smin+offsetSum,deltaS,deltaMax ) ;
                 for(j=0;j<PB103_NB;j++){
                     fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                 }
@@ -781,7 +781,7 @@ int PB103b(PB_RESULT *pbR) {
     
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%3.3db Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%sb Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
 
@@ -806,7 +806,7 @@ int PB103b(PB_RESULT *pbR) {
                 Smin = S ;
                 deltaMax = S ;
                 if(pbR->isVerbose) {
-                    fprintf(stdout,"\t PB%3.3db S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                    fprintf(stdout,"\t PB%s S=%d Delta=%d DeltaMax=%d ",pbR->ident,Smin+offsetSum,deltaS,deltaMax ) ;
                     for(j=0;j<PB103_NB;j++){
                         fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                     }
@@ -862,7 +862,7 @@ int PB103c(PB_RESULT *pbR) {
     
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%3.3dc Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%sc Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     int j, is = 1 ;
@@ -888,7 +888,7 @@ int PB103c(PB_RESULT *pbR) {
                         Smin = S ;
                         deltaMax = S ;
                         if(pbR->isVerbose) {
-                            fprintf(stdout,"\t PB%3.3dc S=%d Delta=%d DeltaMax=%d ",pbR->pbNum,Smin+offsetSum,deltaS,deltaMax ) ;
+                            fprintf(stdout,"\t PB%s S=%d Delta=%d DeltaMax=%d ",pbR->ident,Smin+offsetSum,deltaS,deltaMax ) ;
                             for(j=0;j<PB103_NB;j++){
                                 fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                             }
@@ -947,7 +947,7 @@ int PB103d(PB_RESULT *pbR) {
 
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%3.3dd Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%sd Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
         sum103_t S[PB103_NB] ;
@@ -969,7 +969,7 @@ int PB103d(PB_RESULT *pbR) {
                         int j ;
                         Smin = S[is] ;
                         if(pbR->isVerbose) {
-                            fprintf(stdout,"\t PB%3.3dd S=%d D=%d  ",pbR->pbNum,Smin+offsetSum,Smin ) ;
+                            fprintf(stdout,"\t PB%s S=%d D=%d  ",pbR->ident,Smin+offsetSum,Smin ) ;
                             for(j=0;j<PB103_NB;j++){
                                 fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                             }
@@ -1014,7 +1014,7 @@ int PB103e(PB_RESULT *pbR) {
     //    Smin = 2773 - offsetSum ; // valeur optimum pour 10
     if(pbR->isVerbose) {
         int i ;
-        fprintf(stdout,"\t PB%3.3de Smin=%d,Dmin=%d Pond=",pbR->pbNum, Smin+offsetSum,Smin) ;
+        fprintf(stdout,"\t PB%se Smin=%d,Dmin=%d Pond=",pbR->ident, Smin+offsetSum,Smin) ;
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     sum103_t S[PB103_NB] ;
@@ -1039,7 +1039,7 @@ int PB103e(PB_RESULT *pbR) {
                         if(S[is] <= Smin)  {
                             Smin = S[is] ;
                             if(pbR->isVerbose) {
-                                fprintf(stdout,"\t PB%3.3de S=%d D=%d  ",pbR->pbNum,Smin+offsetSum,Smin ) ;
+                                fprintf(stdout,"\t PB%s S=%d D=%d  ",pbR->ident,Smin+offsetSum,Smin ) ;
                                 for(j=0;j<PB103_NB;j++){
                                     fprintf(stdout,"%d%c",values[j]+v0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                                 }
@@ -1058,7 +1058,7 @@ int PB103e(PB_RESULT *pbR) {
                             {
                                 sum103_t vR0 = MinCheck(vRev,PB103_NB) ;
                                 if(CheckEqualityPreH(vRev,hlfP[is])) {
-                                    fprintf(stdout,"\t PB%3.3de [R] S=%d D=%d  ",pbR->pbNum,SRev+offsetSum,SRev ) ;
+                                    fprintf(stdout,"\t PB%s [R] S=%d D=%d  ",pbR->ident,SRev+offsetSum,SRev ) ;
                                     for(j=0;j<PB103_NB;j++){
                                         fprintf(stdout,"%d%c",vRev[j]+vR0,(j==PB103_NB-1) ? ' ' : ',' ) ;
                                     }

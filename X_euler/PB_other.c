@@ -260,8 +260,8 @@ int PB579(PB_RESULT *pbR) {
             }
         }
     }
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%0.3d NbCubeType=%d NbCubes=%lld NBVertices=%lld \n"
-                              ,pbR->pbNum,CC.nbC,CC.nbCube,CC.nbVertice) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s NbCubeType=%d NbCubes=%lld NBVertices=%lld \n"
+                              ,pbR->ident,CC.nbC,CC.nbCube,CC.nbVertice) ;
     sprintf(pbR->strRes,"%lld",CC.nbVertice);
     
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -328,12 +328,12 @@ int PB1000(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrimeNb(PB1000_NUM)) == NULL) {
-        fprintf(stdout,"\t PB%d Fail to alloc prime table\n",pbR->pbNum);
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     
-    fprintf(stdout,"\t PB%0.4d prime[%d] = %d\n",pbR->pbNum, PB1000_NUM,tbPrime[PB1000_NUM-1]) ;
+    fprintf(stdout,"\t PB%0.4d prime[%d] = %d\n",pbR->ident, PB1000_NUM,tbPrime[PB1000_NUM-1]) ;
     sprintf(pbR->strRes,"%d",tbPrime[PB1000_NUM-1]);
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;

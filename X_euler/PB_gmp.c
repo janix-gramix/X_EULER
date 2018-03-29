@@ -30,8 +30,8 @@ int PB016_gmp(PB_RESULT *pbR) {
         S += digLarge[i] - '0' ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%dgmp Sumdig(2**%d)=%d\n"
-                              ,pbR->pbNum
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Sumdig(2**%d)=%d\n"
+                              ,pbR->ident
                               ,PB016_EXP,S) ;
     sprintf(pbR->strRes,"%d",S) ;
     return 1 ;
@@ -65,8 +65,8 @@ int PB056_gmp(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%dgmp DigSum(%d**%d)=%d\n"
-                              ,pbR->pbNum
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s DigSum(%d**%d)=%d\n"
+                              ,pbR->ident
                               ,aBest,bBest,Max) ;
     sprintf(pbR->strRes,"%d",Max) ;
     return 1 ;
@@ -103,7 +103,7 @@ int PB066(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) {
         char * str_x = mpz_get_str(NULL,10,max_x) ;
-        fprintf(stdout,"\t PB%0.3d x(%d)=%s\n",pbR->pbNum, bestN,str_x);
+        fprintf(stdout,"\t PB%0.3d x(%d)=%s\n",pbR->ident, bestN,str_x);
         free (str_x) ;
     }
     sprintf(pbR->strRes,"%d",bestN);
@@ -139,8 +139,8 @@ int PB080_gmp(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%dgmp SumdDecimal[1..%d]=%d\n"
-                              ,pbR->pbNum,PB080_N,S) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s SumdDecimal[1..%d]=%d\n"
+                              ,pbR->ident,PB080_N,S) ;
     sprintf(pbR->strRes,"%d",S) ;
     return 1 ;
 }
@@ -263,7 +263,7 @@ int PB597_gmpa(PB_RESULT *pbR) {
                 mpq_add(ND,ND,curDT[i].P) ;
             }
         }
-        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%da PEVEN=%Qd\n",pbR->pbNum,ND );
+        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%s PEVEN=%Qd\n",pbR->ident,ND );
         mpz_mul_ui(mpq_numref(ND) ,mpq_numref(ND),100000000000) ;
         mpz_tdiv_q (mpq_numref(ND),mpq_numref(ND),mpq_denref(ND));
         gmp_sprintf (pbR->strRes,"%Zd",mpq_numref(ND) );
@@ -392,7 +392,7 @@ int PB597_gmp(PB_RESULT *pbR) {
                 mpq_add(ND,ND,DT[i].E_P) ;
             }
         }
-        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%d PEVEN=%Qd\n",pbR->pbNum,ND );
+        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%s PEVEN=%Qd\n",pbR->ident,ND );
         mpz_mul_ui(mpq_numref(ND) ,mpq_numref(ND),100000000000) ;
         mpz_tdiv_q (mpq_numref(ND),mpq_numref(ND),mpq_denref(ND));
         gmp_sprintf (pbR->strRes,"%Zd",mpq_numref(ND) );
@@ -507,7 +507,7 @@ int PB597_gmpx(PB_RESULT *pbR) {
         }
     }
     {
-        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%d %d boats PEVEN=%Qd\n",pbR->pbNum,PB597_NB,EVEN );
+        if(pbR->isVerbose)gmp_fprintf (stdout,"\t PB%s %d boats PEVEN=%Qd\n",pbR->ident,PB597_NB,EVEN );
         mpz_mul_ui(mpq_numref(EVEN) ,mpq_numref(EVEN),100000000000) ;
         mpz_tdiv_q (mpq_numref(EVEN),mpq_numref(EVEN),mpq_denref(EVEN));
         gmp_sprintf (pbR->strRes,"%Zd",mpq_numref(EVEN) );
@@ -577,7 +577,7 @@ int PB597_gmpy(PB_RESULT *pbR) {
     mpz_mul_ui(Num1000 ,mpq_numref(getEven(&ctx,PB597_NB,L)[PB597_NB]),100000000000) ;
     mpz_tdiv_q (Num1000,Num1000,mpq_denref(getEven(&ctx,PB597_NB,L)[PB597_NB]));
     if(pbR->isVerbose){
-        gmp_fprintf (stdout,"\t PB%dy %2d boats PEVEN=0.%Zd=%Qd\n",pbR->pbNum,PB597_NB,Num1000,getEven(&ctx,PB597_NB,L)[PB597_NB]);
+        gmp_fprintf (stdout,"\t PB%sy %2d boats PEVEN=0.%Zd=%Qd\n",pbR->ident,PB597_NB,Num1000,getEven(&ctx,PB597_NB,L)[PB597_NB]);
     }
     gmp_sprintf (pbR->strRes,"%Zd",Num1000);
     pbR->nbClock = clock() - pbR->nbClock ;

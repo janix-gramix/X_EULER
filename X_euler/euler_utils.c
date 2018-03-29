@@ -93,7 +93,12 @@ void HeapSortUint8Rev(u_int8_t *H,int n) {
 // return -1 if last sous-ensemble, or the lower index of modification
 int NextSub(u_int8_t *sub,int k, int n) {
     int j,i ;
-    for(i=k-1;i>=0;i--) {
+    if(sub[k-1]< n-1) {
+        sub[k-1]++ ; return k-1 ;
+    } else if (sub[k-2] < n-2) {
+        sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
+    }
+    for(i=k-3;i>=0;i--) {
         if(sub[i]<n-k+i) {
             sub[i]++ ;
             for(j=i+1;j<k;j++) {
