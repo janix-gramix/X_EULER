@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  11
+#define PB103_NB  9
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1124,24 +1124,32 @@ void InitLevel(DevDeltas  *DD, int is, sum103_t pondDelta[PB103_NB]) {
     DD[is].R_S=0;
     DD[is].R_Srev=0 ;
     DD[is].nbDev = DD[is].R_nbDev = 0 ;
+ 
+ //       DD[is].deltas[is-1] = 0 ;
+    DD[is].deltas[is-1] = DD[is].deltas[is-2] ;
+//   DD[is].val[is] = DD[is].val[is-1] + DD[is].deltas[is-1] + 1 ;
     
-    for(j=1;j<is;j++) {
+//    DD[is].R_deltas[is-1] = DD[is].R_deltas[is-2] ;
+//    DD[is].R_val[is] = DD[is].R_val[is-1] +DD[is].R_deltas[is-1] + 1 ;
+    
+    
+    for(j=1;j<=is;j++) {
         DD[is].S += DD[is].deltas[j-1] *pondDelta[j] ;
         DD[is].Srev += DD[is].deltas[j-1] *pondDelta[is+1-j] ;
         DD[is].val[j] = DD[is].val[j-1] + DD[is].deltas[j-1] + 1 ;
         
-        DD[is].R_deltas[j-1] = DD[is].deltas[is-1-j] ;
+        if(j<is) DD[is].R_deltas[j-1] = DD[is].deltas[is-1-j] ;
+        else DD[is].R_deltas[j-1] = DD[is].R_deltas[j-2] ;
         DD[is].R_S += DD[is].R_deltas[j-1] *pondDelta[j] ;
         DD[is].R_Srev += DD[is].R_deltas[j-1] *pondDelta[is+1-j] ;
         DD[is].R_val[j] = DD[is].R_val[j-1] + DD[is].R_deltas[j-1] + 1 ;
     }
-    DD[is].val[is] = DD[is].val[is-1] + 1 ; DD[is].deltas[is-1] = 0 ;
-    DD[is].R_val[is] = DD[is].R_val[is-1] + 1 ; DD[is].R_deltas[is-1] = 0 ;
+    
     DD[is].isR= 0 ;
     return ;
 }
 
-#define MAX_DEV 5
+#define MAX_DEV 100
 int PB103f(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
 //    sum103_t values[PB103_NB] ;
@@ -1181,8 +1189,8 @@ int PB103f(PB_RESULT *pbR) {
  */
     if(DD[is].isR== 0) {
  //           DD[is].isR= 1 ;
-            if(DD[is].nbDev < MAX_DEV && (DD[is].S <= Smin || DD[is].Srev <= Smin)) {
-                if(CheckEqualityPreH(DD[is].val,hlfP[is])) {
+            if(/* DD[is].nbDev < MAX_DEV && */ (DD[is].S <= Smin || DD[is].Srev <= Smin)) {
+                if(DD[is].nbDev || CheckEqualityPreH(DD[is].val,hlfP[is])) {
                     DD[is].nbDev++ ;
                     if(is == PB103_NB -1 ) {
                         // nouvelle solution a base de val
@@ -1221,8 +1229,8 @@ int PB103f(PB_RESULT *pbR) {
         }
         // on est dans le cas isR==1
 //        DD[is].isR= 0 ;
-        if(DD[is].R_nbDev < MAX_DEV && (DD[is].R_S <= Smin || DD[is].R_Srev <= Smin)){
-            if(CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
+        if(/* DD[is].R_nbDev < MAX_DEV && */ (DD[is].R_S <= Smin || DD[is].R_Srev <= Smin)){
+            if(DD[is].R_nbDev || CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
                 DD[is].R_nbDev++ ;
                 if(is == PB103_NB -1 ) {
                     // nouvelle solution a base de R_val
