@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  10
+#define PB103_NB  11
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1176,7 +1176,7 @@ int PB103f(PB_RESULT *pbR) {
         for(j=0;j<is;j++) printf("%d%c",DD[is].R_deltas[j],(j==is-1) ? '\n': '.') ;
  */
     if(DD[is].isR== 0) {
-            DD[is].isR= 1 ;
+ //           DD[is].isR= 1 ;
             if(DD[is].S <= Smin || DD[is].Srev <= Smin) {
                 if(CheckEqualityPreH(DD[is].val,hlfP[is])) {
                     if(is == PB103_NB -1 ) {
@@ -1210,9 +1210,10 @@ int PB103f(PB_RESULT *pbR) {
                 DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
                 continue ;
             }
+            DD[is].isR= 1 ;
         }
         // on est dans le cas isR==1
-        DD[is].isR= 0 ;
+//        DD[is].isR= 0 ;
         if(DD[is].R_S <= Smin || DD[is].R_Srev <= Smin) {
             if(CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
                 if(is == PB103_NB -1 ) {
