@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  9
+#define PB103_NB  10
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1144,12 +1144,79 @@ void InitLevel(DevDeltas  *DD, int is, sum103_t pondDelta[PB103_NB]) {
         DD[is].R_Srev += DD[is].R_deltas[j-1] *pondDelta[is+1-j] ;
         DD[is].R_val[j] = DD[is].R_val[j-1] + DD[is].R_deltas[j-1] + 1 ;
     }
+    if(is < PB103_NB -1){
+        sum103_t delMin = (DD[is].deltas[is-1] <= DD[is].deltas[0]) ? DD[is].deltas[is-1] : DD[is].deltas[0] ;
+        sum103_t sumP = 0 ;
+        for(j=is+1;j<PB103_NB;j++) {
+            sumP += pondDelta[j] ;
+        }
+        DD[is].S += delMin * sumP ;
+        DD[is].Srev += delMin * sumP ;
+        
+        delMin = (DD[is].R_deltas[is-1] <= DD[is].R_deltas[0]) ? DD[is].R_deltas[is-1] : DD[is].R_deltas[0] ;
+        DD[is].R_S += delMin * sumP ;
+        DD[is].R_Srev += delMin * sumP ;
+    
+    }
     
     DD[is].isR= 0 ;
     return ;
 }
 
-#define MAX_DEV 100
+int CheckBestSolution(DevDeltas *newDD , DevDeltas *bestSolutions, int nbBest,sum103_t Smin, int isRev) {
+    int j ;
+    sum103_t S ;
+    sum103_t * deltas ;
+    deltas = (isRev) ? newDD->R_deltas : newDD->deltas ;
+    if(isRev) {
+        S = (newDD->R_S <= newDD->R_Srev) ? newDD->R_S : newDD->R_Srev ;
+
+    } else {
+        S = (newDD->S <= newDD->Srev) ? newDD->S : newDD->Srev ;
+        
+    }
+    if(S < Smin ) {
+        nbBest = 0 ;
+    }
+    for(j=0;j<nbBest;j++) {
+        if(memcmp(deltas,bestSolutions[j].deltas,(PB103_NB-1)*sizeof(newDD->deltas[0]))== 0
+           || memcmp(deltas,bestSolutions[j].R_deltas,(PB103_NB-1)*sizeof(newDD->deltas[0]) )== 0) {
+            return nbBest ;
+        }
+    }
+    bestSolutions[nbBest] = *newDD ;
+    if(isRev) {
+        // on garde R_deltas, on met le reverse ds deltas
+        for(j=0;j<PB103_NB-1;j++) bestSolutions[nbBest].deltas[j] =  bestSolutions[nbBest].R_deltas[PB103_NB-2-j] ;
+        bestSolutions[nbBest].val[0] = 0 ;
+        for(j=1;j<PB103_NB;j++) bestSolutions[nbBest].val[j] = bestSolutions[nbBest].val[j-1] + bestSolutions[nbBest].deltas[j-1] +1 ;
+        
+        bestSolutions[nbBest].S = bestSolutions[nbBest].R_Srev ;
+        bestSolutions[nbBest].Srev = bestSolutions[nbBest].R_S ;
+    } else {
+        // on garde deltas, on met le reverse ds R_deltas
+        for(j=0;j<PB103_NB-1;j++) bestSolutions[nbBest].R_deltas[j] =  bestSolutions[nbBest].deltas[PB103_NB-2-j] ;
+        bestSolutions[nbBest].R_val[0] = 0 ;
+        for(j=1;j<PB103_NB;j++) bestSolutions[nbBest].R_val[j] = bestSolutions[nbBest].R_val[j-1] + bestSolutions[nbBest].R_deltas[j-1] +1 ;
+        
+        bestSolutions[nbBest].R_S = bestSolutions[nbBest].Srev ;
+        bestSolutions[nbBest].R_Srev = bestSolutions[nbBest].S ;
+    }
+    return ++nbBest ;
+}
+
+int CheckProgression(sum103_t * deltas , DevDeltas *bestSolutions, int nbBest, int is) {
+        if(nbBest == 0) return 1;
+        if(memcmp(deltas,bestSolutions[0].deltas,is*sizeof(deltas[0]))== 0
+           || memcmp(deltas,bestSolutions[0].R_deltas,is*sizeof(deltas[0]) )== 0) {
+            return 0 ;
+        }
+        return 1;
+ }
+
+#define PB103_MAXBEST   10
+
+#define MAX_DEV 5
 int PB103f(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
 //    sum103_t values[PB103_NB] ;
@@ -1168,109 +1235,124 @@ int PB103f(PB_RESULT *pbR) {
         for(i=0;i<PB103_NB;i++) { fprintf(stdout,"%d%c",pondDelta[i],(i==PB103_NB-1) ? '\n' : ' '); }
     }
     
+    DevDeltas DDBest[PB103_MAXBEST] ;
+    
     sum103_t deltas0[PB103_NB] = {0,0,1,2} ;
     
     DevDeltas  DD [PB103_NB] ;
     int is,j ;
-    is = 4 ;
-     for(j=0;j<is-1;j++) {
-        DD[is].deltas[j] = deltas0[j] ;
-    }
-    InitLevel(DD,is,pondDelta) ;
-    
-    while(is>3) {
-        // tritement d'un element
-/*        printf("%d,%d %d,%d,%d,%d V=",is,DD[is].isR,DD[is].S,DD[is].Srev,DD[is].R_S,DD[is].R_Srev) ;
-        for(j=0;j<=is;j++) printf("%d%c",DD[is].val[j],(j==is) ? ' ': ',') ;
-        for(j=0;j<is;j++) printf("%d%c",DD[is].deltas[j],(j==is-1) ? ' ': '.') ;
-        printf("R_V=");
-        for(j=0;j<=is;j++) printf("%d%c",DD[is].R_val[j],(j==is) ? ' ': ',') ;
-        for(j=0;j<is;j++) printf("%d%c",DD[is].R_deltas[j],(j==is-1) ? '\n': '.') ;
- */
-    if(DD[is].isR== 0) {
- //           DD[is].isR= 1 ;
-            if(/* DD[is].nbDev < MAX_DEV && */ (DD[is].S <= Smin || DD[is].Srev <= Smin)) {
-                if(DD[is].nbDev || CheckEqualityPreH(DD[is].val,hlfP[is])) {
-                    DD[is].nbDev++ ;
-                    if(is == PB103_NB -1 ) {
-                        // nouvelle solution a base de val
-                        if(  DD[is].S <= Smin) {
-                            Smin = DD[is].S ;
-                            sum103_t v0 = MinCheck(DD[is].val,PB103_NB) ;
-                            printf("S=%d,%d ",DD[is].S+offsetSum,DD[is].S) ;
-                            for(j=0;j<=is;j++) printf("%d%c",DD[is].val[j]+v0,(j==is) ? ' ' : ',') ;
-                            for(j=1;j<=is;j++) printf("%d%c",DD[is].deltas[j-1],(j==is) ? '\n' : '.') ;
+    int pass ;
+    int nbSol = 0;
+    for(pass=0;pass<2;pass++) {
+        int max_dev = (pass == 0) ? MAX_DEV : 0xffff ;
+        is = 4 ;
+        for(j=0;j<is-1;j++) {
+            DD[is].deltas[j] = deltas0[j] ;
+        }
+        InitLevel(DD,is,pondDelta) ;
+        printf("****** PASS %d avec MAX_DEV = %d *****\n",pass,max_dev);
+        while(is>3) {
+            // tritement d'un element
+    /*        printf("%d,%d %d,%d,%d,%d V=",is,DD[is].isR,DD[is].S,DD[is].Srev,DD[is].R_S,DD[is].R_Srev) ;
+            for(j=0;j<=is;j++) printf("%d%c",DD[is].val[j],(j==is) ? ' ': ',') ;
+            for(j=0;j<is;j++) printf("%d%c",DD[is].deltas[j],(j==is-1) ? ' ': '.') ;
+            printf("R_V=");
+            for(j=0;j<=is;j++) printf("%d%c",DD[is].R_val[j],(j==is) ? ' ': ',') ;
+            for(j=0;j<is;j++) printf("%d%c",DD[is].R_deltas[j],(j==is-1) ? '\n': '.') ;
+     */
+        if(DD[is].isR== 0) {
+     //           DD[is].isR= 1 ;
+                if( DD[is].nbDev < max_dev &&  (DD[is].S <= Smin || DD[is].Srev <= Smin)) {
+                    if(CheckEqualityPreH(DD[is].val,hlfP[is])) {
+                        DD[is].nbDev++ ;
+                        if(is == PB103_NB -1 ) {
+                            int newNbSol = CheckBestSolution(DD+is ,DDBest,nbSol,Smin,0) ;
+                            if(DD[is].S < Smin || DD[is].Srev < Smin || newNbSol > nbSol) {
+                                nbSol = newNbSol ;
+                                if(DDBest[nbSol-1].S <= DDBest[nbSol-1].R_S) {
+                                    sum103_t v0 = MinCheck(DDBest[nbSol-1].val,PB103_NB) ;
+                                    printf("S=%d,%d ",DDBest[nbSol-1].S+offsetSum,DDBest[nbSol-1].S) ;
+                                    for(j=0;j<=is;j++) printf("%d%c",DDBest[nbSol-1].val[j]+v0,(j==is) ? ' ' : ',') ;
+                                    for(j=1;j<=is;j++) printf("%d%c",DDBest[nbSol-1].deltas[j-1],(j==is) ? '\n' : '.') ;
+                                    Smin = DDBest[nbSol-1].S ;
+                                } else {
+                                    sum103_t v0 = MinCheck(DDBest[nbSol-1].R_val,PB103_NB) ;
+                                    printf("S=%d,%d ",DDBest[nbSol-1].R_S+offsetSum,DDBest[nbSol-1].R_S) ;
+                                    for(j=0;j<=is;j++) printf("%d%c",DDBest[nbSol-1].R_val[j]+v0,(j==is) ? ' ' : ',') ;
+                                    for(j=1;j<=is;j++) printf("%d%c",DDBest[nbSol-1].R_deltas[j-1],(j==is) ? '\n' : '.') ;
+                                    Smin = DDBest[nbSol-1].R_S ;
+                                }
+                                
+                            }
+                            DD[is].isR= 1 ;
+                            continue ;
+                            
+                        } else {
+                            if( CheckProgression(DD[is].deltas ,DDBest,nbSol,is))
+                            {
+                                memcpy(DD[is+1].deltas,DD[is].deltas,is*sizeof(DD[0].deltas[0]) ) ;
+                                DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
+                                is ++ ; // on passer au niveau superieur
+                                InitLevel(DD, is, pondDelta) ;
+                                continue ;
+                            }
+                            printf(".");
                         }
-                        if( DD[is].Srev <= Smin) {
-                            Smin = DD[is].Srev ;
-                            vRev[0] = 0;
-                            for(j=1;j<=is;j++) vRev[j] = vRev[j-1] + DD[is].deltas[is-j]+ 1 ;
-                            sum103_t v0 = MinCheck(vRev,PB103_NB) ;
-                            printf("S[r]=%d,%d ",DD[is].Srev+offsetSum,DD[is].Srev) ;
-                            for(j=0;j<=is;j++) printf("%d%c",vRev[j]+v0,(j==is) ? ' ' : ',') ;
-                            for(j=1;j<=is;j++) printf("%d%c",DD[is].deltas[is-j],(j==is) ? '\n' : '.') ;
-                        }
-                        DD[is].isR= 1 ;
-                        continue ;
-                        
-                    } else {
-                        memcpy(DD[is+1].deltas,DD[is].deltas,is*sizeof(DD[0].deltas[0]) ) ;
-                        DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
-                        is ++ ; // on passer au niveau superieur
-                        InitLevel(DD, is, pondDelta) ;
-                        continue ;
                     }
+                    // on
+                    DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
+                    continue ;
                 }
-                // on
-                DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
-                continue ;
+                DD[is].isR= 1 ;
             }
-            DD[is].isR= 1 ;
-        }
-        // on est dans le cas isR==1
-//        DD[is].isR= 0 ;
-        if(/* DD[is].R_nbDev < MAX_DEV && */ (DD[is].R_S <= Smin || DD[is].R_Srev <= Smin)){
-            if(DD[is].R_nbDev || CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
-                DD[is].R_nbDev++ ;
-                if(is == PB103_NB -1 ) {
-                    // nouvelle solution a base de R_val
-                    if(  DD[is].R_S <= Smin) {
-                        Smin = DD[is].R_S ;
-                        sum103_t v0 = MinCheck(DD[is].R_val,PB103_NB) ;
-                        printf("*S=%d,%d ",DD[is].R_S+offsetSum,DD[is].R_S) ;
-                        for(j=0;j<=is;j++) printf("%d%c",DD[is].R_val[j]+v0,(j==is) ? ' ' : ',') ;
-                        for(j=1;j<=is;j++) printf("%d%c",DD[is].R_deltas[j-1],(j==is) ? '\n' : '.') ;
-                    }
-                    if( DD[is].R_Srev <= Smin) {
-                        Smin = DD[is].R_Srev ;
-                        vRev[0] = 0;
-                        for(j=1;j<=is;j++) vRev[j] = vRev[j-1] + DD[is].R_deltas[is-j]+ 1 ;
-                        sum103_t v0 = MinCheck(vRev,PB103_NB) ;
-                        printf("*S[r]=%d,%d ",DD[is].R_Srev+offsetSum,DD[is].R_Srev) ;
-                        for(j=0;j<=is;j++) printf("%d%c",vRev[j]+v0,(j==is) ? ' ' : ',') ;
-                        for(j=1;j<=is;j++) printf("%d%c",DD[is].R_deltas[is-j],(j==is) ? '\n' : '.') ;
-                    }
-                    is-- ;
-                    continue ;
-                } else {
-                    memcpy(DD[is+1].deltas,DD[is].R_deltas,is*sizeof(DD[0].deltas[0]) ) ;
-                    DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
-                    is ++ ; // on passe au niveau superieur
-                    InitLevel(DD, is, pondDelta) ;
-                    continue ;
+            // on est dans le cas isR==1
+    //        DD[is].isR= 0 ;
+            if(DD[is].R_nbDev < max_dev &&  (DD[is].R_S <= Smin || DD[is].R_Srev <= Smin)){
+                if(CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
+                    DD[is].R_nbDev++ ;
+                    if(is == PB103_NB -1 ) {
+                        int newNbSol = CheckBestSolution(DD+is ,DDBest,nbSol,Smin,1) ;
+                        if(DD[is].S < Smin || DD[is].Srev < Smin || newNbSol > nbSol) {
+                            nbSol = newNbSol ;
+                            if(DDBest[nbSol-1].S <= DDBest[nbSol-1].R_S) {
+                                sum103_t v0 = MinCheck(DDBest[nbSol-1].val,PB103_NB) ;
+                                printf("S=%d,%d ",DDBest[nbSol-1].S+offsetSum,DDBest[nbSol-1].S) ;
+                                for(j=0;j<=is;j++) printf("%d%c",DDBest[nbSol-1].val[j]+v0,(j==is) ? ' ' : ',') ;
+                                for(j=1;j<=is;j++) printf("%d%c",DDBest[nbSol-1].deltas[j-1],(j==is) ? '\n' : '.') ;
+                                Smin = DDBest[nbSol-1].S ;
+                            } else {
+                                sum103_t v0 = MinCheck(DDBest[nbSol-1].R_val,PB103_NB) ;
+                                printf("S=%d,%d ",DDBest[nbSol-1].R_S+offsetSum,DDBest[nbSol-1].R_S) ;
+                                for(j=0;j<=is;j++) printf("%d%c",DDBest[nbSol-1].R_val[j]+v0,(j==is) ? ' ' : ',') ;
+                                for(j=1;j<=is;j++) printf("%d%c",DDBest[nbSol-1].R_deltas[j-1],(j==is) ? '\n' : '.') ;
+                                Smin = DDBest[nbSol-1].R_S ;
+                            }
+                        }
+                        is-- ;
+                        continue ;
+                    } else {
+                        if(CheckProgression(DD[is].R_deltas ,DDBest,nbSol,is))
+                        {
+                            memcpy(DD[is+1].deltas,DD[is].R_deltas,is*sizeof(DD[0].deltas[0]) ) ;
+                            DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
+                            is ++ ; // on passe au niveau superieur
+                            InitLevel(DD, is, pondDelta) ;
+                            continue ;
+                        }
+                        printf(".");
 
-                }
-             }
-            // score admissible on reste au meme niveau
-            DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
-            continue ;
-            
-        } else /* if (DD[is].S > Smin && DD[is].Srev > Smin) */ {
-            // on est  dans le cas ou aucunes conditions de score n'est satisfaite
-            is-- ;
+                    }
+                 }
+                // score admissible on reste au meme niveau
+                DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
+                continue ;
+                
+            } else /* if (DD[is].S > Smin && DD[is].Srev > Smin) */ {
+                // on est  dans le cas ou aucunes conditions de score n'est satisfaite
+                is-- ;
+            }
         }
     }
-    
     
     { int i ; for(i=4;i<PB103_NB;i++) FreeHalfPath(hlfP[i]) ;  }
     FreeAlterPath(AltP) ;
