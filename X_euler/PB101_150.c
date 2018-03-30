@@ -1111,6 +1111,8 @@ typedef struct DevDeltas {
     sum103_t Srev ;
     sum103_t R_S ;
     sum103_t R_Srev ;
+    int     nbDev ;
+    int     R_nbDev ;
     int     isR ;
 } DevDeltas ;
 
@@ -1121,6 +1123,7 @@ void InitLevel(DevDeltas  *DD, int is, sum103_t pondDelta[PB103_NB]) {
     DD[is].Srev=0 ;
     DD[is].R_S=0;
     DD[is].R_Srev=0 ;
+    DD[is].nbDev = DD[is].R_nbDev = 0 ;
     
     for(j=1;j<is;j++) {
         DD[is].S += DD[is].deltas[j-1] *pondDelta[j] ;
@@ -1138,6 +1141,7 @@ void InitLevel(DevDeltas  *DD, int is, sum103_t pondDelta[PB103_NB]) {
     return ;
 }
 
+#define MAX_DEV 5
 int PB103f(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
 //    sum103_t values[PB103_NB] ;
@@ -1177,8 +1181,9 @@ int PB103f(PB_RESULT *pbR) {
  */
     if(DD[is].isR== 0) {
  //           DD[is].isR= 1 ;
-            if(DD[is].S <= Smin || DD[is].Srev <= Smin) {
+            if(DD[is].nbDev < MAX_DEV && (DD[is].S <= Smin || DD[is].Srev <= Smin)) {
                 if(CheckEqualityPreH(DD[is].val,hlfP[is])) {
+                    DD[is].nbDev++ ;
                     if(is == PB103_NB -1 ) {
                         // nouvelle solution a base de val
                         if(  DD[is].S <= Smin) {
@@ -1197,7 +1202,9 @@ int PB103f(PB_RESULT *pbR) {
                             for(j=0;j<=is;j++) printf("%d%c",vRev[j]+v0,(j==is) ? ' ' : ',') ;
                             for(j=1;j<=is;j++) printf("%d%c",DD[is].deltas[is-j],(j==is) ? '\n' : '.') ;
                         }
-
+                        DD[is].isR= 1 ;
+                        continue ;
+                        
                     } else {
                         memcpy(DD[is+1].deltas,DD[is].deltas,is*sizeof(DD[0].deltas[0]) ) ;
                         DD[is].val[is]++ ; DD[is].deltas[is-1]++ ; DD[is].S += pondDelta[is] ; DD[is].Srev += pondDelta[1] ;
@@ -1214,8 +1221,9 @@ int PB103f(PB_RESULT *pbR) {
         }
         // on est dans le cas isR==1
 //        DD[is].isR= 0 ;
-        if(DD[is].R_S <= Smin || DD[is].R_Srev <= Smin) {
+        if(DD[is].R_nbDev < MAX_DEV && (DD[is].R_S <= Smin || DD[is].R_Srev <= Smin)){
             if(CheckEqualityPreH(DD[is].R_val,hlfP[is])) {
+                DD[is].R_nbDev++ ;
                 if(is == PB103_NB -1 ) {
                     // nouvelle solution a base de R_val
                     if(  DD[is].R_S <= Smin) {
@@ -1234,7 +1242,8 @@ int PB103f(PB_RESULT *pbR) {
                         for(j=0;j<=is;j++) printf("%d%c",vRev[j]+v0,(j==is) ? ' ' : ',') ;
                         for(j=1;j<=is;j++) printf("%d%c",DD[is].R_deltas[is-j],(j==is) ? '\n' : '.') ;
                     }
-
+                    is-- ;
+                    continue ;
                 } else {
                     memcpy(DD[is+1].deltas,DD[is].R_deltas,is*sizeof(DD[0].deltas[0]) ) ;
                     DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
@@ -1248,7 +1257,7 @@ int PB103f(PB_RESULT *pbR) {
             DD[is].R_val[is]++ ; DD[is].R_deltas[is-1]++ ; DD[is].R_S += pondDelta[is] ; DD[is].R_Srev += pondDelta[1] ;
             continue ;
             
-        } else if (DD[is].S > Smin && DD[is].Srev > Smin) {
+        } else /* if (DD[is].S > Smin && DD[is].Srev > Smin) */ {
             // on est  dans le cas ou aucunes conditions de score n'est satisfaite
             is-- ;
         }
