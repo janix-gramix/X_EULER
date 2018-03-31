@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  9
+#define PB103_NB  8
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1116,16 +1116,33 @@ typedef struct DevD {
     DELTA D ;
     DELTA R ;
     int   isDR ;
-    
+    char History[PB103_NB] ;
 } DevD ;
 
 
 
 void InitLevel(DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum103_t Smin) {
+    static sum103_t MinSumd[PB103_NB+1] ;
     int j ;
-    DD->D.deltas[is-1] = DD->D.deltas[is-2] ; // valeur minimum au delta precedent
-    for(j=0;j<is-1;j++) DD->R.deltas[j] = DD->D.deltas[is-2-j] ;
-    DD->R.deltas[is-1] = DD->R.deltas[is-2] ;
+    sum103_t Sd = 0 ;
+    for(j=0;j<is-1;j++) Sd += DD->D.deltas[j] ;
+    if(MinSumd[is] == 0) {
+        MinSumd[is] = Sd ;
+     }
+    if(MinSumd[is+1]) {
+        for(j=0;j<is-1;j++) DD->R.deltas[j] = DD->D.deltas[is-2-j] ;
+       DD->D.deltas[is-1]  = (MinSumd[is+1] - Sd  > DD->D.deltas[is-2] ) ? MinSumd[is+1] - Sd : DD->D.deltas[is-2] ;
+        DD->R.deltas[is-1]  = (MinSumd[is+1] - Sd  > DD->R.deltas[is-2] ) ? MinSumd[is+1] - Sd : DD->R.deltas[is-2] ;
+     } else {
+        DD->D.deltas[is-1] = DD->D.deltas[is-2] ; // valeur minimum au delta precedent
+        for(j=0;j<is-1;j++) DD->R.deltas[j] = DD->D.deltas[is-2-j] ;
+        DD->R.deltas[is-1] = DD->R.deltas[is-2] ;
+        
+    }
+        
+//    DD->D.deltas[is-1] = DD->D.deltas[is-2] ; // valeur minimum au delta precedent
+//    for(j=0;j<is-1;j++) DD->R.deltas[j] = DD->D.deltas[is-2-j] ;
+//    DD->R.deltas[is-1] = DD->R.deltas[is-2] ;
     
     int idr ;
     for(idr=0;idr<2;idr++) {
@@ -1205,6 +1222,8 @@ int CheckProgression(sum103_t * deltas , DevD *bestSolutions, int nbBest, int is
 #define PB103_MAXBEST   10
 
 #define MAX_DEV 5
+
+// #define PRINT
 int PB103f(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     
@@ -1229,7 +1248,8 @@ int PB103f(PB_RESULT *pbR) {
     int is,j ;
     int pass ;
     int nbSol = 0;
-    for(pass=0;pass<2;pass++) {
+     for(pass=0;pass<2;pass++) {
+ //       for(pass=0;pass<1;pass++) {
         int max_dev = (pass == 0) ? MAX_DEV : 0xffff ;
         is = 4 ;
         for(j=0;j<is-1;j++) {
@@ -1237,18 +1257,26 @@ int PB103f(PB_RESULT *pbR) {
         }
         InitLevel(DD+is,is,pondDelta,Smin) ;
         DD[is].D.IsMin = DD[is].R.IsMin = 1 ;
+        strcpy(DD[is].History,"I") ;
         printf("****** PASS %d avec MAX_DEV = %d *****\n",pass,max_dev);
         while(is>3) {
             // tritement d'un element
             DELTA * Delt = (DD[is].isDR) ? &DD[is].R : &DD[is].D ;
-            if(pass==1) {
+#if defined(PRINT)
+      //      if(pass==1)
+            {
                 int j ;
-//                printf("%d%c,%-4d,%-4d,%-3d,%-2d,%-2d ",is,DD[is].isDR ? 'R': 'D',Delt->S,Delt->Srev,Delt->nbDev,DD[is].D.vsMin,DD[is].R.vsMin) ;
-//                for(j=0;j<is;j++) printf("%d%c",Delt->deltas[j], (j==is-1) ? ' ' : '.')  ;
+                printf("%d%c,%-4d,%-4d,%-3d,%-2d,%-2d ",is,DD[is].isDR ? 'R': 'D',Delt->S,Delt->Srev,Delt->nbDev,DD[is].D.vsMin,DD[is].R.vsMin) ;
+                for(j=0;j<is;j++) printf("%d%c",Delt->deltas[j], (j==is-1) ? ' ' : '.')  ;
             }
+#endif
             if( Delt->nbDev < max_dev &&  (Delt->S <= Smin || Delt->Srev <= Smin)) {
                 if(CheckEqualityPreH(Delt->val,hlfP[is])) {
-//                    if(pass==1) printf("+\n");
+#if defined(PRINT)
+      //              if(pass==1)
+                    sum103_t Sd= 0; for(j=0;j<is;j++) Sd += Delt->deltas[j] ;
+                        printf("+%d\n",Sd);
+#endif
                     if(Delt->vsMin == 0) {
                         Delt->vsMin = Delt->deltas[is-1] ;
                         if(Delt->IsMin) {
@@ -1265,7 +1293,7 @@ int PB103f(PB_RESULT *pbR) {
                             nbSol = newNbSol ;
                             DELTA * DeltBest = (DDBest[nbSol-1].D.S <= DDBest[nbSol-1].R.S) ? &DDBest[nbSol-1].D : &DDBest[nbSol-1].R ;
                             sum103_t v0 = MinCheck(DeltBest->val,PB103_NB) ;
-                            printf("S=%d,%d ",DeltBest->S+offsetSum,DeltBest->S) ;
+                            printf("%s%c S=%d,%d ",DD[is].History,(DDBest[nbSol-1].D.S <= DDBest[nbSol-1].R.S) ? 'd' : 'r',  DeltBest->S+offsetSum,DeltBest->S) ;
                             for(j=0;j<=is;j++) printf("%d%c",DeltBest->val[j]+v0,(j==is) ? ' ' : ',') ;
                             for(j=1;j<=is;j++) printf("%d%c",DeltBest->deltas[j-1],(j==is) ? '\n' : '.') ;
                             Smin = DeltBest->S ;
@@ -1278,20 +1306,28 @@ int PB103f(PB_RESULT *pbR) {
                     } else {
                         memcpy(DD[is+1].D.deltas,Delt->deltas,is*sizeof(Delt->deltas[0]) ) ;
                         DD[is+1].D.IsMin = DD[is+1].R.IsMin = DD[is].isDR ? DD[is].R.IsMin : DD[is].D.IsMin ;
-
+                        strcpy(DD[is+1].History,DD[is].History) ;
+                        DD[is+1].History[is-3] = (DD[is].isDR) ? 'R' : 'D' ;
+                        DD[is+1].History[is-2] = 0 ;
                         Delt->val[is]++ ; Delt->deltas[is-1]++ ; Delt->S += pondDelta[is] ; Delt->Srev += pondDelta[1] ;
                         is ++ ; // on passer au niveau superieur
                         InitLevel(DD+is, is, pondDelta,Smin) ;
                         continue ;
                     }
                 } else {
-//                    if(pass==1) printf("\n") ;
+#if defined(PRINT)
+         //           if(pass==1)
+                        printf("\n") ;
+#endif
                 }
                 // on
                 Delt->val[is]++ ; Delt->deltas[is-1]++ ; Delt->S += pondDelta[is] ; Delt->Srev += pondDelta[1] ;
                 continue ;
             } else {
-//                if(pass==1) printf("S\n") ;
+#if defined(PRINT)
+      //          if(pass==1)
+                    printf("S\n") ;
+#endif
                 if(DD[is].isDR) {
                     is-- ; continue ; // on passe D et R, c'est fini
                 } else {
