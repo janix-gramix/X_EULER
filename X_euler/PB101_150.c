@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  8
+#define PB103_NB  11
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1184,7 +1184,7 @@ int CheckBestSolution(DevD *newDD , DevD *bestSolutions, int nbBest,sum103_t Smi
     if(newDD->isDR) {
         S = (newDD->R.S <= newDD->R.Srev) ? newDD->R.S : newDD->R.Srev ;
     } else {
-        S = (newDD->D.S <= newDD->D.Srev) ? newDD->D.S : newDD->R.Srev ;
+        S = (newDD->D.S <= newDD->D.Srev) ? newDD->D.S : newDD->D.Srev ;
     }
     if(S < Smin ) {
         nbBest = 0 ;
@@ -1247,9 +1247,9 @@ int PB103f(PB_RESULT *pbR) {
     DevD  DD [PB103_NB] ;
     int is,j ;
     int pass ;
-    int nbSol = 0;
      for(pass=0;pass<2;pass++) {
  //       for(pass=0;pass<1;pass++) {
+         int nbSol = 0;
         int max_dev = (pass == 0) ? MAX_DEV : 0xffff ;
         is = 4 ;
         for(j=0;j<is-1;j++) {
