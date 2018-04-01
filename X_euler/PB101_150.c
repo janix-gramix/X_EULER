@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  11
+#define PB103_NB  9
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -354,7 +354,6 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP,int isSup) {
 typedef struct HalfPaths {
     int maxN ; // N max, = length of ensemble to check
     int npermk ; // number of permutation of lengh k
-    int nsumk ; // number of sum (or permutations to check) of length
     int16_t * indSum ; // list on index for sum
     
 } HalfPaths ;
@@ -391,45 +390,55 @@ HalfPaths * GetHalfPath(int N) {
 }
 
 
+typedef struct GlobalPaths {
+    int maxN ; // N max, = length of ensemble to check
+    int npermk ; // number of permutation of lengh k
+    int npermk1 ; // number of permutation of lengh k-1
+    int16_t * indSumk ; // list on index for sum
+    int16_t * indSumk1 ; // list on index for sum
+    
+} GlobalPaths ;
 
-/*
 
-HalfPaths * GetHalfPath(int N) {
-    HalfPaths * hlfP = calloc(1,sizeof(hlfP[0])) ;
+GlobalPaths * FreeGlobalPath(GlobalPaths * glbP) {
+    if(glbP != NULL) {
+        free(glbP->indSumk);
+        free(glbP->indSumk1);
+        free(glbP);
+    }
+    return NULL ;
+}
+
+GlobalPaths * GetGlobalPath(int N) {
+    GlobalPaths * glbP = calloc(1,sizeof(glbP[0])) ;
     int k = N/2 ;
-    hlfP->maxN = N ;
+    int k1 = k-1 ;
+    glbP->maxN = N ;
     {
         int j ;
-        u_int64_t CNk = 1;
-        for(j=0;j<k;j++) { CNk *= N-j ; }
-        for(j=2;j<=k;j++) { CNk /= j ; }
-        hlfP->npermk = (int) CNk ;
+        u_int64_t CNk1 = 1;
+        for(j=0;j<k1;j++) { CNk1 *= N-1-j ; }
+        for(j=2;j<=k1;j++) { CNk1 /= j ; }
+        glbP->npermk1 = (int) CNk1 ;
+        u_int64_t CNk = (CNk1 * (N-k)) /k ;
+        glbP->npermk = (int) CNk ;
     }
-    hlfP->indSum = malloc(k * hlfP->npermk * sizeof(hlfP->indSum[0])) ;
-    // on va alterner les sous-ensemble contenant le plus grand element et les autres petits
-    // et les sous ensemble ne le contenant pas en prenant les plus grand
-    u_int8_t permN[PB103_MAXNB] ;
-    u_int8_t permNno[PB103_MAXNB] ;
-   int is = 0 ;
+    glbP->indSumk = malloc(k * glbP->npermk * sizeof(glbP->indSumk[0])) ;
+    glbP->indSumk1 = malloc((k-1) * glbP->npermk1 * sizeof(glbP->indSumk1[0])) ;
+    u_int8_t perm2[PB103_MAXNB] ;
+    int is = 0 ;
     int j ;
-    for(j=0;j<k;j++)permNno[j] = j ;
-    for(j=0;j<k-1;j++)permN[j] = j ;
-    int isPermN = 1 ;
-    int isPermNno = 1 ;
+    for(j=0;j<k;j++)perm2[j] = j ;
     do {
-        if(isPermN) {
-            for(j=0;j<k-1;j++) hlfP->indSum[is++] = permN[j] ;
-            hlfP->indSum[is++] = N-1 ;
-            if(NextSub(permN,k-1,N-1)< 0 ) isPermN = 0 ;
-        }
-        if(isPermNno) {
-            for(j=0;j<k;j++) hlfP->indSum[is++] = N-permNno[j]-2 ;
-            if(NextSub(permNno,k,N-1)< 0 ) isPermNno = 0 ;
-        }
-    } while(isPermN || isPermNno) ; //
-    return hlfP ;
+        for(j=0;j<k;j++) glbP->indSumk[is++] = perm2[j] ;
+    } while(NextSub(perm2,k,N-1) >= 0) ; //
+    is = 0 ;
+    for(j=0;j<k1;j++)perm2[j] = j ;
+    do {
+        for(j=0;j<k1;j++) glbP->indSumk1[is++] = perm2[j] ;
+    } while(NextSub(perm2,k1,N-1) >= 0) ; //
+    return glbP ;
 }
-*/
 
 
 
@@ -506,7 +515,7 @@ static int CheckEqualityPreN(sum103_t *v,int N,CheckPaths * chkP) {
 }
 
 
-static u_int8_t isSum[100000] ;
+static u_int8_t isSum[20000] ;
 
 static int CheckEqualityHalf(sum103_t *v,int N) {
     int k = N/2 ;
@@ -552,6 +561,76 @@ static int CheckEqualityPreH(sum103_t *v,HalfPaths * hlfP) {
         isSum[S] = 1 ;
     }
     return 1;
+}
+
+static u_int8_t isSumk[20000] ;
+static u_int8_t isSumk1[20000] ;
+
+static u_int8_t isDelta[1000] ;
+
+static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int maxDeltaVal) {
+    int N = glbP->maxN ;
+    int k = glbP->maxN / 2  ;
+    int k1 = k - 1 ;
+    if(k==1) return 1;
+    int j ;
+    sum103_t maxSk1 = v[N-2] ;
+    sum103_t minSk1 = v[0] ;
+    for(j=1;j<k1;j++) { maxSk1 += v[N-j-2] ; minSk1 += v[j] ; }
+    memset(isSumk1,0,maxSk1+1) ;
+    sum103_t maxSk = maxSk1 + v[N-k-1] ;
+    sum103_t minSk = minSk1 + v[k-1] ;
+        
+    memset(isSumk,0,maxSk+1) ;
+    
+    int nbPermk = glbP->npermk ;
+    int16_t *ind = glbP->indSumk ;
+    while(nbPermk-- > 0) {
+        sum103_t S = v[*ind++] ;
+        for(j=1;j<k;j++) S += v[*ind++] ;
+        isSumk[S] = 1 ;
+    }
+
+    nbPermk = glbP->npermk1 ;
+    ind = glbP->indSumk1 ;
+    while(nbPermk-- > 0) {
+        sum103_t S = v[*ind++] ;
+        for(j=1;j<k1;j++) S += v[*ind++] ;
+        isSumk1[S] = 1 ;
+    }
+    
+    memset(isDelta,0,maxDeltaVal+1) ;
+    int ik, ik1 ;
+    int lastIk1 = maxSk - v[N-2] -1  ;
+    if(lastIk1 > maxSk1 ) lastIk1 = maxSk1 ;
+    for(ik1=minSk1;ik1<=lastIk1;ik1++) {
+        if(isSumk1[ik1] == 0) continue ;
+        ik = v[N-2] + ik1  + 1;
+        if(ik < minSk ) ik = minSk ;
+        int Dk = ik - ik1 - v[N-2]  - 1  ;
+        int lastIk = v[N-2] + maxDeltaVal + ik1 +  1  ;
+        if(lastIk > maxSk ) lastIk = maxSk ;
+        for(;ik <= lastIk ;Dk++,ik++) {
+            if(isSumk[ik])
+                isDelta[Dk] = 1 ;
+        }
+    }
+    int nbSol = 0 ;
+    int d = 0;
+    for(d=0;d<=maxDeltaVal;d++) {
+        if(isDelta[d]==0) {
+            vDelta[nbSol++] = d ;
+        }
+    }
+/*    {
+        int j ;
+        printf("%d,%d ",N,nbSol) ;
+        for(j=0;j<N-1;j++) printf("%d%c",v[j],(j==N-2) ? ' ': ',') ;
+        for(j=1;j<N-1;j++) printf("%d%c",v[j]-v[j-1]-1,(j==N-2) ? ' ': '.') ;
+        for(j=0;j<nbSol;j++) printf("%d%c",vDelta[j],(j==nbSol-1) ? '\n': ' ') ;
+    }
+ */
+    return nbSol ;
 }
 
 
@@ -1272,7 +1351,12 @@ int PB103f(PB_RESULT *pbR) {
     sum103_t pondDelta[PB103_NB] ;
     AlterPaths *AltP =GetAlterPath(PB103_NB/2) ;
     HalfPaths * hlfP[PB103_NB] ;
-    { int i ; for(i=4;i<PB103_NB;i++) hlfP[i] = GetHalfPath(i+1) ; }
+    GlobalPaths * glbP[PB103_NB] ;
+    { int i ; for(i=4;i<PB103_NB;i++)
+        {
+            hlfP[i] = GetHalfPath(i+1) ;
+        }
+    }
     Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;
     sum103_t offsetSum = pondDelta[0]  ;
     if(pbR->isVerbose) {
