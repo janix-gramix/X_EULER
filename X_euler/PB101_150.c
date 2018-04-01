@@ -216,13 +216,6 @@ typedef struct CheckPaths {
     
 } CheckPaths ;
 
-typedef struct HalfPaths {
-    int maxN ; // N max, = length of ensemble to check
-    int npermk ; // number of permutation of lengh k
-    int nsumk ; // number of sum (or permutations to check) of length
-    int16_t * indSum ; // list on index for sum
-    
-} HalfPaths ;
 
 
 AlterPaths * FreeAlterPath(AlterPaths * AltP) {
@@ -358,6 +351,15 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP,int isSup) {
     
 }
 
+typedef struct HalfPaths {
+    int maxN ; // N max, = length of ensemble to check
+    int npermk ; // number of permutation of lengh k
+    int nsumk ; // number of sum (or permutations to check) of length
+    int16_t * indSum ; // list on index for sum
+    
+} HalfPaths ;
+
+
 HalfPaths * FreeHalfPath(HalfPaths * hlfP) {
     if(hlfP != NULL) {
         free(hlfP->indSum);
@@ -385,11 +387,50 @@ HalfPaths * GetHalfPath(int N) {
     do {
         for(j=0;j<k;j++) hlfP->indSum[is++] = perm2[j] ;
     } while(NextSub(perm2,k,N) >= 0) ; //
-    
     return hlfP ;
-    
-    
 }
+
+
+
+/*
+
+HalfPaths * GetHalfPath(int N) {
+    HalfPaths * hlfP = calloc(1,sizeof(hlfP[0])) ;
+    int k = N/2 ;
+    hlfP->maxN = N ;
+    {
+        int j ;
+        u_int64_t CNk = 1;
+        for(j=0;j<k;j++) { CNk *= N-j ; }
+        for(j=2;j<=k;j++) { CNk /= j ; }
+        hlfP->npermk = (int) CNk ;
+    }
+    hlfP->indSum = malloc(k * hlfP->npermk * sizeof(hlfP->indSum[0])) ;
+    // on va alterner les sous-ensemble contenant le plus grand element et les autres petits
+    // et les sous ensemble ne le contenant pas en prenant les plus grand
+    u_int8_t permN[PB103_MAXNB] ;
+    u_int8_t permNno[PB103_MAXNB] ;
+   int is = 0 ;
+    int j ;
+    for(j=0;j<k;j++)permNno[j] = j ;
+    for(j=0;j<k-1;j++)permN[j] = j ;
+    int isPermN = 1 ;
+    int isPermNno = 1 ;
+    do {
+        if(isPermN) {
+            for(j=0;j<k-1;j++) hlfP->indSum[is++] = permN[j] ;
+            hlfP->indSum[is++] = N-1 ;
+            if(NextSub(permN,k-1,N-1)< 0 ) isPermN = 0 ;
+        }
+        if(isPermNno) {
+            for(j=0;j<k;j++) hlfP->indSum[is++] = N-permNno[j]-2 ;
+            if(NextSub(permNno,k,N-1)< 0 ) isPermNno = 0 ;
+        }
+    } while(isPermN || isPermNno) ; //
+    return hlfP ;
+}
+*/
+
 
 
 // Comparaison avec parcours des sous-ensembles a 2*k elements du total a N elements
