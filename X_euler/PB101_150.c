@@ -163,7 +163,7 @@ int PB101(PB_RESULT *pbR) {
 }
 
 #define PB103_MAXNB     16
-#define PB103_NB  12
+#define PB103_NB  10
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -568,6 +568,8 @@ static u_int8_t isSumk1[20000] ;
 
 static u_int8_t isDelta[1000] ;
 
+static isPrintDebug = 0 ;
+
 static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int maxDeltaVal, int maxCand) {
     int N = glbP->maxN ;
     int k = glbP->maxN / 2  ;
@@ -599,13 +601,22 @@ static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int
         isSumk1[S] = 1 ;
     }
     
-    sum103_t deltaOK = maxSk - minSk1 - v[N-2] ;
+    sum103_t deltaOK = maxSk - minSk1 +1 - v[N-2] -1 ;
     
-    sum103_t maxChk = (deltaOK < maxDeltaVal ) ? deltaOK : maxDeltaVal ;
+ //   sum103_t maxChk = (deltaOK < maxDeltaVal ) ? deltaOK : maxDeltaVal ;
     
+    sum103_t maxChk = deltaOK ;
+/*
+    if(isPrintDebug) {
+        int i ;
+        printf("N=%d minSk=%d maxSk=%d minSk1=%d maxSk1=%d v[N-2]=%d deltaOK=%d\n",N,minSk,maxSk,minSk1,maxSk1,v[N-2],deltaOK);
+        printf("isSumk1=") ; for(i=0;i<=maxSk1;i++)printf("%d%c",isSumk1[i],((i%10)==0) ? ' ' : '\0') ;
+        printf("\nIsSumk=") ; for(i=0;i<=maxSk;i++)printf("%d%c",isSumk[i],((i%10)==0) ? ' ' : '\0') ;
+    }
+*/
     memset(isDelta,0,maxChk+1) ;
     int ik, ik1 ;
-    int lastIk1 = maxSk - v[N-2] -1  ;
+    int lastIk1 = maxSk - v[N-2] - 1  ;
     if(lastIk1 > maxSk1 ) lastIk1 = maxSk1 ;
     for(ik1=minSk1;ik1<=lastIk1;ik1++) {
         if(isSumk1[ik1] == 0) continue ;
@@ -621,16 +632,25 @@ static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int
     }
     int nbSol = 0 ;
     int d = 0;
-    for(d=0;d<maxChk;d++) {
+/*    if(isPrintDebug) {
+        int i ;
+         printf("\nisDelta=") ; for(i=0;i<=maxChk;i++)printf("%d%c",isDelta[i],((i%10)==0) ? ' ' : '\0') ;
+        printf("\n") ;
+    }
+ */
+    
+//    for(d=0;d<=maxChk;d++) {
+   for(d=v[N-2] - v[N-3];d<=maxChk;d++) {
         if(isDelta[d]==0) {
             vDelta[nbSol++] = d ;
-            if(nbSol >= maxCand) break ;
+//            if(nbSol >= maxCand) break ;
         }
     }
-    if(d < maxDeltaVal ) {
+/*    if(d < maxDeltaVal ) {
         if(maxDeltaVal-d < maxCand) maxCand = maxDeltaVal-d ;
         for( ;nbSol < maxCand; nbSol++) vDelta[nbSol] = deltaOK++ ;
     }
+ */
  /*
     {
         int j ;
@@ -1524,11 +1544,11 @@ int InitLevelG(DevD_G  *antDD,DevD_G  *DD, int is, sum103_t pondDelta[PB103_NB],
             sumP += pondDelta[j] ;
         }
 
-        int maxDeltaS = (Smin - Delt->S) / sumP + 1 ;
-        int maxDeltaSRev = (Smin - Delt->Srev) / (sumP - pondDelta[is+1] + pondDelta[1]) +1 ;
+//        int maxDeltaS = (Smin - Delt->S) / sumP + 1 ;
+//        int maxDeltaSRev = (Smin - Delt->Srev) / (sumP - pondDelta[is+1] + pondDelta[1]) +1 ;
 
-//        int maxDeltaS = (Smin - Delt->S) / pondDelta[is+1] + 1 ;
-//        int maxDeltaSRev = (Smin - Delt->Srev) /  pondDelta[1]  +1 ;
+        int maxDeltaS = (Smin - Delt->S) / pondDelta[is+1] + 1 ;
+        int maxDeltaSRev = (Smin - Delt->Srev) /  pondDelta[1]  +1 ;
 
         
         if(maxDeltaS < maxDeltaSRev ) maxDeltaS = maxDeltaSRev ;
@@ -1647,21 +1667,48 @@ int PB103g(PB_RESULT *pbR) {
         strcpy(DD[is].History,"I") ;
         printf("****** PASS %d avec MAX_DEV = %d *****\n",pass,max_dev);
         while(is>3) {
-            if(DD[is].D.nxtCand >= DD[is].D.nbCand  && DD[is].R.nxtCand >= DD[is].R.nbCand ) {
+/*            if(DD[is].D.nxtCand >= DD[is].D.nbCand  && DD[is].R.nxtCand >= DD[is].R.nbCand ) {
                 is-- ; continue ; // on a tout epuise
             } else if(DD[is].isDR && DD[is].R.nxtCand >= DD[is].R.nbCand ) {
                 DD[is].isDR = 0 ;  // reste a traiter un D de plus
             } else if(!DD[is].isDR && DD[is].D.nxtCand >= DD[is].D.nbCand ) {
                 DD[is].isDR = 1 ;
             }
+*/
+            
             
             // tritement d'un element
             DELTA_G * Delt = (DD[is].isDR) ? &DD[is].R : &DD[is].D ;
-
-            Delt->deltas[is-1] = Delt->ptCand[Delt->nxtCand] ;
-            Delt->val[is] = Delt->val[is-1] + Delt->deltas[is-1] + 1 ;
-            Delt->S += Delt->deltas[is-1] * pondDelta[is] ;
-            Delt->Srev += Delt->deltas[is-1] * pondDelta[1] ;
+            if((Delt->S <= Smin || Delt->Srev <= Smin) && Delt->nbCand) {
+                if( Delt->nxtCand < Delt->nbCand) {
+                    Delt->deltas[is-1] = Delt->ptCand[Delt->nxtCand] ;
+                    Delt->S += Delt->deltas[is-1] * pondDelta[is] ;
+                    Delt->Srev += Delt->deltas[is-1] * pondDelta[1] ;
+                } else {
+                    Delt->deltas[is-1]++ ;
+                    Delt->S +=  pondDelta[is] ;
+                    Delt->Srev += pondDelta[1] ;
+                }
+                Delt->val[is] = Delt->val[is-1] + Delt->deltas[is-1] + 1 ;
+            } else {
+                DD[is].isDR = 1 - DD[is].isDR ;
+                Delt = (DD[is].isDR) ? &DD[is].R : &DD[is].D ;
+                if((Delt->S <= Smin || Delt->Srev <= Smin) && Delt->nbCand ) {
+                    if( Delt->nxtCand < Delt->nbCand) {
+                        Delt->deltas[is-1] = Delt->ptCand[Delt->nxtCand] ;
+                        Delt->S += Delt->deltas[is-1] * pondDelta[is] ;
+                        Delt->Srev += Delt->deltas[is-1] * pondDelta[1] ;
+                    } else {
+                        Delt->deltas[is-1]++ ;
+                        Delt->S +=  pondDelta[is] ;
+                        Delt->Srev += pondDelta[1] ;
+                    }
+                    Delt->val[is] = Delt->val[is-1] + Delt->deltas[is-1] + 1 ;
+                } else {
+                    is-- ;
+                    continue ;
+                }
+            }
 
 #if defined(PRINT)
             //      if(pass==1)
@@ -1669,8 +1716,30 @@ int PB103g(PB_RESULT *pbR) {
                 int j ;
                 printf("%d%c,%d/%d,%-4d,%-4d,%-3d ",is,DD[is].isDR ? 'R': 'D',Delt->nxtCand,Delt->nbCand, Delt->S,Delt->Srev,Delt->nbDev) ;
                 for(j=0;j<is;j++) printf("%d%c",Delt->deltas[j], (j==is-1) ? ' ' : '.')  ;
+                
+                //17.0.0.1.2.24.49
             }
 #endif
+            static sum103_t PB[]= {17,0,0,1,2,24,49} ;
+            if(memcmp(Delt->deltas,PB,sizeof(PB)) == 0) {
+  //              isPrintDebug = 1 ;
+            }
+            if(isPrintDebug) {
+                {
+                    int j ;
+                    printf("%d%c,%d/%d,%-4d,%-4d,%-3d ",is,DD[is].isDR ? 'R': 'D',Delt->nxtCand,Delt->nbCand, Delt->S,Delt->Srev,Delt->nbDev) ;
+                    for(j=0;j<is;j++) printf("%d%c",Delt->deltas[j], (j==is-1) ? '\n' : '.')  ;
+                    
+                    //17.0.0.1.2.24.49
+                }
+
+                
+                if(CheckEqualityPreH(Delt->val,hlfP[is])) {
+ //                   printf("OK") ;
+                } else {
+                    printf("PB") ;
+                }
+            }
             
             if( Delt->nbDev < max_dev &&  (Delt->S <= Smin || Delt->Srev <= Smin)) {
 //                if(Delt->nxtCand < Delt->nbCand)
@@ -1709,9 +1778,10 @@ int PB103g(PB_RESULT *pbR) {
                         DD[is+1].History[is-2] = 0 ;
 
                         if(InitLevelG(DD+is,DD+is+1, is, pondDelta,Smin, (is == PB103_NB -2) ? 1 : max_dev)) {
-                            Delt->S -= Delt->deltas[is-1] * pondDelta[is] ;
-                            Delt->Srev -= Delt->deltas[is-1] * pondDelta[1] ;
-                            Delt->nxtCand++ ;
+                            if(++Delt->nxtCand < Delt->nbCand) {
+                                Delt->S -= Delt->deltas[is-1] * pondDelta[is] ;
+                                Delt->Srev -= Delt->deltas[is-1] * pondDelta[1] ;
+                            }
                             DD[is].isDR = 1 - DD[is].isDR ;
                             is ++ ; // on passer au niveau superieur
                             continue ;
@@ -1723,9 +1793,10 @@ int PB103g(PB_RESULT *pbR) {
                 printf("S\n") ;
 #endif
             }
-            Delt->S -= Delt->deltas[is-1] * pondDelta[is] ;
-            Delt->Srev -= Delt->deltas[is-1] * pondDelta[1] ;
-            Delt->nxtCand++ ;
+                if(++Delt->nxtCand < Delt->nbCand-1) {
+                    Delt->S -= Delt->deltas[is-1] * pondDelta[is] ;
+                    Delt->Srev -= Delt->deltas[is-1] * pondDelta[1] ;
+                }
             DD[is].isDR = 1 - DD[is].isDR ;
         }
     }
