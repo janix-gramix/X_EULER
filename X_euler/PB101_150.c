@@ -568,7 +568,7 @@ static u_int8_t isSumk1[20000] ;
 
 static u_int8_t isDelta[1000] ;
 
-static isPrintDebug = 0 ;
+// static isPrintDebug = 0 ;
 
 static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int maxDeltaVal, int maxCand) {
     int N = glbP->maxN ;
@@ -603,7 +603,6 @@ static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int
     
     sum103_t deltaOK = maxSk - minSk1 +1 - v[N-2] -1 ;
     
- //   sum103_t maxChk = (deltaOK < maxDeltaVal ) ? deltaOK : maxDeltaVal ;
     
     sum103_t maxChk = deltaOK ;
 /*
@@ -640,7 +639,7 @@ static int CheckEqualityPreG(sum103_t *v,GlobalPaths * glbP,sum103_t *vDelta,int
  */
     
 //    for(d=0;d<=maxChk;d++) {
-   for(d=v[N-2] - v[N-3];d<=maxChk;d++) {
+   for(d=v[N-2] - v[N-3]-1;d<=maxChk;d++) {
         if(isDelta[d]==0) {
             vDelta[nbSol++] = d ;
 //            if(nbSol >= maxCand) break ;
@@ -1720,27 +1719,7 @@ int PB103g(PB_RESULT *pbR) {
                 //17.0.0.1.2.24.49
             }
 #endif
-            static sum103_t PB[]= {17,0,0,1,2,24,49} ;
-            if(memcmp(Delt->deltas,PB,sizeof(PB)) == 0) {
-  //              isPrintDebug = 1 ;
-            }
-            if(isPrintDebug) {
-                {
-                    int j ;
-                    printf("%d%c,%d/%d,%-4d,%-4d,%-3d ",is,DD[is].isDR ? 'R': 'D',Delt->nxtCand,Delt->nbCand, Delt->S,Delt->Srev,Delt->nbDev) ;
-                    for(j=0;j<is;j++) printf("%d%c",Delt->deltas[j], (j==is-1) ? '\n' : '.')  ;
-                    
-                    //17.0.0.1.2.24.49
-                }
-
-                
-                if(CheckEqualityPreH(Delt->val,hlfP[is])) {
- //                   printf("OK") ;
-                } else {
-                    printf("PB") ;
-                }
-            }
-            
+           
             if( Delt->nbDev < max_dev &&  (Delt->S <= Smin || Delt->Srev <= Smin)) {
 //                if(Delt->nxtCand < Delt->nbCand)
                 {
