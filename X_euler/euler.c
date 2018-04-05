@@ -190,15 +190,18 @@ static PB_CALL ALL_calls[] = {
 static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
-    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
-    ,PROTO_CALL(103e,20313839404245,'Special subset sums: optimum')
-    ,PROTO_CALL(103c,20313839404245,'Special subset sums: optimum')
-    ,PROTO_CALL(103b,20313839404245,'Special subset sums: optimum')
-    ,PROTO_CALL(103a,20313839404245,'Special subset sums: optimum')
-    ,PROTO_CALL(103,20313839404245,'Special subset sums: optimum')
+//    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
+    PROTO_CALL(107,259679,'Minimal network')
+//        ,PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
+//        ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')
+ //       ,PROTO_CALL(103e,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103c,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103b,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103a,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103,20313839404245,'Special subset sums: optimum')
     
-    ,PROTO_CALL(105,73702,'Special subset sums: testing')
-    ,PROTO_CALL(106,21384,'Special subset sums: meta-testing')
+//  ,PROTO_CALL(105,73702,'Special subset sums: testing')
+//    ,PROTO_CALL(106,21384,'Special subset sums: meta-testing')
 
     ,{NULL,NULL,"",""}
 } ;

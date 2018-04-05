@@ -165,20 +165,16 @@ int PB101(PB_RESULT *pbR) {
 
 typedef struct Edge {
     u_int16_t   cost;
-    u_int16_t   Nbeg ;
-    u_int16_t   Nend ;
+    u_int16_t   Vbeg ;
+    u_int16_t   Vend ;
 } Edge ;
 
-typedef struct nodeTree { // tree for a node
-    u_int16_t numTree ;
-    u_int16_t nxtNode ; // link to nxt node in the tree
+typedef struct vertexTree { // tree for a vertex
+    u_int16_t numTree ; // tree number.
+    u_int16_t nxtVertex ; // link to nxt vertex in the tree
     
 } nodeTree ;
 
-typedef struct Tree {
-    u_int16_t length ;
-    u_int16_t firstNode ;
-} Tree ;
 
 int CmpEdge( const void *edg1, const void *edg2) {
     return ((Edge *)edg1)[0].cost - ((Edge *)edg2)[0].cost ;
@@ -186,8 +182,8 @@ int CmpEdge( const void *edg1, const void *edg2) {
 int PB107(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     Edge EDG[PB107_SIZE*PB107_SIZE] ;
-    Tree TR[PB107_SIZE+1] ;
-    nodeTree nT[PB107_SIZE] ; // association node -> tree
+    u_int16_t treeLength[PB107_SIZE+1] ;
+    nodeTree VtoT[PB107_SIZE] ; // association node -> tree
     u_int16_t nbTree = 0 ;
     int i, j ;
     const u_int16_t * cost = P107_GetData();
@@ -195,76 +191,65 @@ int PB107(PB_RESULT *pbR) {
     for(i=0;i<PB107_SIZE;i++) { // get the non null edge
         for(j=i+1;j<PB107_SIZE;j++) {
             if(cost[i*PB107_SIZE+j]){
-                EDG[nbEdge].Nbeg = i ;
-                EDG[nbEdge].Nend = j ;
+                EDG[nbEdge].Vbeg = i ;
+                EDG[nbEdge].Vend = j ;
                 EDG[nbEdge].cost = cost[i*PB107_SIZE+j] ;
                 nbEdge++ ;
             }
         }
     }
-    memset(nT,0,sizeof(nT)) ;
+    treeLength[nbTree++] = 1 ; // special tree with one node
+    for(i=0;i<PB107_SIZE;i++) { //each node in is own tree
+        VtoT[i].numTree = 0 ; // can be the same tree as this tree is never used
+        VtoT[i].nxtVertex = i ;
+    }
     heapsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ; // sort edges by cost
     int indSortEdg = 0 ;
-    TR[0].length = 0 ;
     int maxLength = 0 ;
     u_int32_t savingCost = 0 ;
     do {    // loop to build tree , adding the min cost edge
         Edge curEdg = EDG[indSortEdg++] ;
-        u_int16_t begT= nT[curEdg.Nbeg].numTree ;
-        u_int16_t endT =nT[curEdg.Nend].numTree ;
+        u_int16_t begT= VtoT[curEdg.Vbeg].numTree ;
+        u_int16_t endT =VtoT[curEdg.Vend].numTree ;
         if(begT && endT && begT == endT) {
             savingCost += curEdg.cost ; // the edge address the same tree => loop, forbiddeen
             continue ;
         }
         if(begT == 0 && endT == 0 ) { // nodes not in e tree => simple tree with 2 nodees
-               nbTree++ ;
-                TR[nbTree].length = 2 ;
+                treeLength[nbTree] = 2 ;
                 if(maxLength < 2) maxLength = 2 ;
-                TR[nbTree].firstNode = curEdg.Nbeg ;
-                nT[curEdg.Nbeg].numTree = nT[curEdg.Nend].numTree = nbTree ;
-                nT[curEdg.Nbeg].nxtNode = curEdg.Nend ;
-                nT[curEdg.Nend].nxtNode = curEdg.Nbeg ;
+                VtoT[curEdg.Vbeg].numTree = VtoT[curEdg.Vend].numTree = nbTree ;
+                VtoT[curEdg.Vbeg].nxtVertex = curEdg.Vend ;
+                VtoT[curEdg.Vend].nxtVertex = curEdg.Vbeg ;
+            nbTree++ ;
                 continue;
-        } else if( begT==0 || endT == 0) { // One node not in a tree, rattach to the tree
-            if(endT == 0) { // permutation  end <-> beg to shorten code
-                endT = begT ;
-                u_int16_t tmp = curEdg.Nbeg ;
-                curEdg.Nbeg = curEdg.Nend ;
-                curEdg.Nend = tmp ;
-            }
-            nT[curEdg.Nbeg].numTree = endT ;
-            nT[curEdg.Nbeg].nxtNode = nT[curEdg.Nend].nxtNode  ;
-            nT[curEdg.Nend].nxtNode = curEdg.Nbeg ;
-            TR[endT].length++ ;
-            if(maxLength < TR[endT].length) maxLength = TR[endT].length ;
-            continue ;
         } else { // two trees, rattach the shortest to the longuest
-            if(TR[begT].length > TR[endT].length ) { // permutation end <->beg
+            if(treeLength[begT] > treeLength[endT] ) { // permutation end <->beg
                 u_int16_t tmp = endT ;
                 endT = begT ;
                 begT= tmp ;
-                tmp = curEdg.Nbeg ;
-                curEdg.Nbeg = curEdg.Nend ;
-                curEdg.Nend = tmp ;
+                tmp = curEdg.Vbeg ;
+                curEdg.Vbeg = curEdg.Vend ;
+                curEdg.Vend = tmp ;
             }
           // rattach beg tree to end tree
-            u_int16_t nxtEnd = nT[curEdg.Nend].nxtNode ;
-            u_int16_t nxtBeg = curEdg.Nbeg ;
-            nT[curEdg.Nend].nxtNode = nxtBeg ;
+            u_int16_t nxtEnd = VtoT[curEdg.Vend].nxtVertex ;
+            u_int16_t nxtBeg = curEdg.Vbeg ;
+            VtoT[curEdg.Vend].nxtVertex = nxtBeg ;
             u_int16_t antBeg ;
-            do {
+            do { // loop on the vertexes of beg tree
                 antBeg= nxtBeg ;
-                nT[nxtBeg].numTree = endT ;
-                nxtBeg = nT[nxtBeg].nxtNode ;
-            } while(nxtBeg != curEdg.Nbeg) ;
-            nT[curEdg.Nbeg].numTree = endT ;
-            nT[antBeg].nxtNode = nxtEnd ;
-            TR[endT].length += TR[begT].length ;
-            if(maxLength < TR[endT].length) maxLength = TR[endT].length ;
+                VtoT[nxtBeg].numTree = endT ;
+                nxtBeg = VtoT[nxtBeg].nxtVertex ;
+            } while(nxtBeg != curEdg.Vbeg) ;
+            VtoT[curEdg.Vbeg].numTree = endT ;
+            VtoT[antBeg].nxtVertex = nxtEnd ;
+            treeLength[endT] += treeLength[begT] ;
+            if(maxLength < treeLength[endT]) maxLength = treeLength[endT] ;
             continue ;
         }
     } while(maxLength != PB107_SIZE) ;
-    while(indSortEdg<nbEdge) {
+    while(indSortEdg<nbEdge) { // add the remaining edge to cost saving
         savingCost += EDG[indSortEdg++].cost ;
     }
     sprintf(pbR->strRes,"%d",savingCost) ;
