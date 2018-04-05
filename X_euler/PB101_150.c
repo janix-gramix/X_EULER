@@ -169,9 +169,9 @@ typedef struct Edge {
     u_int16_t   Nend ;
 } Edge ;
 
-typedef struct nodeTree {
+typedef struct nodeTree { // tree for a node
     u_int16_t numTree ;
-    u_int16_t nxtNode ;
+    u_int16_t nxtNode ; // link to nxt node in the tree
     
 } nodeTree ;
 
@@ -187,12 +187,12 @@ int PB107(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     Edge EDG[PB107_SIZE*PB107_SIZE] ;
     Tree TR[PB107_SIZE+1] ;
-    nodeTree nT[PB107_SIZE] ;
+    nodeTree nT[PB107_SIZE] ; // association node -> tree
     u_int16_t nbTree = 0 ;
-    int i, j , is ;
+    int i, j ;
     const u_int16_t * cost = P107_GetData();
     u_int16_t nbEdge = 0 ;
-    for(i=0;i<PB107_SIZE;i++) {
+    for(i=0;i<PB107_SIZE;i++) { // get the non null edge
         for(j=i+1;j<PB107_SIZE;j++) {
             if(cost[i*PB107_SIZE+j]){
                 EDG[nbEdge].Nbeg = i ;
@@ -203,22 +203,21 @@ int PB107(PB_RESULT *pbR) {
         }
     }
     memset(nT,0,sizeof(nT)) ;
-    heapsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ;
+    heapsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ; // sort edges by cost
     int indSortEdg = 0 ;
     TR[0].length = 0 ;
     int maxLength = 0 ;
     u_int32_t savingCost = 0 ;
-    do {
+    do {    // loop to build tree , adding the min cost edge
         Edge curEdg = EDG[indSortEdg++] ;
         u_int16_t begT= nT[curEdg.Nbeg].numTree ;
         u_int16_t endT =nT[curEdg.Nend].numTree ;
         if(begT && endT && begT == endT) {
-            savingCost += curEdg.cost ;
+            savingCost += curEdg.cost ; // the edge address the same tree => loop, forbiddeen
             continue ;
         }
-        if(begT == 0) { // le noeud n'a pas ete choisi
-            if(endT == 0) {
-                nbTree++ ;
+        if(begT == 0 && endT == 0 ) { // nodes not in e tree => simple tree with 2 nodees
+               nbTree++ ;
                 TR[nbTree].length = 2 ;
                 if(maxLength < 2) maxLength = 2 ;
                 TR[nbTree].firstNode = curEdg.Nbeg ;
@@ -226,6 +225,12 @@ int PB107(PB_RESULT *pbR) {
                 nT[curEdg.Nbeg].nxtNode = curEdg.Nend ;
                 nT[curEdg.Nend].nxtNode = curEdg.Nbeg ;
                 continue;
+        } else if( begT==0 || endT == 0) { // One node not in a tree, rattach to the tree
+            if(endT == 0) { // permutation  end <-> beg to shorten code
+                endT = begT ;
+                u_int16_t tmp = curEdg.Nbeg ;
+                curEdg.Nbeg = curEdg.Nend ;
+                curEdg.Nend = tmp ;
             }
             nT[curEdg.Nbeg].numTree = endT ;
             nT[curEdg.Nbeg].nxtNode = nT[curEdg.Nend].nxtNode  ;
@@ -233,61 +238,31 @@ int PB107(PB_RESULT *pbR) {
             TR[endT].length++ ;
             if(maxLength < TR[endT].length) maxLength = TR[endT].length ;
             continue ;
-        } else if(endT == 0) {
-            nT[curEdg.Nend].numTree = begT ;
-            nT[curEdg.Nend].nxtNode = nT[curEdg.Nbeg].nxtNode ;
-            nT[curEdg.Nbeg].nxtNode = curEdg.Nend ;
-            TR[begT].length++ ;
-            if(maxLength < TR[begT].length) maxLength = TR[begT].length ;
-            continue ;
-        } else {
-            if(TR[begT].length <= TR[endT].length ) {
-              // on rattache l'arbre beg a l'arbre end
-                u_int16_t nxtEnd = nT[curEdg.Nend].nxtNode ;
-                u_int16_t nxtBeg = curEdg.Nbeg ;
-                nT[curEdg.Nend].nxtNode = nxtBeg ;
-                u_int16_t antBeg ;
-                do {
-                    antBeg= nxtBeg ;
-                    nT[nxtBeg].numTree = endT ;
-                     nxtBeg = nT[nxtBeg].nxtNode ;
-                } while(nxtBeg != curEdg.Nbeg) ;
-                nT[curEdg.Nbeg].numTree = endT ;
-                nT[antBeg].nxtNode = nxtEnd ;
-/*                int node ;
-                printf("Tree(%d[%d]->%d[%d]) : ", begT,TR[begT].length,endT,TR[endT].length) ;
-                for(node=TR[endT].firstNode;nT[node].nxtNode != TR[endT].firstNode; node = nT[node].nxtNode ) printf("%d.",node) ;
-                printf("%d.%d\n",node,nT[node].nxtNode) ;
-*/                TR[endT].length += TR[begT].length ;
-                if(maxLength < TR[endT].length) maxLength = TR[endT].length ;
-                continue ;
-            } else {
-                // on rattache l'arbre end a l'arbre beg
-               
-                u_int16_t nxtEnd = curEdg.Nend ;
-                u_int16_t nxtBeg = nT[curEdg.Nbeg].nxtNode ;
-                nT[curEdg.Nbeg].nxtNode = curEdg.Nend ;
-                u_int16_t antEnd ;
-                do {
-                    antEnd = nxtEnd ;
-                    nT[nxtEnd].numTree = begT ;
-                     nxtEnd = nT[nxtEnd].nxtNode ;
-                } while(nxtEnd != curEdg.Nend) ;
-                nT[curEdg.Nend].numTree = begT ;
-                 nT[antEnd].nxtNode = nxtBeg ;
-/*                printf("Tree(%d[%d]->%d[%d]) : %d->", endT,TR[endT].length,begT,TR[begT].length,curEdg.Nbeg) ;
-                int node ;
-                for(node=TR[begT].firstNode;nT[node].nxtNode != TR[begT].firstNode; node = nT[node].nxtNode ) printf("%d.",node) ;
-                printf("%d.%d\n",node,nT[node].nxtNode) ;
- */
-                TR[begT].length += TR[endT].length ;
-                if(maxLength < TR[begT].length) maxLength = TR[begT].length ;
-                continue ;
+        } else { // two trees, rattach the shortest to the longuest
+            if(TR[begT].length > TR[endT].length ) { // permutation end <->beg
+                u_int16_t tmp = endT ;
+                endT = begT ;
+                begT= tmp ;
+                tmp = curEdg.Nbeg ;
+                curEdg.Nbeg = curEdg.Nend ;
+                curEdg.Nend = tmp ;
             }
-            
+          // rattach beg tree to end tree
+            u_int16_t nxtEnd = nT[curEdg.Nend].nxtNode ;
+            u_int16_t nxtBeg = curEdg.Nbeg ;
+            nT[curEdg.Nend].nxtNode = nxtBeg ;
+            u_int16_t antBeg ;
+            do {
+                antBeg= nxtBeg ;
+                nT[nxtBeg].numTree = endT ;
+                nxtBeg = nT[nxtBeg].nxtNode ;
+            } while(nxtBeg != curEdg.Nbeg) ;
+            nT[curEdg.Nbeg].numTree = endT ;
+            nT[antBeg].nxtNode = nxtEnd ;
+            TR[endT].length += TR[begT].length ;
+            if(maxLength < TR[endT].length) maxLength = TR[endT].length ;
+            continue ;
         }
-        
-        
     } while(maxLength != PB107_SIZE) ;
     while(indSortEdg<nbEdge) {
         savingCost += EDG[indSortEdg++].cost ;
