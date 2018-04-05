@@ -11,7 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <gmp.h>
-
+#include "euler_utils.h"
 #include "PB_gmp.h"
 
 #define PB016_MAXL  1000/3
@@ -103,7 +103,7 @@ int PB066(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) {
         char * str_x = mpz_get_str(NULL,10,max_x) ;
-        fprintf(stdout,"\t PB%0.3d x(%d)=%s\n",pbR->ident, bestN,str_x);
+        fprintf(stdout,"\t PB%s x(%d)=%s\n",pbR->ident, bestN,str_x);
         free (str_x) ;
     }
     sprintf(pbR->strRes,"%d",bestN);
@@ -142,6 +142,50 @@ int PB080_gmp(PB_RESULT *pbR) {
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s SumdDecimal[1..%d]=%d\n"
                               ,pbR->ident,PB080_N,S) ;
     sprintf(pbR->strRes,"%d",S) ;
+    return 1 ;
+}
+
+int CmpUint32(const void *el1, const void *el2) {
+    return ((int32_t *)el1)[0] - ((int32_t *)el2)[0] ;
+}
+#define FACT9   362880
+int PB104_gmp(PB_RESULT *pbR) {
+     pbR->nbClock = clock() ;
+    mpz_t F0 ;
+    mpz_t F1 ;
+    mpz_t Pow10 ;
+    mpz_t Fmod10 ;
+    mpz_init(Fmod10) ;
+    mpz_init_set_ui(Pow10,1);
+    mpz_init_set_ui(F0,1);
+    mpz_init_set_ui(F1,1);
+    int k = 2 ;
+    u_int32_t PanDigital[FACT9] ;
+    u_int8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
+    int is=0 ;
+    do {
+        PanDigital[is++] = 10*(10*(10*(10*(10*(10*(10*(10*perm[0]+perm[1])+perm[2])+perm[3])+perm[4])+perm[5])+perm[6])+perm[7])+perm[8] ;
+    } while (NextPermut(perm,9) >= 0) ;
+    while(1) {
+        k++ ;
+        mpz_add(F0,F0,F1);
+        mpz_fdiv_q (Fmod10,F0, Pow10);
+        u_int32_t mod10 =  (u_int32_t) mpz_get_ui (Fmod10) ;
+        if(mod10 >= 1000000000) {
+            mpz_mul_ui(Pow10,Pow10,10) ;
+            mod10 /= 10 ;
+        }
+        if(bsearch(&mod10, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+            mpz_mod_ui (Fmod10,F0, 1000000000) ;
+            mod10 = (u_int32_t) mpz_get_ui (Fmod10) ;
+            if(bsearch(&mod10, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+                printf(" F(%d) is Double Pandigit\n",k) ; break ;
+            }
+        }
+        mpz_swap (F0,F1 ) ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",k) ;
     return 1 ;
 }
 

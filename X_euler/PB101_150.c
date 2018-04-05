@@ -211,8 +211,8 @@ int PB104(PB_RESULT *pbR) {
         F0=(F0+F1) % 1000000000 ;
         if((F0 % 9 ) == 0 ) {
            if(bsearch(&F0, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
-                // aprroximation by
-                double logFk = k * log10((1+sqrt(5))/2) + log10(1/sqrt(5)) ;
+                // approximation by PHY**k / sqrt(5)
+                double logFk = k * log10((1+sqrt(5))/2) - log10(sqrt(5)) ;
                 u_int32_t highDigits = (u_int32_t)pow(10,logFk - (u_int32_t)logFk +8 ) ;
                 if(bsearch(&highDigits, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
                     printf(" F(%d) is Double Pandigit\n",k) ;
@@ -228,7 +228,6 @@ int PB104(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%d",k) ;
     return 1 ;
 }
-
 
 
 
