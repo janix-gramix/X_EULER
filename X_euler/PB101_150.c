@@ -14,6 +14,7 @@
 
 
 #include "PB101_150.h"
+#include "p102_data.h"
 #include "p105_data.h"
 #include "p107_data.h"
 
@@ -162,6 +163,75 @@ int PB101(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
+int PB102(PB_RESULT *pbR) {
+    pbR->nbClock = clock()  ;
+    
+    const Triangle * TR =  P102_GetData() ;
+    int i ;
+    int nbOK = 0;
+    for(i=0;i<PB102_NBT;i++) {
+        int32_t A = - TR[i].yb*TR[i].xc +TR[i].yc*TR[i].xb ;
+        int32_t B = - TR[i].yc*TR[i].xa +TR[i].ya*TR[i].xc ;
+        if(A > 0 && B > 0) {
+            int32_t C = - TR[i].ya*TR[i].xb +TR[i].yb*TR[i].xa ;
+            if(C > 0) nbOK++ ;
+        } else if(A < 0 && B < 0) {
+            int32_t C = - TR[i].ya*TR[i].xb +TR[i].yb*TR[i].xa ;
+            if(C < 0) nbOK++ ;
+        }
+    }
+    sprintf(pbR->strRes,"%d",nbOK) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+/*
+double t = r * log10((1+sqrt(5))/2) + log10(1/sqrt(5))
+long L = (long)Math.pow(10, t - (long)t + 8)
+*/
+static int CmpUint32(const void *el1, const void *el2) {
+    return ((int32_t *)el1)[0] - ((int32_t *)el2)[0] ;
+}
+#define FACT9   362880
+int PB104(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int k ;
+     u_int32_t PanDigital[FACT9] ;
+    u_int8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
+    int is=0 ;
+    do {
+        PanDigital[is++] = 10*(10*(10*(10*(10*(10*(10*(10*perm[0]+perm[1])+perm[2])+perm[3])+perm[4])+perm[5])+perm[6])+perm[7])+perm[8] ;
+    } while (NextPermut(perm,9) >= 0) ;
+    u_int32_t F0=1 ;
+    u_int32_t F1=1 ;
+    k = 2 ;
+    while(1) {
+        k++ ;
+        F0=(F0+F1) % 1000000000 ;
+        if((F0 % 9 ) == 0 ) {
+           if(bsearch(&F0, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+                // aprroximation by
+                double logFk = k * log10((1+sqrt(5))/2) + log10(1/sqrt(5)) ;
+                u_int32_t highDigits = (u_int32_t)pow(10,logFk - (u_int32_t)logFk +8 ) ;
+                if(bsearch(&highDigits, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+                    printf(" F(%d) is Double Pandigit\n",k) ;
+                    break ;
+                }
+            }
+        }
+        u_int32_t tmp = F0 ;
+        F0=F1 ;
+        F1=tmp ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",k) ;
+    return 1 ;
+}
+
+
+
+
 
 typedef struct Edge {
     u_int16_t   cost;
