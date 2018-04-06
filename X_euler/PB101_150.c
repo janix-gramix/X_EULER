@@ -326,5 +326,49 @@ int PB107(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// les solutions sont du type <=> xy = n (x+y)
+// n = d1 x d2 x d3 avec  d2 <= d3 et d2^d3 pour assurer l'unicite
+// x= d1 x d3 x (d2+d3) ;  y = x= d1 x d2 x (d2+d3)
+// Ex n=4
+// d1=1 d2=1 d3=4 => x=20 y=5  ;100 = 4 x(20+5)
+// d1=2 d2=1 d3=2 => x=12 y=6   ;72 = 2 x (6+12)
+// d1=4 d2=1 d3=1 => x=8  y=8  ; 64 = 4 x (8+8)
+
+
+
+int PB108(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int d1,d2,d3 ;
+    int n ;
+    int nbSol = 0 ;
+    int nbSolM=0 ;
+    for(n=4;;n++) {
+        nbSol = 0 ;
+        for(d2=1;d2*d2<=n;d2++) {
+            int n1 = n / d2 ;
+            if(n != d2*n1) continue ;
+            int g =PGCD(d2,n1);
+            for(d1=g;d1*d2 <= n1 ;d1 += g) {
+                d3 = n1/d1 ;
+                if(n1 == d1*d3) {
+                    if( PGCD(d2,d3) == 1)
+                    {
+//                           printf("(%d,%d)",d1*d2*(d2 + d3),d1*d3*(d2 + d3)) ;
+                        nbSol++ ;
+                    }
+                }
+            }
+        }
+        if(nbSol > nbSolM) {
+            printf("%d=>%d \n",n,nbSol );
+            nbSolM = nbSol ;
+            if(nbSol > 1000) break ;
+        }
+    }
+ 
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",n) ;
+    return 1 ;
+}
 
 
