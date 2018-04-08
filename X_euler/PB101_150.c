@@ -384,10 +384,16 @@ int PB108a(PB_RESULT *pbR) {
                                 ,179,181,191,193,197,199,211,223,227,229
                                 ,233,239,241,251,257,263,269,271,277,281} ;
     int sumA ;
-    u_int64_t n =1 ;
     int nbSolM=0 ;
     u_int64_t nMin = 1L << PB108_ALPHAM ;
-    for(sumA=1;(1L<<sumA) <= nMin ;sumA++) {
+    u_int64_t n =1 ;
+    u_int64_t nbS = 1;
+    for(sumA=0; nbS  <  2 * PB108_MINS; sumA ++ ) {
+        nbS *= 3 ;
+        n *= primes[sumA] ;
+     }
+    nMin = n ;
+    for(;(1L<<sumA) <= nMin ;sumA++) {
  //      printf("\nSum(alpha)=%d ",sumA) ;
         alpha[0] = sumA-1 ;
         alpha[1] = 1 ;
@@ -397,7 +403,8 @@ int PB108a(PB_RESULT *pbR) {
         n=1 ;
         for(nbAmax=0;nbAmax<=sumA;nbAmax++) {
             n *= primes[nbAmax] ;
-            if(n> nMin) break ;
+           if(n * (1L << (sumA - nbAmax)) > nMin) break ;
+//            if(n  > nMin) break ;
 
         }
         printf("\n******  sumA=%d => nbAmax=%d",sumA,nbAmax) ;
@@ -420,7 +427,7 @@ int PB108a(PB_RESULT *pbR) {
                 for(j=0;j<alpha[ia];j++) {
                     n *= primes[ia] ;
                     if(n > nMin) {
-  //                      goto nextRepart ;
+                        goto nextRepart ;
                     }
                 }
             }
@@ -437,7 +444,7 @@ int PB108a(PB_RESULT *pbR) {
                         printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
                         
                     }
-                     break ;
+//                     break ;
                 } else {
                     nbSolM = nbSol ;
                     if(nbSolM > PB108_MINS) {
@@ -450,16 +457,21 @@ int PB108a(PB_RESULT *pbR) {
                     
                 }
             }
+            int sumR ;
+
 nextRepart:
-            do {
-                for(j=nbA-1;j>=0;j--) {
-                    if(alpha[j]>1) {
+ //           do {
+                for(j=nbA-1,sumR=1;j>=0;j--) {
+//                    if(alpha[j]>1) {
+                    if(sumR <= (nbAmax-j+2) * (alpha[j]-1)) {
                         alpha[j]-- ;
+ //                       sumR++ ;
                         int k;
-                        int sumR =1;
+ /*                       int sumR =1;
                         for(k=j+1;k<nbA;k++) {
                             sumR += alpha[k] ;
                         }
+  */
                         k= j+1 ;
                         while(sumR > 0) {
                             alpha[k] = (sumR > alpha[j]) ? alpha[j] : sumR ;
@@ -469,8 +481,9 @@ nextRepart:
                         alpha[k] = 0 ;
                         break ;
                     }
+                    sumR += alpha[j] ;
                 }
-            } while(j>=0 && nbA >= nbAmax) ;
+//             } while(j>=0  /* && nbA > nbAmax */ ) ;
             if(j<0) {
                 break ;
             }
