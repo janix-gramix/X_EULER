@@ -393,99 +393,100 @@ int PB108a(PB_RESULT *pbR) {
         n *= primes[sumA] ;
      }
     nMin = n ;
-    for(;(1L<<sumA) <= nMin ;sumA++) {
+    for(sumA=2;(1L<<sumA) <= nMin ;sumA++) {
  //      printf("\nSum(alpha)=%d ",sumA) ;
-        alpha[0] = sumA-1 ;
-        alpha[1] = 1 ;
-        alpha[2] =0 ;
-        int nbA = 2 ;
+
         int nbAmax ;
         n=1 ;
-        for(nbAmax=0;nbAmax<=sumA;nbAmax++) {
+        for(nbAmax=0;nbAmax<sumA;nbAmax++) {
             n *= primes[nbAmax] ;
            if(n * (1L << (sumA - nbAmax)) > nMin) break ;
 //            if(n  > nMin) break ;
 
         }
+        int nbA = 2 ;
         printf("\n******  sumA=%d => nbAmax=%d",sumA,nbAmax) ;
-        while(1) {
-            int j ;
-
-            int ia;
-            n=1;
-//            for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? '\n' : '.' ,alpha[ia]) ;
-            u_int64_t nbS = 1 ;
-            u_int64_t nbSol = 0 ;
-
-            for(ia=0;ia<nbA;ia++) {
-                nbS *= 2*alpha[ia]+1 ;
+        for(nbA=2;nbA<=nbAmax;nbA++) {
+            alpha[0] = sumA-nbA+1;
+            int k ;
+            for(k=1;k<nbA;k++) {
+                alpha[k] = 1 ;
             }
-            nbSol = (nbS+1)/2 ;
-            n=1;
-            for(ia=0;ia<nbA;ia++) {
+            alpha[k] = 0 ;
+            while(1) {
+            
                 int j ;
-                for(j=0;j<alpha[ia];j++) {
-                    n *= primes[ia] ;
+
+                int ia;
+                n=1;
+//                for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? '\n' : '.' ,alpha[ia]) ;
+                u_int64_t nbS = 1 ;
+                u_int64_t nbSol = 0 ;
+
+                for(ia=0;ia<nbA;ia++) {
+                    nbS *= 2*alpha[ia]+1 ;
+                }
+                nbSol = (nbS+1)/2 ;
+                n=1;
+                for(ia=0;ia<nbA;ia++) {
+                    int j ;
+                    for(j=0;j<alpha[ia];j++) {
+                        n *= primes[ia] ;
+                        if(n > nMin) {
+                            break ;
+                        }
+                    }
                     if(n > nMin) {
-                        goto nextRepart ;
+                        break ;
                     }
                 }
-            }
-//           printf(" nbS=%lld , n=%llu",nbSol,n) ;
-            if(nbSol > nbSolM) {
-                
-                 if(nbSolM >= PB108_MINS) {
-                    if(n < nMin) {
-                        nMin = n ;
+//               printf(" nbS=%lld , n=%llu",nbSol,n) ;
+                if(nbSol > nbSolM) {
+                    
+                     if(nbSolM >= PB108_MINS) {
+                        if(n < nMin) {
+                            nMin = n ;
+                            printf("\n[%d]",sumA);
+                            for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
+                            printf(" nbS=%lld",nbSol) ;
+                            printf(" +(%llu=>%lld) ",n,nbSol );
+                            printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
+                            
+                        }
+                         break ;
+                    } else {
+                        nbSolM = nbSol ;
+                        if(nbSolM > PB108_MINS) {
+                            nbSolM = PB108_MINS ;
+                            nMin = n ;
+                        }
                         printf("\n[%d]",sumA);
                         for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
-                        printf(" nbS=%lld",nbSol) ;
-                        printf(" +(%llu=>%lld) ",n,nbSol );
                         printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
                         
                     }
-//                     break ;
-                } else {
-                    nbSolM = nbSol ;
-                    if(nbSolM > PB108_MINS) {
-                        nbSolM = PB108_MINS ;
-                        nMin = n ;
-                    }
-                    printf("\n[%d]",sumA);
-                    for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
-                    printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
-                    
                 }
-            }
-            int sumR ;
+                int sumR ;
 
-nextRepart:
- //           do {
-                for(j=nbA-1,sumR=1;j>=0;j--) {
-//                    if(alpha[j]>1) {
-                    if(sumR <= (nbAmax-j+2) * (alpha[j]-1)) {
-                        alpha[j]-- ;
- //                       sumR++ ;
-                        int k;
- /*                       int sumR =1;
-                        for(k=j+1;k<nbA;k++) {
-                            sumR += alpha[k] ;
-                        }
-  */
-                        k= j+1 ;
+    nextRepart:
+                for(j=nbA-1,sumR=0;j>=0;j--) {
+                    sumR += alpha[j] ;
+                    if(sumR <= (nbA-j) * (alpha[j]-1)) {
+                        int r = --alpha[j] ;
+                        int k = j+1 ;
+                        sumR -= r  ;
                         while(sumR > 0) {
-                            alpha[k] = (sumR > alpha[j]) ? alpha[j] : sumR ;
-                            sumR -= alpha[k++] ;
+                            while(sumR < r + nbA-k-1) r-- ;
+                            alpha[k++] = r ;
+                            sumR -= r ;
                         }
-                        nbA = k ;
-                        alpha[k] = 0 ;
+                        alpha[k]=0 ;
                         break ;
                     }
-                    sumR += alpha[j] ;
                 }
-//             } while(j>=0  /* && nbA > nbAmax */ ) ;
-            if(j<0) {
-                break ;
+                if(j<0) {
+                    break ;
+                }
             }
         }
 //        if(nbSolM > PB108_MINS) break ;
