@@ -400,7 +400,7 @@ int PB108a(PB_RESULT *pbR) {
             if(n> nMin) break ;
             
         }
-        printf("\n******  sumA=%d => nbAmax=%d",sumA,nbAmax) ;
+//        printf("\n******  sumA=%d => nbAmax=%d",sumA,nbAmax) ;
         while(1) {
             int j ;
             
@@ -416,45 +416,22 @@ int PB108a(PB_RESULT *pbR) {
             nbSol = (nbS+1)/2 ;
             n=1;
             for(ia=0;ia<nbA;ia++) {
-                int j ;
-                for(j=0;j<alpha[ia];j++) {
+                for(j=alpha[ia];j>0;j--) {
                     n *= primes[ia] ;
-                    if(n > nMin) {
-                        if(nbSol > PB108_MINS) nbA = nbAmax ;
-                        goto nextRepart ;
-                        
-                    }
+                    if(n > nMin) break ;
                 }
+                if(j) break ;
             }
-
-            //            printf(" nbS=%lld , n=%llu",nbSol,n) ;
-            if(nbSol > nbSolM) {
-                
-                if(nbSolM >= PB108_MINS) {
-                    if(n < nMin) {
-                        nMin = n ;
-                        printf("\n[%d]",sumA);
-                        for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
-                        printf(" nbS=%lld",nbSol) ;
-                        printf(" +(%llu=>%lld) ",n,nbSol );
-                        printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
-                        
-                    }
-                    break ;
-                } else {
-                    nbSolM = nbSol ;
-                    if(nbSolM > PB108_MINS) {
-                        nbSolM = PB108_MINS ;
-                        nMin = n ;
-                    }
+            if(nbSol > PB108_MINS ) {
+                if(n < nMin) {
+                    nMin = n ;
                     printf("\n[%d]",sumA);
                     for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
-                    printf("NbSolM=%d,nMin=%lld",nbSolM,nMin) ;
-                    
+                    printf(" NbSol=%lld,nMin=%lld",nbSol,nMin) ;
+                    break ;
                 }
+                break ;
             }
-        nextRepart:
-            if(nbA >= nbAmax) break ;
             do {
                 for(j=nbA-1;j>=0;j--) {
                     if(alpha[j]>1) {
@@ -479,7 +456,6 @@ int PB108a(PB_RESULT *pbR) {
                 break ;
             }
         }
-        //        if(nbSolM > PB108_MINS) break ;
     }
     printf("\n");
     
