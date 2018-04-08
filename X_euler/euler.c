@@ -182,6 +182,8 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(622,3010983666182123972,'Riffle Shuffles')
     ,PROTO_CALL(101,37076114526,'Optimum polynomial')
     ,PROTO_CALL(102,228,'Triangle containment')
+//    PROTO_CALL(104_gmp,329468,'Pandigital Fibonacci ends')
+    ,PROTO_CALL(104,329468,'Pandigital Fibonacci ends')
 
     ,PROTO_CALL(105,73702,'Special subset sums: testing')
     ,PROTO_CALL(106,21384,'Special subset sums: meta-testing')
@@ -195,8 +197,9 @@ static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
-    PROTO_CALL(104_gmp,329468,'Pandigital Fibonacci ends')
-    ,PROTO_CALL(104,329468,'Pandigital Fibonacci ends')
+    PROTO_CALL(110,9350130049860600,'Diophantine reciprocals II')
+    ,{"108a",PB110,"180180","Diophantine reciprocals I"}                // cas special poure executer par PB110 
+    ,PROTO_CALL(108,180180,'Diophantine reciprocals I')
 //    ,PROTO_CALL(107,259679,'Minimal network')
 //        ,PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
 //        ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')

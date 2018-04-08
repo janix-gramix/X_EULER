@@ -333,7 +333,10 @@ int PB107(PB_RESULT *pbR) {
 // d1=1 d2=1 d3=4 => x=20 y=5  ;100 = 4 x(20+5)
 // d1=2 d2=1 d3=2 => x=12 y=6   ;72 = 2 x (6+12)
 // d1=4 d2=1 d3=1 => x=8  y=8  ; 64 = 4 x (8+8)
-
+//
+// plus astucieux
+// 1/(n+a) + 1/(n+b) = 1/n <=> (n+a)(n+b)=n(2n+a+b) <=>ab = n2
+// donc c'est le (nombre de diviseurs de n**2)/2 + 1. 
 
 
 int PB108(PB_RESULT *pbR) {
@@ -372,9 +375,9 @@ int PB108(PB_RESULT *pbR) {
 }
 
 #define PB108_ALPHAM    60
-#define PB108_MINS      4000000
-// #define PB108_MINS      1000
-int PB108a(PB_RESULT *pbR) {
+#define PB110_MINS      4000000
+#define PB108_MINS      1000
+int PB110(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int alpha[PB108_ALPHAM+1] ;
     int primes[PB108_ALPHAM] = { 2,3,5,7,11,13,17,19,23,29
@@ -383,65 +386,59 @@ int PB108a(PB_RESULT *pbR) {
                                 ,127,131,137,139,149,151,157,163,167,173
                                 ,179,181,191,193,197,199,211,223,227,229
                                 ,233,239,241,251,257,263,269,271,277,281} ;
+    int minS = (strcmp(pbR->ident,"110") == 0) ? PB110_MINS : PB108_MINS ;
     int sumA ;
-    u_int64_t n =1 ;
-    int nbSolM=0 ;
-    u_int64_t nMin = 1L << PB108_ALPHAM ;
-    for(sumA=1;(1L<<sumA) <= nMin ;sumA++) {
+     u_int64_t nMin = 1L << PB108_ALPHAM ;
+    for(sumA=2;(1L<<sumA) <= nMin ;sumA++) {
         //      printf("\nSum(alpha)=%d ",sumA) ;
-        alpha[0] = sumA-1 ;
-        alpha[1] = 1 ;
-        alpha[2] =0 ;
-        int nbA = 2 ;
-        int nbAmax ;
-        n=1 ;
+        int nbA,nbAmax ;
+         u_int64_t n=1 ;
         for(nbAmax=0;nbAmax<=sumA;nbAmax++) {
             n *= primes[nbAmax] ;
             if(n> nMin) break ;
-            
         }
-//        printf("\n******  sumA=%d => nbAmax=%d",sumA,nbAmax) ;
+        u_int64_t nbS = 1 ;
+        for(nbA=1;nbA<nbAmax;nbA++) {
+            alpha[nbA] = 1 ;
+            nbS *= 3 ;
+            if((2*(sumA-nbA)+1)*nbS > 2*minS) break ;
+        }
+        alpha[--nbA] = 0 ;
+        alpha[0] = sumA-nbA+1 ;
         while(1) {
             int j ;
-            
             int ia;
-            n=1;
-//            for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? '\n' : '.' ,alpha[ia]) ;
             u_int64_t nbS = 1 ;
-            u_int64_t nbSol = 0 ;
-            
             for(ia=0;ia<nbA;ia++) {
                 nbS *= 2*alpha[ia]+1 ;
             }
-            nbSol = (nbS+1)/2 ;
-            n=1;
-            for(ia=0;ia<nbA;ia++) {
-                for(j=alpha[ia];j>0;j--) {
-                    n *= primes[ia] ;
+            u_int64_t nbSol = (nbS+1)/2 ;
+//            for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? '\n' : '.' ,alpha[ia]) ; printf(" nbS=%lld",nbSol) ;
+           if(nbSol > minS ) {
+                u_int64_t n=1;
+                for(ia=nbA-1;ia>=0;ia--) {
+                    for(j=alpha[ia];j>0;j--) {
+                        n *= primes[ia] ;
+                    }
                     if(n > nMin) break ;
                 }
-                if(j) break ;
-            }
-            if(nbSol > PB108_MINS ) {
                 if(n < nMin) {
                     nMin = n ;
-                    printf("\n[%d]",sumA);
-                    for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
-                    printf(" NbSol=%lld,nMin=%lld",nbSol,nMin) ;
-                    break ;
+                    if(pbR->isVerbose) {
+                        fprintf(stdout,"\t PB%s SumA=%d Alpha=",pbR->ident,sumA);
+                        for(ia=0;ia<nbA;ia++) fprintf(stdout,"%c%d",(ia==0)? ' ' : '.' ,alpha[ia]) ;
+                        printf(" NbSol=%lld,n=%lld\n",nbSol,nMin) ;
+                    }
                 }
                 break ;
-            }
-            do {
-                for(j=nbA-1;j>=0;j--) {
-                    if(alpha[j]>1) {
+            } else {
+                int sumR ;
+                for(sumR=1,j=nbA-1;j>=0;j--) {
+                    sumR += alpha[j] ; // sumR to dispatch betwwen the remaining alpha's
+                    if(sumR <= (nbAmax-j)*(alpha[j]-1)) {
+                        sumR -= alpha[j] ;
                         alpha[j]-- ;
-                        int k;
-                        int sumR =1;
-                        for(k=j+1;k<nbA;k++) {
-                            sumR += alpha[k] ;
-                        }
-                        k= j+1 ;
+                        int k= j+1 ;
                         while(sumR > 0) {
                             alpha[k] = (sumR > alpha[j]) ? alpha[j] : sumR ;
                             sumR -= alpha[k++] ;
@@ -451,14 +448,10 @@ int PB108a(PB_RESULT *pbR) {
                         break ;
                     }
                 }
-            } while(j>=0 && nbA >= nbAmax) ;
-            if(j<0) {
-                break ;
+                if(j<0)    break ; // no successor
             }
         }
     }
-    printf("\n");
-    
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nMin) ;
     return 1 ;

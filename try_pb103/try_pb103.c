@@ -6,8 +6,8 @@
 
 #include<stdio.h>
 #include<string.h>
-#define maxsum 5000
-#define maxsize 9
+#define maxsum 10000
+#define maxsize 11
 
 #define startsum (1+2*1)
 #define startsize 2
