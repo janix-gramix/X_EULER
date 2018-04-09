@@ -569,57 +569,48 @@ int PB112(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CountB CB[PB112_MAXDIG+1] ;
     char prefix[10] ;
-    int id,nd ;
-    
+    int id=1,nd,j ;
+    int n ;
     CountB CBwork ;
+    CountB CBnext ;
     memset(&CB[0],0,sizeof(CB[0])) ;
     CB[0].SumI = CB[0].SumD = CB[0].SumC = 9  ;
-    for(nd=0;nd<PB112_MAXDIG-1;nd++) {
-        CountB_Init(CB+nd,CB+nd+1) ;
-        for(id=0;id<10;id++) {
+    CountB_Init(CB,&CBwork) ;
+    for(nd=1;nd<PB112_MAXDIG-1;nd++) {
+         CountB_AddHead("0",CB+nd-1,&CBwork) ;
+         CBnext=CBwork ;
+         for(id=1;id<10;id++) {
             sprintf(prefix,"%d",id) ;
-            CountB_AddHead(prefix,CB+nd,CB+nd+1) ;
-            if(id)CountB_print(CB+nd+1,prefix,nd) ;
-            else printf("\n");
+            CountB_AddHead(prefix,CB+nd-1,&CBnext) ;
+            if(99 * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
+            CountB_print(&CBnext,prefix,nd-1) ;
+            CBwork = CBnext ;
+            
         }
+        printf("\n");
+        if(id != 10) {       break ;
+        } else {
+            CB[nd] = CBwork ;
+            CountB_Init(CB+nd,&CBwork) ;
+        }
+     }
+    n = id ;
+    CountB_Init(CB+nd-1,&CBwork) ;
+    while(--nd > 0) {
+        n *=10 ;
+         for(j=0;j<10;j++) {
+            sprintf(prefix,"%d",n+j) ;
+             CountB_Init(&CBwork,&CBnext) ;
+           CountB_AddHead(prefix, CB+nd-1,&CBnext) ;
+            if(99 * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
+            CountB_print(&CBnext,prefix,nd-1) ;
+            CBwork = CBnext ;
+        }
+        n += j ;
     }
-    printf("\n");
-    int j ;
-    CountB_Init(CB+5,&CBwork) ;
-    CountB_print(&CBwork,"1",5) ;
-    for(j=0;j<5;j++) {
-        sprintf(prefix,"1%d",j) ;
-        CountB_Init(&CBwork,&CBwork) ;
-        CountB_AddHead(prefix, CB+4,&CBwork) ;
-        CountB_print(&CBwork,prefix,4) ;
-    }
+    CountB_print(&CBnext,prefix,0) ;
 
-    for(j=0;j<8;j++) {
-        sprintf(prefix,"15%d",j) ;
-        CountB_Init(&CBwork,&CBwork) ;
-        CountB_AddHead(prefix,CB+3,&CBwork) ; // rajout 15X
-        CountB_print(&CBwork,prefix,3) ;
-    }
-
-    for(j=0;j<7;j++) {
-        sprintf(prefix,"158%d",j) ;
-        CountB_Init(&CBwork,&CBwork) ;
-        CountB_AddHead(prefix,CB+2,&CBwork) ; // rajout 158X
-        CountB_print(&CBwork,prefix,2) ;
-    }
-
-    for(j=0;j<10;j++) {
-        sprintf(prefix,"15870%d",j) ;
-        CountB_Init(&CBwork,&CBwork) ;
-        CountB_AddHead(prefix,CB,&CBwork) ; // rajout 15861X
-        CountB_print(&CBwork,prefix,0) ;
-    }
-
-
-    
-// trop loin
-  
     pbR->nbClock = clock() - pbR->nbClock ;
-//    sprintf(pbR->strRes,"%d",n) ;
+    sprintf(pbR->strRes,"%d",n) ;
     return 1 ;
 }
