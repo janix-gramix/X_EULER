@@ -483,44 +483,6 @@ void CountB_Init(CountB *oldC, CountB *newC) {
     newC->Bouncy0 = newC->BouncyN0 = newC->Const = 0 ;
 }
 
-void CountB_Add(int id, CountB *oldC, CountB *newC) {
-    int ida;
-    u_int32_t deltaBouncyN0 = 0 ;
-    if(id==0) {
-        newC->Bouncy0 += oldC->Bouncy0 + oldC->BouncyN0 ;
-    } else {
-        newC->BouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
-        deltaBouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
-    }
-    for(ida=0;ida<10;ida++) {
-        if(ida < id) {
-            newC->Decr[id] += oldC->Decr[ida]  + 1 ;
-            if(id==0) newC->Bouncy0 += oldC->Incr[ida] ;
-            else {
-                newC->BouncyN0 += oldC->Incr[ida] ;
-                deltaBouncyN0 += oldC->Incr[ida] ;
-            }
-        }else if (ida > id) {
-            newC->Incr[id] += oldC->Incr[ida]  + 1  ;
-            if(id==0) newC->Bouncy0 += oldC->Decr[ida] ;
-            else {
-                newC->BouncyN0 += oldC->Decr[ida] ;
-                deltaBouncyN0 += oldC->Decr[ida] ;
-            }
-        } else {
-            newC->Decr[id] += oldC->Decr[ida] ;
-            newC->Incr[id] += oldC->Incr[ida] ;
-        }
-    }
-    newC->SumB += deltaBouncyN0 ;
-    if(id != 0) {
-        newC->Const ++ ;
-        newC->SumI += newC->Incr[id] + 1 ;
-        newC->SumD += newC->Decr[id] + 1 ;
-        newC->SumC++ ;
-    }
-}
-
 #define BIT_INC 1
 #define BIT_DEC 2
 #define BIT_CONST 4
@@ -558,11 +520,11 @@ void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
             }
             deltaBouncyN0 += oldC->Decr[ida] ;
         } else {
-            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1) ;
+            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1)  ;
             else {
                 deltaBouncyN0 += oldC->Decr[ida]   ;
             }
-            if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida] + ((status & BIT_CONST) ? 0 : 1) ;
+            if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida]  + ((status & BIT_CONST) ? 0 : 1) ;
             else {
                 deltaBouncyN0 += oldC->Incr[ida]   ;
             }
@@ -575,13 +537,12 @@ void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
     else {
         newC->BouncyN0 += deltaBouncyN0 ;
         newC->SumB += deltaBouncyN0 ;
-    }
-    newC->SumI += newC->Incr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
-    newC->SumD += newC->Decr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
-    if(status & BIT_CONST) {
-        newC->Const++ ;
-        newC->SumC++ ;
-        
+        newC->SumI += newC->Incr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+        newC->SumD += newC->Decr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+        if(status & BIT_CONST) {
+            newC->Const++ ;
+            newC->SumC++ ;
+        }
     }
 }
 
@@ -616,10 +577,8 @@ int PB112(PB_RESULT *pbR) {
     for(nd=0;nd<PB112_MAXDIG-1;nd++) {
         CountB_Init(CB+nd,CB+nd+1) ;
         for(id=0;id<10;id++) {
- //           CountB_Add(id,CB+nd,CB+nd+1) ;
             sprintf(prefix,"%d",id) ;
             CountB_AddHead(prefix,CB+nd,CB+nd+1) ;
-            char prefix[2] ; prefix[0] = '0'+id ; prefix[1] = 0 ;
             if(id)CountB_print(CB+nd+1,prefix,nd) ;
             else printf("\n");
         }
