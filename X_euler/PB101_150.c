@@ -457,3 +457,210 @@ int PB110(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB112_MAXDIG    9
+
+static inline int Ind(int nbDig,int headDig) { return 10*nbDig+headDig ; }
+
+typedef struct CountB {
+    u_int32_t Incr[10] ;
+    u_int32_t Decr[10] ;
+    u_int32_t Const ;
+    u_int32_t Bouncy0 ;
+    u_int32_t BouncyN0 ;
+    u_int32_t SumI ;
+    u_int32_t SumD ;
+    u_int32_t SumB ;
+    u_int32_t SumC ;
+} CountB ;
+
+void CountB_Init(CountB *oldC, CountB *newC) {
+    newC->SumI = oldC->SumI ;
+    newC->SumD = oldC->SumD ;
+    newC->SumB = oldC->SumB ;
+    newC->SumC = oldC->SumC ;
+    memset(newC->Incr,0,sizeof(newC->Incr));
+    memset(newC->Decr,0,sizeof(newC->Decr));
+    newC->Bouncy0 = newC->BouncyN0 = newC->Const = 0 ;
+}
+
+void CountB_Add(int id, CountB *oldC, CountB *newC) {
+    int ida;
+    u_int32_t deltaBouncyN0 = 0 ;
+    if(id==0) {
+        newC->Bouncy0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+    } else {
+        newC->BouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+        deltaBouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+    }
+    for(ida=0;ida<10;ida++) {
+        if(ida < id) {
+            newC->Decr[id] += oldC->Decr[ida]  + 1 ;
+            if(id==0) newC->Bouncy0 += oldC->Incr[ida] ;
+            else {
+                newC->BouncyN0 += oldC->Incr[ida] ;
+                deltaBouncyN0 += oldC->Incr[ida] ;
+            }
+        }else if (ida > id) {
+            newC->Incr[id] += oldC->Incr[ida]  + 1  ;
+            if(id==0) newC->Bouncy0 += oldC->Decr[ida] ;
+            else {
+                newC->BouncyN0 += oldC->Decr[ida] ;
+                deltaBouncyN0 += oldC->Decr[ida] ;
+            }
+        } else {
+            newC->Decr[id] += oldC->Decr[ida] ;
+            newC->Incr[id] += oldC->Incr[ida] ;
+        }
+    }
+    newC->SumB += deltaBouncyN0 ;
+    if(id != 0) {
+        newC->Const ++ ;
+        newC->SumI += newC->Incr[id] + 1 ;
+        newC->SumD += newC->Decr[id] + 1 ;
+        newC->SumC++ ;
+    }
+}
+
+#define BIT_INC 1
+#define BIT_DEC 2
+#define BIT_CONST 4
+
+void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
+    
+    int status = BIT_INC | BIT_DEC | BIT_CONST ;
+    int idH = digits[0] - '0' ;
+    int idT = idH ;
+    int is ;
+    for(is=0;digits[is] != 0; is++) {
+        idT = digits[is] - '0' ;
+        if(is > 0) {
+            if(digits[is] > digits[is-1]) status &= ~(BIT_DEC|BIT_CONST) ;
+            else if(digits[is] < digits[is-1]) status &= ~(BIT_INC|BIT_CONST) ;
+        }
+    }
+    int ida;
+    u_int32_t deltaBouncyN0 = 0 ;
+//    newC->BouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+    deltaBouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+    for(ida=0;ida<10;ida++) {
+        if(ida < idT) {
+            if(status & BIT_DEC) {
+                newC->Decr[idH] += oldC->Decr[ida] + 1;
+            } else {
+                deltaBouncyN0 += oldC->Decr[ida] + 1 ;
+            }
+            deltaBouncyN0 += oldC->Incr[ida] ;
+        }else if (ida > idT) {
+            if(status & BIT_INC) {
+                newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
+            }else {
+                deltaBouncyN0 += oldC->Incr[ida] + 1 ;
+            }
+            deltaBouncyN0 += oldC->Decr[ida] ;
+        } else {
+            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1) ;
+            else {
+                deltaBouncyN0 += oldC->Decr[ida]   ;
+            }
+            if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida] + ((status & BIT_CONST) ? 0 : 1) ;
+            else {
+                deltaBouncyN0 += oldC->Incr[ida]   ;
+            }
+            if(! (status & (BIT_INC|BIT_DEC))) {
+                deltaBouncyN0++ ;
+            }
+        }
+    }
+    if(idH==0) newC->Bouncy0 += deltaBouncyN0 ;
+    else {
+        newC->BouncyN0 += deltaBouncyN0 ;
+        newC->SumB += deltaBouncyN0 ;
+    }
+    newC->SumI += newC->Incr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+    newC->SumD += newC->Decr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+    if(status & BIT_CONST) {
+        newC->Const++ ;
+        newC->SumC++ ;
+        
+    }
+}
+
+
+
+void CountB_print(CountB *CB,char *prefix, int nbDigJoker) {
+    int j ;
+    int I = CB->Const  ; for(j=1;j<10;j++) I += CB->Incr[j] ;
+    int D = CB->Const  ; for(j=1;j<10;j++) D += CB->Decr[j] ;
+    int B = CB->BouncyN0 ;
+    int T = I+D+B - CB->Const ;
+    int SI = CB->SumI;
+    int SD = CB->SumD ;
+    int SB = CB->SumB ;
+    int SC = CB->SumC ;
+    int ST = SI+SD+SB -SC ;
+    char * joker=".........." ;
+    printf(" %s%-8s => %6d I +%6d D + %10d B T=%10d Cum: %6d I +%6d D +%10d B T=%10d Perc=%.6f\n"
+                 ,prefix,joker+9-nbDigJoker,I,D,B,T,SI,SD,SB,ST, (100.0*SB)/ST);
+   
+}
+
+int PB112(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CountB CB[PB112_MAXDIG+1] ;
+    char prefix[10] ;
+    int id,nd ;
+    
+    CountB CBwork ;
+    memset(&CB[0],0,sizeof(CB[0])) ;
+    CB[0].SumI = CB[0].SumD = CB[0].SumC = 9  ;
+    for(nd=0;nd<PB112_MAXDIG-1;nd++) {
+        CountB_Init(CB+nd,CB+nd+1) ;
+        for(id=0;id<10;id++) {
+ //           CountB_Add(id,CB+nd,CB+nd+1) ;
+            sprintf(prefix,"%d",id) ;
+            CountB_AddHead(prefix,CB+nd,CB+nd+1) ;
+            char prefix[2] ; prefix[0] = '0'+id ; prefix[1] = 0 ;
+            if(id)CountB_print(CB+nd+1,prefix,nd) ;
+            else printf("\n");
+        }
+    }
+    printf("\n");
+    int j ;
+    CountB_Init(CB+5,&CBwork) ;
+    CountB_print(&CBwork,"1",5) ;
+    for(j=0;j<5;j++) {
+        sprintf(prefix,"1%d",j) ;
+        CountB_Init(&CBwork,&CBwork) ;
+        CountB_AddHead(prefix, CB+4,&CBwork) ;
+        CountB_print(&CBwork,prefix,4) ;
+    }
+
+    for(j=0;j<8;j++) {
+        sprintf(prefix,"15%d",j) ;
+        CountB_Init(&CBwork,&CBwork) ;
+        CountB_AddHead(prefix,CB+3,&CBwork) ; // rajout 15X
+        CountB_print(&CBwork,prefix,3) ;
+    }
+
+    for(j=0;j<7;j++) {
+        sprintf(prefix,"158%d",j) ;
+        CountB_Init(&CBwork,&CBwork) ;
+        CountB_AddHead(prefix,CB+2,&CBwork) ; // rajout 158X
+        CountB_print(&CBwork,prefix,2) ;
+    }
+
+    for(j=0;j<10;j++) {
+        sprintf(prefix,"15870%d",j) ;
+        CountB_Init(&CBwork,&CBwork) ;
+        CountB_AddHead(prefix,CB,&CBwork) ; // rajout 15861X
+        CountB_print(&CBwork,prefix,0) ;
+    }
+
+
+    
+// trop loin
+  
+    pbR->nbClock = clock() - pbR->nbClock ;
+//    sprintf(pbR->strRes,"%d",n) ;
+    return 1 ;
+}
