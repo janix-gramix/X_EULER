@@ -460,8 +460,8 @@ int PB110(PB_RESULT *pbR) {
 // the searched proportion is PB112_PERCENT / (PB112_PERCENT + 1)
 // can be 999999999 for a proportion af 1/one billion no bouncy
 #define PB112_PERCENT   99
-#define PB112_MAXDIG    20
-
+#define PB112_MAXDIG    21
+// #define PB112_DEBUG
 // struct to count the different number categories
 // for increasing and decreasing number differentiation of the numbers
 // by the leading digit.
@@ -496,11 +496,11 @@ void CountB_print(CountB *CB,char *info, int nbDigJoker) {
     int64_t D = CB->Const  ; for(j=1;j<10;j++) D += CB->Decr[j] ;
     int64_t B = CB->BouncyN0 ;
     int64_t T = I+D+B - CB->Const ;
-    printf(" %s%s => %6d I +%6d D + %10d B T=%10d Cum: %6d I +%6d D +%10d B T=%10d Perc=%.6f\n"
-           ,info,I,D,B,T,joker+17-nbDigJoker,SI,SD,SB,ST, ((double)100.0*SB)/ST)
+    printf(" %s%s => %6lld I +%6lld D + %10lld B T=%10lld Cum: %6lld I +%6lld D +%10lld B T=%10lld Perc=%.6lf\n"
+           ,info,joker+17-nbDigJoker,I,D,B,T,SI,SD,SB,ST, ((double)100.0*SB)/ST) ;
 #else
-    printf(" %s%s => %6lld I +%6lld D +%10lld B T=%10lld Perc=%.6f\n"
-           ,info,joker+17-nbDigJoker,SI,SD,SB,ST, ((double)100.0*SB)/ST);
+    printf(" %s%s => %6lld I +%6lld D +%10lld B T=%10lld Perc=%.8lf\n"
+           ,info,joker+17-nbDigJoker,SI,SD,SB,ST, (((double)100.0)*SB)/ST);
 #endif
 }
 
@@ -539,22 +539,30 @@ void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
     int ida; // leader digit of the precedent stats
     // deltaBouncy will be attributed to Boncy0 or BouncyN0 depending on idH (leading digt of the added chain)
     int64_t deltaBouncy = oldC->Bouncy0 + oldC->BouncyN0 ;
-    for(ida=0;ida<10;ida++) {
-        if(ida < idT) {  // T > A
-            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + 1;
-            else  deltaBouncy += oldC->Decr[ida] + 1 ;
-            deltaBouncy += oldC->Incr[ida] ;
-        }else if (ida > idT) {  // T < A
-            if(status & BIT_INC)  newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
-            else deltaBouncy += oldC->Incr[ida] + 1 ;
-            deltaBouncy += oldC->Decr[ida] ;
-        } else { // T == A
-            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1)  ;
-            else deltaBouncy += oldC->Decr[ida]   ;
-            if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida]  + ((status & BIT_CONST) ? 0 : 1) ;
-            else  deltaBouncy += oldC->Incr[ida]   ;
-            if(! (status & (BIT_INC|BIT_DEC)))  deltaBouncy++ ;
+    if(oldC->Const) {
+        for(ida=0;ida<10;ida++) {
+            if(ida < idT) {  // T > A
+                if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + 1;
+                else  deltaBouncy += oldC->Decr[ida] + 1 ;
+                deltaBouncy += oldC->Incr[ida] ;
+            }else if (ida > idT) {  // T < A
+                if(status & BIT_INC)  newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
+                else deltaBouncy += oldC->Incr[ida] + 1 ;
+                deltaBouncy += oldC->Decr[ida] ;
+            } else { // T == A
+                if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1)  ;
+                else deltaBouncy += oldC->Decr[ida]   ;
+                if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida]  + ((status & BIT_CONST) ? 0 : 1) ;
+                else  deltaBouncy += oldC->Incr[ida]   ;
+                if(! (status & (BIT_INC|BIT_DEC)))  deltaBouncy++ ;
+            }
         }
+    } else { // special case for one digit numbers  to avoid problems with constant numbers
+        if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[idT] + ((status & BIT_CONST) ? 0 : 1)  ;
+        else deltaBouncy += oldC->Decr[idT]   ;
+        if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[idT]  + ((status & BIT_CONST) ? 0 : 1) ;
+        else  deltaBouncy += oldC->Incr[idT]   ;
+        if(! (status & (BIT_INC|BIT_DEC)))  deltaBouncy++ ;
     }
     if(idH==0) newC->Bouncy0 += deltaBouncy ;
     else { // accumulation
@@ -579,7 +587,6 @@ int PB112(PB_RESULT *pbR) {
     CountB CBwork ; // 2 counts so when depassing the purpose, rolling back one step
     CountB CBnext ;
     memset(&CB[0],0,sizeof(CB[0])) ;
-    CB[0].SumI = CB[0].SumD = CB[0].SumC = 9  ; // special init for one digit number
     CountB_Init(CB,&CBwork) ;
     // search the power of 10 reaching a superior proportion of bouncy
     for(nd=1;nd<PB112_MAXDIG-1;nd++) {
@@ -589,7 +596,7 @@ int PB112(PB_RESULT *pbR) {
             sprintf(prefix,"%d",id) ;
             CountB_AddHead(prefix,CB+nd-1,&CBnext) ;
             if(PB112_PERCENT * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
-            CountB_print(&CBnext,prefix,nd-1) ;
+            CountB_print(&CBnext,prefix,nd-2) ;
             CBwork = CBnext ; // valid power, next turn.
         }
         printf("\n");
@@ -607,22 +614,18 @@ int PB112(PB_RESULT *pbR) {
             sprintf(prefix,"%lld",n+j) ;
              CountB_Init(&CBwork,&CBnext) ;
              CountB_AddHead(prefix, CB+nd-1,&CBnext) ;
-             if(PB112_PERCENT * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) {
+             if(PB112_PERCENT * (CBnext.SumI+CBnext.SumD-CBnext.SumC) < CBnext.SumB) {
                  isLess = 1; // upper bound found, => next lower dgit
              }
-             printf(" n %c ",isLess ? '<' : ' ') ; CountB_print(&CBnext,prefix,nd-1) ;
+             printf(" n %c ",isLess ? '<' : ' ') ; CountB_print(&CBnext,prefix,nd-2) ;
              if(isLess) break ;
              CBwork = CBnext ; // valid digit, next turn.
         }
         n += j ; // add the valid digit
     }
-    n =n*10-1 ; // last calcul for the lower digit  (modulo 10)
-    // rigorously, missing to check that n is no increasing, nor decreasing.
+    n = CBwork.SumI+CBwork.SumD + CBwork.SumB - CBwork.SumC ;
     int64_t nbBouncy = CBwork.SumB ;
-    while(n*PB112_PERCENT != nbBouncy * (PB112_PERCENT+1)) {
-        n++ ; nbBouncy++ ;
-    }
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Under n=%lld only %lld are not bouncy numbers\n",pbR->ident,n,n-nbBouncy) ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Under n=%lld exactly only %lld are not bouncy numbers\n",pbR->ident,n,n-nbBouncy) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",n) ;
     return 1 ;
