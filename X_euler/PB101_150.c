@@ -457,22 +457,55 @@ int PB110(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB112_MAXDIG    9
+// the searched proportion is PB112_PERCENT / (PB112_PERCENT + 1)
+// can be 999999999 for a proportion af 1/one billion no bouncy
+#define PB112_PERCENT   99
+#define PB112_MAXDIG    20
 
-static inline int Ind(int nbDig,int headDig) { return 10*nbDig+headDig ; }
-
+// struct to count the different number categories
+// for increasing and decreasing number differentiation of the numbers
+// by the leading digit.
+// Also, the "constant numbers" are not included in incr[] and decr[]
+// to avoid multiples counts.
+// Leading '0' is only counted for recursion.
 typedef struct CountB {
-    u_int32_t Incr[10] ;
-    u_int32_t Decr[10] ;
-    u_int32_t Const ;
-    u_int32_t Bouncy0 ;
-    u_int32_t BouncyN0 ;
-    u_int32_t SumI ;
-    u_int32_t SumD ;
-    u_int32_t SumB ;
-    u_int32_t SumC ;
+    int64_t Incr[10] ;  // increasing by leading digit (constant excluded)
+    int64_t Decr[10] ;  // increasing by leading digit (constant excluded)
+    int64_t Bouncy0 ;   // Bouncy with '0' as leading digit
+    int64_t BouncyN0 ;  // Bouncy with no '0' as leading digit
+    int64_t Const ;     // Constant numbers (same digit)
+// cumulative counters for recursion
+    int64_t SumI ;
+    int64_t SumD ;
+    int64_t SumB ;
+    int64_t SumC ;
 } CountB ;
 
+// info is only a comment
+// nbDigJoker is only a commodity to print the last digits
+void CountB_print(CountB *CB,char *info, int nbDigJoker) {
+    int64_t SI = CB->SumI;
+    int64_t SD = CB->SumD ;
+    int64_t SB = CB->SumB ;
+    int64_t SC = CB->SumC ;
+    int64_t ST = SI+SD+SB -SC ; // verification
+    char * joker=".................9" ;
+#if defined(PB112_DEBUG)
+    int j ;
+    int64_t I = CB->Const  ; for(j=1;j<10;j++) I += CB->Incr[j] ;
+    int64_t D = CB->Const  ; for(j=1;j<10;j++) D += CB->Decr[j] ;
+    int64_t B = CB->BouncyN0 ;
+    int64_t T = I+D+B - CB->Const ;
+    printf(" %s%s => %6d I +%6d D + %10d B T=%10d Cum: %6d I +%6d D +%10d B T=%10d Perc=%.6f\n"
+           ,info,I,D,B,T,joker+17-nbDigJoker,SI,SD,SB,ST, ((double)100.0*SB)/ST)
+#else
+    printf(" %s%s => %6lld I +%6lld D +%10lld B T=%10lld Perc=%.6f\n"
+           ,info,joker+17-nbDigJoker,SI,SD,SB,ST, ((double)100.0*SB)/ST);
+#endif
+}
+
+// initialise newC with oldC
+// reset the current counters, tansmit cumulatives counters
 void CountB_Init(CountB *oldC, CountB *newC) {
     newC->SumI = oldC->SumI ;
     newC->SumD = oldC->SumD ;
@@ -483,15 +516,18 @@ void CountB_Init(CountB *oldC, CountB *newC) {
     newC->Bouncy0 = newC->BouncyN0 = newC->Const = 0 ;
 }
 
-#define BIT_INC 1
-#define BIT_DEC 2
-#define BIT_CONST 4
+#define BIT_INC 1   // increasing
+#define BIT_DEC 2   // decreasing
+#define BIT_CONST 4 // increasing and decreasing
 
+// add leading digits chain to statistics
+//
 void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
-    
+    // a chain can be increasing and decreasing (constant chain)
+    // check the status (increasing, decreasing of the leading digits chain)
     int status = BIT_INC | BIT_DEC | BIT_CONST ;
-    int idH = digits[0] - '0' ;
-    int idT = idH ;
+    int idH = digits[0] - '0' ; // leading digit of the added digit chain
+    int idT = idH ;             // last digit of the chain, to compute butting
     int is ;
     for(is=0;digits[is] != 0; is++) {
         idT = digits[is] - '0' ;
@@ -500,43 +536,30 @@ void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
             else if(digits[is] < digits[is-1]) status &= ~(BIT_INC|BIT_CONST) ;
         }
     }
-    int ida;
-    u_int32_t deltaBouncyN0 = 0 ;
-//    newC->BouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
-    deltaBouncyN0 += oldC->Bouncy0 + oldC->BouncyN0 ;
+    int ida; // leader digit of the precedent stats
+    // deltaBouncy will be attributed to Boncy0 or BouncyN0 depending on idH (leading digt of the added chain)
+    int64_t deltaBouncy = oldC->Bouncy0 + oldC->BouncyN0 ;
     for(ida=0;ida<10;ida++) {
-        if(ida < idT) {
-            if(status & BIT_DEC) {
-                newC->Decr[idH] += oldC->Decr[ida] + 1;
-            } else {
-                deltaBouncyN0 += oldC->Decr[ida] + 1 ;
-            }
-            deltaBouncyN0 += oldC->Incr[ida] ;
-        }else if (ida > idT) {
-            if(status & BIT_INC) {
-                newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
-            }else {
-                deltaBouncyN0 += oldC->Incr[ida] + 1 ;
-            }
-            deltaBouncyN0 += oldC->Decr[ida] ;
-        } else {
+        if(ida < idT) {  // T > A
+            if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + 1;
+            else  deltaBouncy += oldC->Decr[ida] + 1 ;
+            deltaBouncy += oldC->Incr[ida] ;
+        }else if (ida > idT) {  // T < A
+            if(status & BIT_INC)  newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
+            else deltaBouncy += oldC->Incr[ida] + 1 ;
+            deltaBouncy += oldC->Decr[ida] ;
+        } else { // T == A
             if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1)  ;
-            else {
-                deltaBouncyN0 += oldC->Decr[ida]   ;
-            }
+            else deltaBouncy += oldC->Decr[ida]   ;
             if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida]  + ((status & BIT_CONST) ? 0 : 1) ;
-            else {
-                deltaBouncyN0 += oldC->Incr[ida]   ;
-            }
-            if(! (status & (BIT_INC|BIT_DEC))) {
-                deltaBouncyN0++ ;
-            }
+            else  deltaBouncy += oldC->Incr[ida]   ;
+            if(! (status & (BIT_INC|BIT_DEC)))  deltaBouncy++ ;
         }
     }
-    if(idH==0) newC->Bouncy0 += deltaBouncyN0 ;
-    else {
-        newC->BouncyN0 += deltaBouncyN0 ;
-        newC->SumB += deltaBouncyN0 ;
+    if(idH==0) newC->Bouncy0 += deltaBouncy ;
+    else { // accumulation
+        newC->BouncyN0 += deltaBouncy ;
+        newC->SumB += deltaBouncy ;
         newC->SumI += newC->Incr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
         newC->SumD += newC->Decr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
         if(status & BIT_CONST) {
@@ -547,70 +570,60 @@ void CountB_AddHead(char *digits, CountB *oldC, CountB *newC) {
 }
 
 
-
-void CountB_print(CountB *CB,char *prefix, int nbDigJoker) {
-    int j ;
-    int I = CB->Const  ; for(j=1;j<10;j++) I += CB->Incr[j] ;
-    int D = CB->Const  ; for(j=1;j<10;j++) D += CB->Decr[j] ;
-    int B = CB->BouncyN0 ;
-    int T = I+D+B - CB->Const ;
-    int SI = CB->SumI;
-    int SD = CB->SumD ;
-    int SB = CB->SumB ;
-    int SC = CB->SumC ;
-    int ST = SI+SD+SB -SC ;
-    char * joker=".........." ;
-    printf(" %s%-8s => %6d I +%6d D + %10d B T=%10d Cum: %6d I +%6d D +%10d B T=%10d Perc=%.6f\n"
-                 ,prefix,joker+9-nbDigJoker,I,D,B,T,SI,SD,SB,ST, (100.0*SB)/ST);
-   
-}
-
 int PB112(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    CountB CB[PB112_MAXDIG+1] ;
-    char prefix[10] ;
+    CountB CB[PB112_MAXDIG+1] ; // to store statistic for numbers  10**(nd-1) : 9, 99, 999, 9999,
+    char prefix[PB112_MAXDIG+1] ;
     int id=1,nd,j ;
-    int n ;
-    CountB CBwork ;
+    int64_t n ;
+    CountB CBwork ; // 2 counts so when depassing the purpose, rolling back one step
     CountB CBnext ;
     memset(&CB[0],0,sizeof(CB[0])) ;
-    CB[0].SumI = CB[0].SumD = CB[0].SumC = 9  ;
+    CB[0].SumI = CB[0].SumD = CB[0].SumC = 9  ; // special init for one digit number
     CountB_Init(CB,&CBwork) ;
+    // search the power of 10 reaching a superior proportion of bouncy
     for(nd=1;nd<PB112_MAXDIG-1;nd++) {
-         CountB_AddHead("0",CB+nd-1,&CBwork) ;
+         CountB_AddHead("0",CB+nd-1,&CBwork) ; // no print, only for recursion
          CBnext=CBwork ;
-         for(id=1;id<10;id++) {
+         for(id=1;id<10;id++) { // add the
             sprintf(prefix,"%d",id) ;
             CountB_AddHead(prefix,CB+nd-1,&CBnext) ;
-            if(99 * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
+            if(PB112_PERCENT * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
             CountB_print(&CBnext,prefix,nd-1) ;
-            CBwork = CBnext ;
-            
+            CBwork = CBnext ; // valid power, next turn.
         }
         printf("\n");
-        if(id != 10) {       break ;
+        if(id != 10) {  break ; // upper bound reached
         } else {
             CB[nd] = CBwork ;
             CountB_Init(CB+nd,&CBwork) ;
         }
      }
-    n = id ;
-    CountB_Init(CB+nd-1,&CBwork) ;
-    while(--nd > 0) {
+    n = id ; // leading digit for the search, CBwork contains statistic for numbers <= [id]9999999
+    while(--nd > 0) { // loop to search lower digits
         n *=10 ;
-         for(j=0;j<10;j++) {
-            sprintf(prefix,"%d",n+j) ;
+         for(j=0;j<10;j++) { // search the digit (upper bound)
+             int isLess = 0 ;
+            sprintf(prefix,"%lld",n+j) ;
              CountB_Init(&CBwork,&CBnext) ;
-           CountB_AddHead(prefix, CB+nd-1,&CBnext) ;
-            if(99 * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) break ;
-            CountB_print(&CBnext,prefix,nd-1) ;
-            CBwork = CBnext ;
+             CountB_AddHead(prefix, CB+nd-1,&CBnext) ;
+             if(PB112_PERCENT * (CBnext.SumI+CBnext.SumD-CBnext.SumC) <= CBnext.SumB) {
+                 isLess = 1; // upper bound found, => next lower dgit
+             }
+             printf(" n %c ",isLess ? '<' : ' ') ; CountB_print(&CBnext,prefix,nd-1) ;
+             if(isLess) break ;
+             CBwork = CBnext ; // valid digit, next turn.
         }
-        n += j ;
+        n += j ; // add the valid digit
     }
-    CountB_print(&CBnext,prefix,0) ;
-
+    n =n*10-1 ; // last calcul for the lower digit  (modulo 10)
+    // rigorously, missing to check that n is no increasing, nor decreasing.
+    int64_t nbBouncy = CBwork.SumB ;
+    while(n*PB112_PERCENT != nbBouncy * (PB112_PERCENT+1)) {
+        n++ ; nbBouncy++ ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Under n=%lld only %lld are not bouncy numbers\n",pbR->ident,n,n-nbBouncy) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",n) ;
+    sprintf(pbR->strRes,"%lld",n) ;
     return 1 ;
 }
