@@ -457,6 +457,106 @@ int PB110(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// le parcours des solutions peut se faire de la façon suivante
+// Pour le dernier coup c'est un parmi les 21 doubles (D1..D20 + D25) => 21
+// Pour les cas a 2 ou 1 coups : il faut pour le coup supllementaire un aprmi les 62 cas (S1..S20 S25,  D1..D20 +D25 T1..T20) + le cas vide
+// => 21 x (62+1)
+// Pour les cas a trois coup, pour ne pas doublonner les coups et 2 (Parmi les 62) il suffir de les classer donc 62+61+...+1 = (62x63)/2
+// => 21 x 62x63)/2
+// donc un total de 21 ( 63+62x63/2) = 21x63x(62+2)/2= 21x63x32.
+
+int cmpVal(const void *e1,const void *e2) {
+    return ((int *)e1)[0] - ((int *)e2)[0] ;
+}
+#define PB109_MAX   100
+int PB109(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nb =0;
+    int val[63],D[21];
+    val[0] = 0 ;
+    int i,j,k, is=1 ;
+    for(i=1;i<=20;i++) {
+        D[i-1] = 2*i ;
+        val[is++]= i;
+        val[is++] = 2*i ;
+        val[is++] = 3*i ;
+    }
+    val[is++] = 25 ; val[is++] = 50 ; D[20] = 50 ;
+    qsort(val,63,sizeof(val[0]),cmpVal) ;
+    for(i=0;i<21;i++) {
+        for(j=0;j<63;j++) {
+            if(D[i]+val[j] >= PB109_MAX) break ;
+            for(k=j;k<63;k++) {
+                if(D[i]+val[j]+val[k] < PB109_MAX) nb++ ;
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nb) ;
+    return 1 ;
+}
+
+#define PB111_MAXP  400000
+#define PB111_NBD   10
+int PB111(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB111_MAXP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    u_int32_t pow10[PB111_NBD+1] = { 1 } ;
+    int nd,k,id;
+    pow10[PB111_NBD] = pow10[0] ;
+    for(k=1;k<PB111_NBD;k++) {
+        pow10[k] = pow10[k-1] * 10 ;
+        pow10[PB111_NBD] += pow10[k] ;
+    }
+    u_int64_t S ;
+    int nbDOk = 0 ;
+    S = 0 ;
+    int nbD[10] = {0,0,0,0,0,0,0,0,0,0} ;
+    for(nd=1;nbDOk < 10 ;nd++) {
+        u_int8_t noD[PB111_NBD] ;
+        u_int8_t valNoD[PB111_NBD] ;
+        for(k=0;k<nd;k++) {noD[k]=k ; valNoD[k]= 0 ;}
+        do {
+            u_int32_t Ndig = pow10[PB111_NBD] ;
+            for(k=0;k<nd;k++) {
+                Ndig -= pow10[noD[k]] ;
+            }
+            int is = nd-1 ;
+            while (is >=0) {
+                u_int64_t NnoDig = 0 ;
+                for(k=0;k<nd;k++) NnoDig += (u_int64_t) pow10[noD[k]] * valNoD[k] ;
+                {
+                    for(id=0;id<10;id++) {
+                        if(nbD[id] && nbD[id] < nd) continue ;
+                        u_int64_t N = (u_int64_t) Ndig * id + NnoDig ;
+                        if(N>pow10[PB111_NBD-1] && Is_Prime(N,tbPrime)) {
+                            if(nbD[id] == 0) {
+                                nbD[id] = nd ;
+                                nbDOk++ ;
+                            }
+                            S += N ;
+                        }
+                    }
+                }
+                while(is >= 0 && valNoD[is] == 9) {
+                    valNoD[is]= 0 ; is-- ;
+                }
+                if(is >= 0) { valNoD[is]++ ; is = nd-1 ; }
+            }
+        } while(NextSub(noD,nd,PB111_NBD)>=0 );
+    }
+    Free_tablePrime(ctxP);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",S) ;
+    return 1 ;
+}
+
+
 // the searched proportion is PB112_PERCENT / (PB112_PERCENT + 1)
 // can be 999999999 for a proportion af 1/one billion no bouncy
 #define PB112_PERCENT   99
@@ -496,11 +596,11 @@ void CountB_print(CountB *CB,char *info, int nbDigJoker) {
     int64_t D = CB->Const  ; for(j=1;j<10;j++) D += CB->Decr[j] ;
     int64_t B = CB->BouncyN0 ;
     int64_t T = I+D+B - CB->Const ;
-    printf(" %s%s => %6lld I +%6lld D + %10lld B T=%10lld Cum: %6lld I +%6lld D +%10lld B T=%10lld Perc=%.6lf\n"
-           ,info,joker+17-nbDigJoker,I,D,B,T,SI,SD,SB,ST, ((double)100.0*SB)/ST) ;
+    printf(" %s%s => %6lld I +%6lld D + %10lld B T=%10lld Cum: %6lld C %6lld I +%6lld D +%10lld B T=%10lld Perc=%.6lf\n"
+           ,info,joker+17-nbDigJoker,I,D,B,T,SC,SI,SD,SB,ST, ((double)100.0*SB)/ST) ;
 #else
-    printf(" %s%s => %6lld I +%6lld D +%10lld B T=%10lld Perc=%.8lf\n"
-           ,info,joker+17-nbDigJoker,SI,SD,SB,ST, (((double)100.0)*SB)/ST);
+    printf(" %s%s =>  %6lld C %6lld I +%6lld D +%10lld B T=%10lld Perc=%.8lf\n"
+           ,info,joker+17-nbDigJoker,SC,SI,SD,SB,ST, (((double)100.0)*SB)/ST);
 #endif
 }
 
@@ -628,5 +728,482 @@ int PB112(PB_RESULT *pbR) {
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s Under n=%lld exactly only %lld are not bouncy numbers\n",pbR->ident,n,n-nbBouncy) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",n) ;
+    return 1 ;
+}
+
+
+#define PB113_NBDIG    100
+// #define PB113_DEBUG
+// struct to count the different number categories
+// for increasing and decreasing number differentiation of the numbers
+// by the leading digit.
+// Also, the "constant numbers" are not included in incr[] and decr[]
+// to avoid multiples counts.
+// Leading '0' is only counted for recursion.
+typedef struct CountNoB {
+    int64_t Incr[10] ;  // increasing by leading digit (constant excluded)
+    int64_t Decr[10] ;  // increasing by leading digit (constant excluded)
+    int64_t Const ;     // Constant numbers (same digit)
+    // cumulative counters for recursion
+    int64_t SumI ;
+    int64_t SumD ;
+    int64_t SumC ;
+} CountNoB ;
+
+// info is only a comment
+void CountNB_print(CountNoB *CNB,char *info) {
+    int64_t SI = CNB->SumI;
+    int64_t SD = CNB->SumD ;
+    int64_t SC = CNB->SumC ;
+ #if defined(PB113_DEBUG)
+    int j ;
+    int64_t I = CNB->Const  ; for(j=1;j<10;j++) I += CNB->Incr[j] ;
+    int64_t D = CNB->Const  ; for(j=1;j<10;j++) D += CNB->Decr[j] ;
+    int64_t C = CNB->Const ;
+    
+    printf(" %s =>  %6lld C %6lld I +%6lld D T=%6lld Cum: %6lld C %6lld I +%6lld D  NB=%10lld\n"
+           ,info,C,I,D,I+D-C,SC,SI,SD,SI+SD-SC) ;
+#else
+    printf(" %s =>  %6lld C %6lld I +%6lld D\n"
+           ,info,SC,SI,SD);
+#endif
+}
+
+// initialise newC with oldC
+// reset the current counters, tansmit cumulatives counters
+void CountNB_Init(CountNoB *oldC, CountNoB *newC) {
+    newC->SumI = oldC->SumI ;
+    newC->SumD = oldC->SumD ;
+    newC->SumC = oldC->SumC ;
+    memset(newC->Incr,0,sizeof(newC->Incr));
+    memset(newC->Decr,0,sizeof(newC->Decr));
+    newC->Const = 0 ;
+}
+
+#define BIT_INC 1   // increasing
+#define BIT_DEC 2   // decreasing
+#define BIT_CONST 4 // increasing and decreasing
+
+// add leading digits chain to statistics
+//
+void CountNB_AddHead(char *digits, CountNoB *oldC, CountNoB *newC) {
+    // a chain can be increasing and decreasing (constant chain)
+    // check the status (increasing, decreasing of the leading digits chain)
+    int status = BIT_INC | BIT_DEC | BIT_CONST ;
+    int idH = digits[0] - '0' ; // leading digit of the added digit chain
+    int idT = idH ;             // last digit of the chain, to compute butting
+    int is ;
+    for(is=0;digits[is] != 0; is++) {
+        idT = digits[is] - '0' ;
+        if(is > 0) {
+            if(digits[is] > digits[is-1]) status &= ~(BIT_DEC|BIT_CONST) ;
+            else if(digits[is] < digits[is-1]) status &= ~(BIT_INC|BIT_CONST) ;
+        }
+    }
+    int ida; // leader digit of the precedent stats
+    if(oldC->Const) {
+        for(ida=0;ida<10;ida++) {
+            if(ida < idT) {  // T > A
+                if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + 1;
+            }else if (ida > idT) {  // T < A
+                if(status & BIT_INC)  newC->Incr[idH] += oldC->Incr[ida]  + 1 ;
+            } else { // T == A
+                if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[ida] + ((status & BIT_CONST) ? 0 : 1)  ;
+                if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[ida]  + ((status & BIT_CONST) ? 0 : 1) ;
+            }
+        }
+    } else { // special case for one digit numbers  to avoid problems with constant numbers
+        if(status & BIT_DEC) newC->Decr[idH] += oldC->Decr[idT] + ((status & BIT_CONST) ? 0 : 1)  ;
+        if(status & BIT_INC) newC->Incr[idH] += oldC->Incr[idT]  + ((status & BIT_CONST) ? 0 : 1) ;
+    }
+    if(idH!=0) { // accumulation
+        newC->SumI += newC->Incr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+        newC->SumD += newC->Decr[idH] + ((status & BIT_CONST) ? 1  : 0) ;
+        if(status & BIT_CONST) {
+            newC->Const++ ;
+            newC->SumC++ ;
+        }
+    }
+}
+
+
+int PB113(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    char prefix[10] ;
+    int id=1,nd ;
+    CountNoB CNBwork ; // 2 counts so when depassing the purpose, rolling back one step
+    CountNoB CNBnext ;
+    memset(&CNBwork,0,sizeof(CNBwork)) ;
+    CountNB_Init(&CNBwork,&CNBnext) ;
+    // search the power of 10 reaching a superior proportion of bouncy
+    for(nd=1;nd<=PB113_NBDIG;nd++) {
+        for(id=0;id<10;id++) { // add the
+            sprintf(prefix,"%d",id) ;
+            CountNB_AddHead(prefix,&CNBwork,&CNBnext) ;
+        }
+#if defined(PB113_DEBUG)
+        char info[30] ;
+        sprintf(info,"under 10**%d",nd) ;
+        CountNB_print(&CNBnext,info) ;
+#endif
+        
+        CNBwork = CNBnext ;
+        CountNB_Init(&CNBwork,&CNBnext) ;
+    }
+    nd-- ;
+    int64_t noBouncy = CNBwork.SumI+CNBwork.SumD-CNBwork.SumC ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Under 10**%d not bouncy=%lld (+I=%lld +D=%lld -C=%lld)\n",
+                               pbR->ident,nd,noBouncy,CNBwork.SumI,CNBwork.SumD,CNBwork.SumC) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",noBouncy) ;
+    return 1 ;
+}
+
+
+#define PB114_LEN   50
+typedef struct State114 {
+    u_int64_t B ;
+    u_int64_t R1 ;
+    u_int64_t R2 ;
+    u_int64_t R3 ;
+} State114;
+
+
+int PB114(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    State114 St[PB114_LEN+1] ;
+    // init
+    St[0].B = 1 ;
+    St[0].R1 = St[0].R2= St[0].R3 = 0 ;
+    int nt;
+    for(nt=1;nt<PB114_LEN+1 ;nt++ ) {
+        St[nt].B = St[nt-1].B + St[nt-1].R3 ;
+        St[nt].R2 = St[nt-1].R1 ;
+        St[nt].R3 = St[nt-1].R3 + St[nt-1].R2 ;
+        St[nt].R1 = St[nt-1].B ;
+    }
+    nt-- ;
+    u_int64_t nbStates = St[nt].B+St[nt].R3 ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld=(%lld-B %lld %lld %lld-R3)\n",
+                               pbR->ident, nbStates,St[nt].B,   St[nt].R1,St[nt].R2,St[nt].R3) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbStates) ;
+    return 1 ;
+}
+
+/* On consider la matrice M (matrice de transition)
+ 1 0 0 1
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 1
+ 
+                                 1
+                                 0
+                                 0
+ Le resultat est (1 0 0 1 ) M**n 0
+ 
+ le produit final est pour ne retenir que les B er R3
+ 
+ */
+
+#define PB114_SIZE  4
+#define PB114_MAXPOW2    6
+
+#define I2(i,j)   ((i)*PB114_SIZE+(j))
+#define I3(ip,i,j)   ((ip)*PB114_SIZE*PB114_SIZE+(i)*PB114_SIZE+(j))
+
+int PB114a(PB_RESULT *pbR) {
+    int i,j,k,ip ;
+    u_int64_t M[PB114_SIZE*PB114_SIZE] ;
+    u_int64_t Mpow2[PB114_MAXPOW2*PB114_SIZE*PB114_SIZE] ;
+    u_int64_t V[PB114_SIZE] , antV[PB114_SIZE] ;
+    memset(M,0,sizeof(M)) ;
+    memset(V,0,sizeof(V)) ;
+    V[0] = 1 ;
+    M[I2(0,0)] = 1 ; M[I2(0,PB114_SIZE-1)] = 1 ;
+    M[I2(PB114_SIZE-1,PB114_SIZE-1)] = 1 ;
+    for(i=1;i<PB114_SIZE;i++)M[I2(i,i-1)] = 1 ;
+    memcpy(Mpow2,M,sizeof(M)) ;
+    for(ip=1;ip<PB114_MAXPOW2;ip++) {
+        for(i=0;i<PB114_SIZE;i++) {
+            for(j=0;j<PB114_SIZE;j++) {
+                u_int64_t S =0 ;
+                for(k=0;k<PB114_SIZE;k++) {
+                    S += Mpow2[I3(ip-1,i,k)] * Mpow2[I3(ip-1,k,j)] ;
+                }
+                Mpow2[I3(ip,i,j)] = S ;
+            }
+        }
+    }
+    for(ip=0;ip<PB114_MAXPOW2;ip++) {
+        if((1<<ip) & PB114_LEN) {
+            // puissance presente, on mutliplie V par M**(1<<ip))
+            memcpy(antV,V,sizeof(V)) ;
+            for(i=0;i<PB114_SIZE;i++) {
+                u_int64_t S =0 ;
+                for(k=0;k<PB114_SIZE;k++) {
+                    S += Mpow2[I3(ip,i,k)] * antV[k] ;
+                }
+                V[i] = S ;
+            }
+            
+        }
+    }
+    u_int64_t nbStates = V[0]+V[PB114_SIZE-1] ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld=(%lld-B  %lld-R3)\n",
+                               pbR->ident, nbStates,V[0],V[PB114_SIZE-1]) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbStates) ;
+    return 1 ;
+    
+    
+}
+
+
+#define PB115_SIZE  51
+#define PB115_MAX   1000000
+int PB115(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    u_int64_t St0[PB115_SIZE],St1[PB115_SIZE] ;
+    u_int64_t * antSt, *curSt ;
+    // init
+    memset(St0,0,sizeof(St0)) ;
+    St0[0] =  1 ;
+    antSt = St0 ;
+    curSt = St1 ;
+    int nt;
+    for(nt=1;;nt++) {
+        int i ;
+        curSt[0] = antSt[0] + antSt[PB115_SIZE-1] ;
+        for(i=1;i<PB115_SIZE-1;i++) {
+            curSt[i] = antSt[i-1] ;
+        }
+        curSt[PB115_SIZE-1] = antSt[PB115_SIZE-2] + antSt[PB115_SIZE-1] ;
+        u_int64_t nbStates = curSt[0] + curSt[PB115_SIZE-1] ;
+        if(nbStates > PB115_MAX) break ;
+        u_int64_t *tmp = antSt ;
+        antSt = curSt ;
+        curSt = tmp ;
+     }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s n=%d\n",
+                               pbR->ident, nt) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nt) ;
+    return 1 ;
+}
+
+
+typedef struct State116 {
+    u_int64_t B ;
+    u_int64_t T1 ;
+    u_int64_t T2 ;
+    u_int64_t T3 ;
+    u_int64_t T4 ;
+} State116;
+
+
+#define PB116_LEN 50
+int PB116(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    State116 StR0 ,StR1 , *ptRcur = &StR0 , *ptRant = &StR1 ;
+    State116 StG0 ,StG1 , *ptGcur = &StG0  , *ptGant = &StG1 ;
+    State116 StB0 ,StB1 , *ptBcur = &StB0 , *ptBant = &StB1 ;
+    // init
+    StR0.B = 1 ;
+    StR0.T1 = StR0.T2 = 0 ;
+    StG0.B = 1 ;
+    StG0.T1 = StG0.T2 = StG0.T3 = 0 ;
+    StB0.B = 1 ;
+    StB0.T1 = StB0.T2 = StB0.T3 = StB0.T4 = 0 ;
+    
+    int nt;
+    for(nt=0;nt<PB116_LEN ;nt++ ) {
+        State116 * tmp  = ptRant ;
+        ptRant = ptRcur ;
+        ptRcur = tmp ;
+  
+        tmp  = ptGant ;
+        ptGant = ptGcur ;
+        ptGcur = tmp ;
+
+        tmp  = ptBant ;
+        ptBant = ptBcur ;
+        ptBcur = tmp ;
+
+        
+        ptRcur->B = ptRant->B + ptRant->T2 ;
+        ptRcur->T1 = ptRant->B + ptRant->T2 ;
+        ptRcur->T2 = ptRant->T1;
+
+        ptGcur->B = ptGant->B + ptGant->T3 ;
+        ptGcur->T1 = ptGant->B + ptGant->T3 ;
+        ptGcur->T2 = ptGant->T1;
+        ptGcur->T3 = ptGant->T2;
+
+        ptBcur->B = ptBant->B + ptBant->T4 ;
+        ptBcur->T1 = ptBant->B + ptBant->T4 ;
+        ptBcur->T2 = ptBant->T1;
+        ptBcur->T3 = ptBant->T2;
+        ptBcur->T4 = ptBant->T3;
+    }
+    u_int64_t nbStates = ptRcur->B  + ptRcur->T2 + ptGcur->B  + ptGcur->T3 + ptBcur->B  + ptBcur->T4 -3 ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld R=%lld G=%lld B=%lld\n",
+                               pbR->ident, nbStates,ptRcur->B  + ptRcur->T2 -1 ,ptGcur->B  + ptGcur->T3 -1 , ptBcur->B  + ptBcur->T4 -1) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbStates) ;
+    return 1 ;
+}
+
+
+typedef struct State117 {
+    u_int64_t B ;
+    u_int64_t R1 ;
+    u_int64_t R2 ;
+    u_int64_t G1 ;
+    u_int64_t G2 ;
+    u_int64_t G3 ;
+    u_int64_t B1 ;
+    u_int64_t B2 ;
+    u_int64_t B3 ;
+    u_int64_t B4 ;
+} State117;
+
+
+#define PB117_LEN 50
+int PB117(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    State117 St0 ,St1 , *ptCur = &St0 , *ptAnt = &St1 ;
+    // init
+    memset(&St0,0,sizeof(St0)) ;
+    St0.B = 1 ;
+    
+    int nt;
+    for(nt=0;nt<PB117_LEN ;nt++ ) {
+        State117 * tmp  = ptAnt ;
+        ptAnt = ptCur ;
+        ptCur = tmp ;
+       
+        
+        ptCur->B = ptAnt->B + ptAnt->R2 + ptAnt->G3 + ptAnt->B4 ;
+        ptCur->R1 = ptCur->G1 = ptCur->B1 = ptAnt->B + ptAnt->R2 + ptAnt->G3 + ptAnt->B4 ;
+        ptCur->R2 = ptAnt->R1;
+        ptCur->G2 = ptAnt->G1;
+        ptCur->G3 = ptAnt->G2;
+        ptCur->B2 = ptAnt->B1;
+        ptCur->B3 = ptAnt->B2;
+        ptCur->B4 = ptAnt->B3;
+    }
+    u_int64_t nbStates = ptCur->B  + ptCur->R2 + ptCur->G3 + ptCur->B4  ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld \n",
+                               pbR->ident, nbStates) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbStates) ;
+    return 1 ;
+}
+#define PB118_MAXDPRIME 50000
+#define PB118_MAXP  100000000
+typedef struct DPrime {
+    u_int32_t P ;
+    u_int32_t mask ;
+} DPrime ;
+
+int PB118(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(Sqrt32(PB118_MAXP))) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+
+    DPrime *tbDigPrime = malloc(PB118_MAXDPRIME*sizeof(tbDigPrime[0])) ;
+    Decomp * DeC = DecompAlloc(9) ;
+    int nbSub ;
+    int loop ;
+    for(loop=0;loop<1;loop++)
+    {
+    
+    int indDPrime[9] ;
+    int nbDPrime[9] ;
+    int id ;
+    int ip = 0 ;
+    indDPrime[0] = ip ;
+    tbDigPrime[ip].P = 2 ;
+    tbDigPrime[ip++].mask = 1<<(2-1) ;
+    tbDigPrime[ip].P = 3 ;
+    tbDigPrime[ip++].mask = 1<<(3-1) ;
+    tbDigPrime[ip].P = 5 ;
+    tbDigPrime[ip++].mask = 1<<(5-1) ;
+    tbDigPrime[ip].P = 7 ;
+    tbDigPrime[ip++].mask = 1<<(7-1) ;
+    nbDPrime[0] = ip - indDPrime[0] ;
+    for(id=1;id<8;id++) {
+        // on calcule tous les Primes constitue de permut de digit
+        u_int8_t sub[9] ;
+        int k ;
+        indDPrime[id] = ip ;
+        for(k=0;k<9;k++) sub[k] = k ;
+        do {
+            if(sub[id] & 1) continue ; // on saute les pairs
+            int N=0 ;
+            for(k=0;k<=id;k++) N = 10*N + sub[k] + 1 ;
+            if(Is_Prime32(N,tbPrime)) {
+                tbDigPrime[ip].P = N ;
+                int mask = 0 ;
+                for(k=0;k<=id;k++) mask |= 1 << sub[k] ;
+                tbDigPrime[ip++].mask = mask  ;
+            }
+        } while (NextArrangement(sub,id+1,9) >= 0) ;
+        nbDPrime[id] = ip - indDPrime[id] ;
+        printf("%d => %d \n",id+1,nbDPrime[id]) ;
+    }
+    // car la permutation des 9 digits est divisible par 3 
+    indDPrime[id] = ip ;
+    nbDPrime[id] = 0 ;
+    nbSub = 0 ;
+    do {
+        int j ;
+        int indFree[9] ;
+        indFree[0] = 0 ;
+        int is = 0 ;
+        int mask = 0 ;
+        int oldNbSub = nbSub ;
+        while(is>=0) {
+            if(indFree[is] < nbDPrime[DeC->val[is]-1]) {
+                if(mask & tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]].mask ) {
+                    indFree[is]++ ; continue ;
+                }
+                mask |= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]].mask ;
+                indFree[is]++ ;
+                if(is == DeC->nbVal - 1) {
+//                    for(j=0;j<DeC->nbVal;j++) printf("%d%c",tbDigPrime[indDPrime[DeC->val[j]-1]+indFree[j]-1].P,(j==DeC->nbVal-1) ? '\n' : '.') ;
+                    nbSub++ ;
+                    mask ^= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]-1].mask ;
+                } else {
+                    is++ ;
+                    if(DeC->val[is] == DeC->val[is-1]) {
+                        indFree[is] = indFree[is-1] ;
+                    } else {
+                        indFree[is] = 0 ;
+                    }
+                }
+            } else {
+                indFree[is] = 0 ;
+                is-- ;
+                if(is>=0) mask ^= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]-1].mask ;
+            }
+        }
+        if(nbSub > oldNbSub) {
+            printf("%d=>",nbSub-oldNbSub) ;
+            for(j=0;j<DeC->nbVal;j++) printf("%d%c",DeC->val[j],(j== DeC->nbVal -1) ? '\n' : '.');
+        }
+    } while(DecompNext(DeC) >= 0) ;
+        DecompRewind(DeC) ;
+    }
+    DecompFree(DeC) ;
+    Free_tablePrime(ctxP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbSub) ;
     return 1 ;
 }
