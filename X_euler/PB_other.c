@@ -278,7 +278,9 @@ int Count620(int s, int p,int q) {
     double factSin = ((double) (s+p)) / (s+q) ;
     double factSin2 = factSin*factSin ;
 //    printf("\n%d,%d,%d :",s,p,q) ;
-    for(k=1;;k++) {
+//    for(k=1;;k++) {
+    for(k=s+p-1;;k--) {
+
         int i ;
         double b = (double) k / ((double) (s+q)) ;
         double x1 = 0 ;
@@ -288,24 +290,21 @@ int Count620(int s, int p,int q) {
             dy1 = cos(M_PI*x1) * factSin / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
             dx1 = - y1/dy1 ;
             x1 += dx1 ;
-//            printf("%.5f ",fabs(y1)) ;
         } ;
         double distx2 = p+q - (s+q) * cos(M_PI * (a*x1 + b )) + (s+p) * cos(M_PI * x1) ;
         if(distx2 > M_PI*2) {
-//            printf(" *%d=>%.6f[%.4f]",k,x1,distx2);
-            nbSol++ ;
+            nbSol = k ;
+            break ;
         } else {
-//            printf(" %d=>%.6f[%.4f]",k,x1,distx2);
-            return nbSol ;
+            continue ;
         }
     }
     return nbSol ;
 }
 int PB620(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    int nbSol = 0 ;
-    int s,p,q,N ;
+     int nbSol = 0 ;
+    int s,p,N ;
     for(N=16;N<=PB620_MAX;N++) {
         for(s=5;s<=N-11;s++) {
             for(p=5;2*p+1<=N-s;p++) {
@@ -313,7 +312,9 @@ int PB620(PB_RESULT *pbR) {
             }
         }
     }
-    
+    sprintf (pbR->strRes,"%d",nbSol);
+
+    pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
 
