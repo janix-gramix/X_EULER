@@ -273,82 +273,46 @@ int PB579(PB_RESULT *pbR) {
 int Count620(int s, int p,int q) {
     int k ;
     int nbSol =0 ;
-    double a = (double) s / (double) (s+p+q) ;
+    double a = -(double)(s+p) / (double) (s+q) ;
     double piInv = 1 / M_PI ;
     double factSin = ((double) (s+p)) / (s+q) ;
     double factSin2 = factSin*factSin ;
-    printf("\n%d,%d,%d :",s,p,q) ;
-    for(k=0;;k++) {
+//    printf("\n%d,%d,%d :",s,p,q) ;
+    for(k=1;;k++) {
         int i ;
-        double b = (double) k / (2*(double) (s+p+q)) ;
-        double x1 = 1 ;
-        double y1 ,dy1 ;
-        for(i=0;i<10;i++) {
-            y1 = piInv * asin(factSin * sin(M_PI*x1)) - a*x1 - b ;
-            dy1 = cos(M_PI*x1) / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
-            x1 -= y1/dy1 ;
-        } ;
-        printf(" %d=>%.6f",k,x1);
-        nbSol++ ;
-        double distx2 = p+q - (s+q) * cos(M_PI * (a*x1 + b )) + (s+p) * cos(M_PI * x1) ;
-        if(distx2 > 2) {
-            printf("*") ;
-            nbSol++ ; k++ ;
-            break ;
-        }
-    }
-    for(;;k++) {
-        int i ;
-        double b = (double) k / (2*(double) (s+p+q)) ;
+        double b = (double) k / ((double) (s+q)) ;
         double x1 = 0 ;
-        double y1 ,dy1,dx1 ;
-//        printf("\n%d ",k);
+        double y1 ,dy1 ,dx1 ;
         for(i=0;i<20;i++) {
             y1 = piInv * asin(factSin * sin(M_PI*x1)) - a*x1 - b ;
-            dy1 = cos(M_PI*x1) / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
+            dy1 = cos(M_PI*x1) * factSin / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
             dx1 = - y1/dy1 ;
-            x1 +=  dx1 ;
-//            printf(" %.4f",dx1) ;
+            x1 += dx1 ;
+//            printf("%.5f ",fabs(y1)) ;
         } ;
-        if(fabs(dx1) > 0.0001) {
+        double distx2 = p+q - (s+q) * cos(M_PI * (a*x1 + b )) + (s+p) * cos(M_PI * x1) ;
+        if(distx2 > M_PI*2) {
+//            printf(" *%d=>%.6f[%.4f]",k,x1,distx2);
+            nbSol++ ;
+        } else {
+//            printf(" %d=>%.6f[%.4f]",k,x1,distx2);
             return nbSol ;
         }
-//        printf(" %.6f=>[%.6f,%.6f,%.6f]",x1,dx1,y1,dy1) ;
-        printf(" %d=>%.6f*",k,x1);
-        nbSol += 2 ;
     }
+    return nbSol ;
 }
 int PB620(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     pbR->nbClock = clock() - pbR->nbClock ;
     int nbSol = 0 ;
-    nbSol += Count620(5,5,6) ; //16
-    
-    nbSol += Count620(5,5,7) ; //17
-    nbSol += Count620(6,5,6) ; //17
-    
-    nbSol += Count620(5,5,8) ; //18
-    nbSol += Count620(5,6,7) ;// 18
-    nbSol += Count620(6,5,7) ; //18
-    nbSol += Count620(7,5,6) ; //18
-    
-    nbSol += Count620(5,5,9) ; //19
-    nbSol += Count620(5,6,8) ;// 19
-    nbSol += Count620(6,5,8) ; //19
-    nbSol += Count620(6,6,7) ; //19
-    nbSol += Count620(7,5,7) ; //19
-    nbSol += Count620(8,5,6) ; //19
-
-    nbSol += Count620(5,5,10) ; //20
-    nbSol += Count620(5,6,9) ;// 20
-    nbSol += Count620(5,7,8) ;// 20
-    nbSol += Count620(6,5,9) ; //20
-    nbSol += Count620(6,6,8) ; //20
-    nbSol += Count620(7,5,8) ; //20
-    nbSol += Count620(7,6,7) ; //20
-    nbSol += Count620(8,5,7) ; //20
-    nbSol += Count620(9,5,6) ; //20
-    
+    int s,p,q,N ;
+    for(N=16;N<=PB620_MAX;N++) {
+        for(s=5;s<=N-11;s++) {
+            for(p=5;2*p+1<=N-s;p++) {
+                nbSol+= Count620(s,p,N-s-p) ;
+            }
+        }
+    }
     
     return 1 ;
 }
