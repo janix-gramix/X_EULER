@@ -269,6 +269,91 @@ int PB579(PB_RESULT *pbR) {
 }
 
 
+#define PB620_MAX   20 //
+int Count620(int s, int p,int q) {
+    int k ;
+    int nbSol =0 ;
+    double a = (double) s / (double) (s+p+q) ;
+    double piInv = 1 / M_PI ;
+    double factSin = ((double) (s+p)) / (s+q) ;
+    double factSin2 = factSin*factSin ;
+    printf("\n%d,%d,%d :",s,p,q) ;
+    for(k=0;;k++) {
+        int i ;
+        double b = (double) k / (2*(double) (s+p+q)) ;
+        double x1 = 1 ;
+        double y1 ,dy1 ;
+        for(i=0;i<10;i++) {
+            y1 = piInv * asin(factSin * sin(M_PI*x1)) - a*x1 - b ;
+            dy1 = cos(M_PI*x1) / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
+            x1 -= y1/dy1 ;
+        } ;
+        printf(" %d=>%.6f",k,x1);
+        nbSol++ ;
+        double distx2 = p+q - (s+q) * cos(M_PI * (a*x1 + b )) + (s+p) * cos(M_PI * x1) ;
+        if(distx2 > 2) {
+            printf("*") ;
+            nbSol++ ; k++ ;
+            break ;
+        }
+    }
+    for(;;k++) {
+        int i ;
+        double b = (double) k / (2*(double) (s+p+q)) ;
+        double x1 = 0 ;
+        double y1 ,dy1,dx1 ;
+//        printf("\n%d ",k);
+        for(i=0;i<20;i++) {
+            y1 = piInv * asin(factSin * sin(M_PI*x1)) - a*x1 - b ;
+            dy1 = cos(M_PI*x1) / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
+            dx1 = - y1/dy1 ;
+            x1 +=  dx1 ;
+//            printf(" %.4f",dx1) ;
+        } ;
+        if(fabs(dx1) > 0.0001) {
+            return nbSol ;
+        }
+//        printf(" %.6f=>[%.6f,%.6f,%.6f]",x1,dx1,y1,dy1) ;
+        printf(" %d=>%.6f*",k,x1);
+        nbSol += 2 ;
+    }
+}
+int PB620(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    int nbSol = 0 ;
+    nbSol += Count620(5,5,6) ; //16
+    
+    nbSol += Count620(5,5,7) ; //17
+    nbSol += Count620(6,5,6) ; //17
+    
+    nbSol += Count620(5,5,8) ; //18
+    nbSol += Count620(5,6,7) ;// 18
+    nbSol += Count620(6,5,7) ; //18
+    nbSol += Count620(7,5,6) ; //18
+    
+    nbSol += Count620(5,5,9) ; //19
+    nbSol += Count620(5,6,8) ;// 19
+    nbSol += Count620(6,5,8) ; //19
+    nbSol += Count620(6,6,7) ; //19
+    nbSol += Count620(7,5,7) ; //19
+    nbSol += Count620(8,5,6) ; //19
+
+    nbSol += Count620(5,5,10) ; //20
+    nbSol += Count620(5,6,9) ;// 20
+    nbSol += Count620(5,7,8) ;// 20
+    nbSol += Count620(6,5,9) ; //20
+    nbSol += Count620(6,6,8) ; //20
+    nbSol += Count620(7,5,8) ; //20
+    nbSol += Count620(7,6,7) ; //20
+    nbSol += Count620(8,5,7) ; //20
+    nbSol += Count620(9,5,6) ; //20
+    
+    
+    return 1 ;
+}
+
+
 
 typedef struct P_EXP {
     u_int32_t   p;
@@ -323,6 +408,35 @@ int PB622(PB_RESULT *pbR) {
 
 
 
+#define PB625_MAX   1000 //
+int PB625(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nbDprime[PB625_MAX] ;
+    int i  ,j , N = PB625_MAX ;
+    int Stot = 0 ,SD = 0 ;
+    for(i=1;i<=N;i++) {
+        int S = 0 ;
+        int D =0 ;
+        for(j=1;j<=i;j++) {
+            int pg =  PGCD(i,j);
+            S += pg ;
+            if(pg == 1) D++ ;
+        }
+        Stot += S ;
+        SD += D ;
+        nbDprime[i] = SD ;
+        printf("(%d,%d,%d,%d,%d)",i,D,SD,S,Stot) ;
+    }
+    int S = (N*(N+1))/2 - ((N/2)*(N/2+1))/2  ;
+    for(i=1;2*i<=N;i++) {
+        S += i * nbDprime[N/i] ;
+    }
+    printf("\nS=%d\n",S );
+     pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
 #define PB1000_NUM  10000000
 int PB1000(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
@@ -333,8 +447,8 @@ int PB1000(PB_RESULT *pbR) {
     }
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     
-    fprintf(stdout,"\t PB%0.4d prime[%d] = %d\n",pbR->ident, PB1000_NUM,tbPrime[PB1000_NUM-1]) ;
-    sprintf(pbR->strRes,"%d",tbPrime[PB1000_NUM-1]);
+    fprintf(stdout,"\t PB%s prime[%d] = %u\n",pbR->ident, PB1000_NUM,tbPrime[PB1000_NUM-1]) ;
+    sprintf(pbR->strRes,"%u",tbPrime[PB1000_NUM-1]);
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
