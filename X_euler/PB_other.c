@@ -269,7 +269,7 @@ int PB579(PB_RESULT *pbR) {
 }
 
 
-#define PB620_MAX   20 //
+#define PB620_MAX   500 //
 int Count620(int s, int p,int q) {
     int k ;
     int nbSol =0 ;
@@ -277,15 +277,15 @@ int Count620(int s, int p,int q) {
     double piInv = 1 / M_PI ;
     double factSin = ((double) (s+p)) / (s+q) ;
     double factSin2 = factSin*factSin ;
-//    printf("\n%d,%d,%d :",s,p,q) ;
-//    for(k=1;;k++) {
-    for(k=s+p-1;;k--) {
-
+    int kmin = 1, kmax = s+p-1 ;
+    while(kmax-kmin > 0) {
+//        printf("(%d-%d)",kmin,kmax);
+        k = (kmin + kmax+1) / 2 ;
         int i ;
         double b = (double) k / ((double) (s+q)) ;
         double x1 = 0 ;
         double y1 ,dy1 ,dx1 ;
-        for(i=0;i<20;i++) {
+        for(i=0;i<10;i++) {
             y1 = piInv * asin(factSin * sin(M_PI*x1)) - a*x1 - b ;
             dy1 = cos(M_PI*x1) * factSin / sqrt(1-factSin2*sin(M_PI*x1)*sin(M_PI*x1)) - a ;
             dx1 = - y1/dy1 ;
@@ -293,27 +293,55 @@ int Count620(int s, int p,int q) {
         } ;
         double distx2 = p+q - (s+q) * cos(M_PI * (a*x1 + b )) + (s+p) * cos(M_PI * x1) ;
         if(distx2 > M_PI*2) {
-            nbSol = k ;
-            break ;
+            kmin =k ;
         } else {
-            continue ;
+            if(k==kmax) {
+                kmax-- ;
+            } else {
+                kmax = k ;
+            }
         }
     }
-    return nbSol ;
+    return kmin ;
 }
+
 int PB620(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-     int nbSol = 0 ;
-    int s,p,N ;
+    int nbSol = 0 ;
+    int s,p,q,N ;
     for(N=16;N<=PB620_MAX;N++) {
         for(s=5;s<=N-11;s++) {
+            
             for(p=5;2*p+1<=N-s;p++) {
-                nbSol+= Count620(s,p,N-s-p) ;
+                q = N-s-p ;
+                nbSol+= Count620(s,p,q) ;
             }
         }
     }
     sprintf (pbR->strRes,"%d",nbSol);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
 
+int PB620a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    double piInv = 1 / M_PI ;
+    int nbSol = 0 ;
+    int s,p,q,N ;
+    for(N=16;N<=PB620_MAX;N++) {
+        for(s=5;s<=N-11;s++) {
+            
+            for(p=5;2*p+1<=N-s;p++) {
+                q = N-s-p ;
+                double Smax2 = ((p+q)-2*M_PI)  ;
+                double x = acos(((s+q)*(s+q)-Smax2*Smax2-(s+p)*(s+p))/(2*Smax2 *(s+p)))*piInv ;
+                double y = 1-acos(((s+p)*(s+p)-Smax2*Smax2-(s+q)*(s+q))/(2*Smax2 *(s+q)))*piInv ;
+                int k = ((s+q)*y + (s+p)*x) ;
+                nbSol+= k ;
+            }
+        }
+    }
+    sprintf (pbR->strRes,"%d",nbSol);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -373,11 +401,17 @@ int PB622(PB_RESULT *pbR) {
 
 
 
-#define PB625_MAX   1000 //
+#define PB625_MAX   100000000 //
+#define PB625_MOD 998244353
 int PB625(PB_RESULT *pbR) {
+    int plim = Sqrt32(PB625_MAX) ;
     pbR->nbClock = clock() ;
-    int nbDprime[PB625_MAX] ;
-    int i  ,j , N = PB625_MAX ;
+    int i ,p ,j , N = PB625_MAX ;
+    u_int32_t *nbDprime=calloc(PB625_MAX+1,sizeof(nbDprime[0])) ;
+//    u_int32_t *nbDprimev=calloc(PB625_MAX+1,sizeof(nbDprime[0])) ;
+    
+    int nbP = 1 ;
+/*
     int Stot = 0 ,SD = 0 ;
     for(i=1;i<=N;i++) {
         int S = 0 ;
@@ -389,14 +423,53 @@ int PB625(PB_RESULT *pbR) {
         }
         Stot += S ;
         SD += D ;
-        nbDprime[i] = SD ;
-        printf("(%d,%d,%d,%d,%d)",i,D,SD,S,Stot) ;
+        nbDprimev[i] = SD ;
+//        printf("(%d,%d,%d,%d,%d)",i,D,SD,S,Stot) ;
     }
-    int S = (N*(N+1))/2 - ((N/2)*(N/2+1))/2  ;
+*/
+    
+    for(p=2;p<=PB625_MAX;p++)  {
+        if(nbDprime[p]) {
+            nbP += nbDprime[p] ;
+            while(nbP >= PB625_MOD ) nbP -= PB625_MOD ;
+            nbDprime[p] = nbP ;
+ //           printf("(%d,%d,%d)",p,nbDprime[p],nbDprimev[p]) ;
+            continue ;
+        } else {
+            int powp ;
+            int pm = p-1 ;
+            for(powp=p;powp<=PB625_MAX;powp *=p ) {
+                int j0,k ;
+                if (p==powp) {
+                    nbP += pm ;
+                    nbDprime[p] = nbP ;
+    //                printf("(%d,%d,%d)",p,nbDprime[p],nbDprimev[p]) ;
+                    j0= 2*p ;
+                    k=2 ;
+                }else {
+                    j0 = powp ;
+                    k=1 ;
+                }
+                for(j=j0;j<=PB625_MAX;j+=powp,k++) {
+                    if(nbDprime[j]) {
+                        nbDprime[j] *= pm ;
+                    } else {
+                        nbDprime[j] = pm ;
+                    }
+                }
+                if(k<p) break  ;
+                pm  = p ;
+            }
+        }
+            
+    }
+    u_int64_t S = (N*(N+1))/2 - ((N/2)*(N/2+1))/2  ;
+    S = S % PB625_MOD ;
     for(i=1;2*i<=N;i++) {
         S += i * nbDprime[N/i] ;
+        S = S % PB625_MOD ;
     }
-    printf("\nS=%d\n",S );
+    printf("\nS=%lld Expected 317257140\n",S );
      pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
