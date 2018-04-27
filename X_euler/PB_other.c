@@ -402,7 +402,8 @@ int PB622(PB_RESULT *pbR) {
 
 
 #define PB625_MAX   100000000 //
-#define PB625_MOD 998244353
+// #define PB625_MOD 998244353
+#define PB625_MOD 100000000
 int PB625(PB_RESULT *pbR) {
     int plim = Sqrt32(PB625_MAX) ;
     pbR->nbClock = clock() ;
@@ -410,69 +411,168 @@ int PB625(PB_RESULT *pbR) {
     u_int32_t *nbDprime=calloc(PB625_MAX+1,sizeof(nbDprime[0])) ;
 //    u_int32_t *nbDprimev=calloc(PB625_MAX+1,sizeof(nbDprime[0])) ;
     
-    int nbP = 1 ;
-/*
-    int Stot = 0 ,SD = 0 ;
-    for(i=1;i<=N;i++) {
-        int S = 0 ;
-        int D =0 ;
-        for(j=1;j<=i;j++) {
-            int pg =  PGCD(i,j);
-            S += pg ;
-            if(pg == 1) D++ ;
-        }
-        Stot += S ;
-        SD += D ;
-        nbDprimev[i] = SD ;
-//        printf("(%d,%d,%d,%d,%d)",i,D,SD,S,Stot) ;
-    }
-*/
+    u_int64_t nbP = 1 ;
     
     for(p=2;p<=PB625_MAX;p++)  {
         if(nbDprime[p]) {
             nbP += nbDprime[p] ;
-            while(nbP >= PB625_MOD ) nbP -= PB625_MOD ;
+            nbP =  nbP % PB625_MOD ;
             nbDprime[p] = nbP ;
- //           printf("(%d,%d,%d)",p,nbDprime[p],nbDprimev[p]) ;
+//            printf("(%d,%d)",p,nbDprime[p]) ;
             continue ;
         } else {
             int powp ;
             int pm = p-1 ;
-            for(powp=p;powp<=PB625_MAX;powp *=p ) {
-                int j0,k ;
-                if (p==powp) {
-                    nbP += pm ;
-                    nbDprime[p] = nbP ;
-    //                printf("(%d,%d,%d)",p,nbDprime[p],nbDprimev[p]) ;
-                    j0= 2*p ;
-                    k=2 ;
-                }else {
-                    j0 = powp ;
-                    k=1 ;
+            nbP += pm ;
+            nbDprime[p] = nbP ;
+            int k ;
+//            printf("(%d,%d)",p,nbDprime[p]) ;
+            for(j=2*p,k=2;j<=PB625_MAX;j+=p,k++) {
+                if(nbDprime[j]) {
+                    nbDprime[j] = (nbDprime[j]/p)*(p-1)  ;
+                } else {
+                    nbDprime[j] = k*(p-1)   ;
                 }
-                for(j=j0;j<=PB625_MAX;j+=powp,k++) {
-                    if(nbDprime[j]) {
-                        nbDprime[j] *= pm ;
-                    } else {
-                        nbDprime[j] = pm ;
-                    }
-                }
-                if(k<p) break  ;
-                pm  = p ;
+                
             }
         }
-            
+        
     }
-    u_int64_t S = (N*(N+1))/2 - ((N/2)*(N/2+1))/2  ;
+    u_int64_t S = ( ((u_int64_t)N*(N+1))/2 ) % PB625_MOD ;
+    S-= (((u_int64_t)(N/2)*(N/2+1))/2) % PB625_MOD ;
     S = S % PB625_MOD ;
+    printf("SN=%lld ",S );
     for(i=1;2*i<=N;i++) {
-        S += i * nbDprime[N/i] ;
+//    for(i=N/2;i>=1;i--) {
+        if(i==plim) printf("(i=%d S=%lld)",i,S);
+        S += ((u_int64_t)i * ( nbDprime[N/i] % PB625_MOD  )) % PB625_MOD;
+ //       printf("(%d,%d)",i,nbDprime[N/i]);
         S = S % PB625_MOD ;
     }
     printf("\nS=%lld Expected 317257140\n",S );
      pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+typedef struct P625  {
+    u_int32_t p ;
+    u_int32_t q ;
+    u_int32_t ioffset ;
+} P625 ;
+
+int PB625a(PB_RESULT *pbR) {
+    int plim = Sqrt32(PB625_MAX)+1 ;
+    pbR->nbClock = clock() ;
+    int i ,p ,j , N = PB625_MAX ;
+    u_int32_t *nbDprime=calloc(plim,sizeof(nbDprime[0])) ;
+    u_int32_t *lastPrime=calloc(plim,sizeof(lastPrime[0])) ;
+    
+    P625 * tbPrime = malloc(plim/2 * sizeof(tbPrime[0])) ;
+    int nbPrime = 0 ;
+    //    u_int32_t *nbDprimev=calloc(PB625_MAX+1,sizeof(nbDprime[0])) ;
+    
+    u_int64_t nbP = 1 ;
+    
+    for(p=2;p<plim;p++)  {
+        if(nbDprime[p-1]) {
+            nbP += nbDprime[p-1] ;
+            nbP = nbP % PB625_MOD ;
+            nbDprime[p-1] = nbP ;
+            //            printf("(%d,%d)",p,nbDprime[p]-nbDprime[p-1]) ;
+            continue ;
+        } else {
+            tbPrime[nbPrime].p = p ;
+            int pm = p-1 ;
+            nbP += pm ;
+            nbDprime[p-1] = nbP ;
+            int q ;
+            //            printf("(%d,%d)",p,nbDprime[p]-nbDprime[p-1]) ;
+            for(j=2*p,q=2;j<plim;j+=p,q++) {
+                if(nbDprime[j-1]) {
+                    nbDprime[j-1] = (nbDprime[j-1]/p)*(p-1)  ;
+                } else {
+                    nbDprime[j-1] = q*(p-1)   ;
+                }
+                
+            }
+            tbPrime[nbPrime].q = q ;
+            tbPrime[nbPrime++].ioffset = j - plim ;
+        }
+    }
+    u_int64_t S = ( ((u_int64_t)N*(N+1))/2 ) % PB625_MOD ;
+    S-= (((u_int64_t)(N/2)*(N/2+1))/2) % PB625_MOD ;
+    S = S % PB625_MOD ;
+    printf("SN=%lld ",S );
+    int pl ;
+   u_int64_t S1 = 0 ;
+    for(i=plim;2*i<=N;i++) {
+        //        if(i<4) printf("(%d->(%d,%d,%d ))",i,N/i,nbDprime[N/i-1],(N/i*(N/i+1))/2 - nbDprime[N/i-1]);
+        S1 += ((u_int64_t)i * nbDprime[N/i-1]) % PB625_MOD ;
+//                printf("[%d,%d]",i,nbDprime[N/i-1]) ;
+        S1 = S1 % PB625_MOD ;
+    }
+
+     int pgNext = plim-1 ;
+    int invPgNext = N /pgNext ;
+    while(invPgNext < plim) {
+        S1 += (u_int64_t)pgNext * ( nbDprime[invPgNext-1] % PB625_MOD);
+//        printf("{%d,%d}",pgNext,nbDprime[invPgNext-1]) ;
+        S1 = S1 % PB625_MOD ;
+        pgNext-- ;
+        invPgNext = N /pgNext ;
+    }
+    for(pl=plim;pl<=PB625_MAX;pl+=plim ){
+        memset(nbDprime,0,plim*sizeof(nbDprime[0])) ;
+        memset(lastPrime,0,plim*sizeof(lastPrime[0])) ;
+        
+        int ip ;
+        for(ip=0;ip<nbPrime;ip++) {
+            p = tbPrime[ip].p ;
+            u_int32_t q = tbPrime[ip].q ;
+            for(j=tbPrime[ip].ioffset;j<plim;j+=p,q++) {
+                int powq = 1 ;
+                while( (q % (powq*p) ) == 0) {
+                    powq *= p ;
+                }
+                if(nbDprime[j]) {
+                    nbDprime[j] = ((nbDprime[j])/p)*(p-1)  ;
+                    lastPrime[j] *= powq * (p-1) ;
+                } else {
+                    nbDprime[j] = q*(p-1)   ;
+                    lastPrime[j] = powq * (p-1)  ;
+                }
+            }
+            tbPrime[ip].q = q ;
+            tbPrime[ip].ioffset = j - plim ;
+        }
+        for(j=0;j<plim;j++) {
+            if(nbDprime[j]) {
+                if(nbDprime[j] != lastPrime[j] ) {
+                    nbDprime[j] -= lastPrime[j] ;
+                }
+                nbP += nbDprime[j] ;
+            } else {
+                nbP +=   pl+j-1 ;
+            }
+  //          while(nbP >= PB625_MOD ) nbP -= PB625_MOD ;
+            nbP = nbP % PB625_MOD ;
+            if(pl+j == invPgNext){
+                S += ( nbP * pgNext ) % PB625_MOD ;
+                S = S % PB625_MOD ;
+ //               printf("(%d,%lld)",pgNext,S) ;
+                pgNext-- ;
+                if(pgNext== 0) break ;
+                invPgNext = N / pgNext ;
+            }
+        }
+        if(pgNext <= 0) break ;
+    }
+    printf("S=%lld",S) ;
+    S =(S+S1) % PB625_MOD ;
+    printf("\nS=%lld Expected 317257140\n",S );
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
 
 
 #define PB1000_NUM  10000000
