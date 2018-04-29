@@ -494,16 +494,12 @@ typedef struct N625 {
 int PB625a(PB_RESULT *pbR) {
     //   int pLim = Sqrt64(PB625_MAX)+1 ;
     int pLim = (Sqrt64(PB625_MAX)+1) ;
-    int sizeD = pLim ;
+    int sizeD = pow(pLim, 1.25) ;
     pbR->nbClock = clock() ;
-    int32_t j ;
-    u_int64_t p , N = PB625_MAX ;
+    u_int64_t  N = PB625_MAX ;
     u_int64_t *nbDprime=calloc(sizeD,sizeof(nbDprime[0])) ;
     u_int64_t *nbDprime2=malloc(sizeD*sizeof(nbDprime2[0])) ;
-    N625 *nxt = malloc(sizeD*sizeof(nxt[0])) ;
-    int64_t nbPrimeAlloc = sizeD ;
-//    P625 * tbPrime = malloc(nbPrimeAlloc * sizeof(tbPrime[0])) ;
-    int nbPrime = 0 ;
+//    N625 *nxt = malloc(sizeD*sizeof(nxt[0])) ;
     
     u_int64_t nbP = 1 ;
     nbDprime[1] = 1 ;
@@ -533,23 +529,10 @@ int PB625a(PB_RESULT *pbR) {
                     }
                     
                 }
-//                tbPrime[nbPrime].q = q ;
-//                tbPrime[nbPrime++].ioffset = j - sizeD ;
             }
         }
     }
-    u_int64_t isum =  (N+(N/2)+1) ;
-    u_int64_t idif =  (N-(N/2))  ;
-    if(isum & 1) idif /=2 ;
-    else isum /=2 ;
-    idif = idif % PB625_MOD ;
-    isum = isum % PB625_MOD ;
-    u_int64_t S = (isum*idif) % PB625_MOD ;
-    printf("SN=%lld ",S );
-    
-    
-    u_int64_t pl ;
-    u_int64_t S1 = 0 , S2 = 0 ;
+    u_int64_t S1 = 0 , S2 = 0 ,S=0;
     u_int64_t i0,i1 ;
     
     {
@@ -565,6 +548,7 @@ int PB625a(PB_RESULT *pbR) {
             S1 += (nb * nbDprime[i]) % PB625_MOD ;
             //           printf("[%lld,%lld=>%lld]",i,nb,S1);
             S1 = S1 % PB625_MOD ;
+            if(i==1) printf("Sn=%lld",S1);
             
         }
     }
@@ -588,7 +572,6 @@ int PB625a(PB_RESULT *pbR) {
 //            Si -= nbDprime[iN/k] ;
             Si += PB625_MOD -  nbDprime[iN/k] ;
         }
-        if(k*k > iN ) k-- ;
         for(k=iN/k;k>0 ;k--) {
 //            Si -= nbDprime[k] * (iN/k - iN/(k+1)) ;
             Si += PB625_MOD -  ((nbDprime[k] * (iN/k - iN/(k+1))) % PB625_MOD) ;
