@@ -1103,8 +1103,8 @@ int PB117(PB_RESULT *pbR) {
 #define PB118_MAXDPRIME 50000
 #define PB118_MAXP  100000000
 typedef struct DPrime {
-    u_int32_t P ;
-    u_int32_t mask ;
+    u_int32_t P ;       // value
+    u_int32_t mask ;    // binary mask for used digits
 } DPrime ;
 
 int PB118(PB_RESULT *pbR) {
@@ -1120,15 +1120,12 @@ int PB118(PB_RESULT *pbR) {
     DPrime *tbDigPrime = malloc(PB118_MAXDPRIME*sizeof(tbDigPrime[0])) ;
     Decomp * DeC = DecompAlloc(9) ;
     int nbSub ;
-    int loop ;
-    for(loop=0;loop<1;loop++)
-    {
-    
-    int indDPrime[9] ;
-    int nbDPrime[9] ;
-    int id ;
+    int indDPrime[10] ;
+    int nbDPrime[10] ;
+    int id = 1 ;
     int ip = 0 ;
-    indDPrime[0] = ip ;
+    // primes with one digit
+    indDPrime[id] = ip ;
     tbDigPrime[ip].P = 2 ;
     tbDigPrime[ip++].mask = 1<<(2-1) ;
     tbDigPrime[ip].P = 3 ;
@@ -1137,70 +1134,101 @@ int PB118(PB_RESULT *pbR) {
     tbDigPrime[ip++].mask = 1<<(5-1) ;
     tbDigPrime[ip].P = 7 ;
     tbDigPrime[ip++].mask = 1<<(7-1) ;
-    nbDPrime[0] = ip - indDPrime[0] ;
-    for(id=1;id<8;id++) {
-        // on calcule tous les Primes constitue de permut de digit
+    nbDPrime[id] = ip - indDPrime[id] ;
+    for(id=2;id<8;id++) {
+        // primes with (id+1) different digits
         u_int8_t sub[9] ;
         int k ;
         indDPrime[id] = ip ;
         for(k=0;k<9;k++) sub[k] = k ;
         do {
-            if(sub[id] & 1) continue ; // on saute les pairs
+            if(sub[id-1] & 1) continue ; // avoid even number
             int N=0 ;
-            for(k=0;k<=id;k++) N = 10*N + sub[k] + 1 ;
+            for(k=0;k<id;k++) N = 10*N + sub[k] + 1 ;
             if(Is_Prime32(N,tbPrime)) {
                 tbDigPrime[ip].P = N ;
                 int mask = 0 ;
-                for(k=0;k<=id;k++) mask |= 1 << sub[k] ;
+                for(k=0;k<id;k++) mask |= 1 << sub[k] ;
                 tbDigPrime[ip++].mask = mask  ;
             }
-        } while (NextArrangement(sub,id+1,9) >= 0) ;
+        } while (NextArrangement(sub,id,9) >= 0) ;
         nbDPrime[id] = ip - indDPrime[id] ;
-        printf("%d => %d \n",id+1,nbDPrime[id]) ;
     }
-    // car la permutation des 9 digits est divisible par 3 
+    { // case 8 digits (id=7) : imposes to the excluded digit to be prime (so a solution)
+        u_int8_t sub[9] ;
+        int k ;
+        indDPrime[id] = ip ;
+        for(k=0;k<8;k++) sub[k] = k ;
+        do {
+            int ipExclus = 1 ; // minus one, 2,3,5,7
+            while(ipExclus) {
+                int N=0 ;
+                for(k=0;k<id;k++) {
+                    N = 10*N + ((sub[k] == ipExclus) ? 9 :  (sub[k] + 1) )  ;
+                }
+                if(Is_Prime32(N,tbPrime)) {
+                    tbDigPrime[ip].P = N ;
+                    int mask = 0 ;
+                    for(k=0;k<id;k++) mask |= 1 << ((sub[k] == ipExclus) ? 8 :  (sub[k]) )  ;
+                    tbDigPrime[ip++].mask = mask  ;
+                }
+                if(ipExclus == 1) ipExclus = 2;
+                else if (ipExclus == 2) ipExclus = 4;
+                else if (ipExclus == 4) ipExclus = 6 ;
+                else ipExclus = 0 ;
+            }
+        } while (NextPermut(sub,8) >= 0) ;
+        nbDPrime[id] = ip - indDPrime[id] ;
+        id++ ;
+    }
+    
+ 
+    //no solution as permutation of nine digits is a multiple of 3
     indDPrime[id] = ip ;
     nbDPrime[id] = 0 ;
-    nbSub = 0 ;
-    do {
+    nbSub = nbDPrime[8] ; // as 8 digits are solution
+    if(pbR->isVerbose) {
+            printf("\t PB%s +%-5d form:8.1\n",pbR->ident,nbSub) ;
+    }
+    do { // loop on decomposition of 9 as a sum (number of digits of eeach number)
         int j ;
         int indFree[9] ;
         indFree[0] = 0 ;
         int is = 0 ;
         int mask = 0 ;
         int oldNbSub = nbSub ;
-        while(is>=0) {
-            if(indFree[is] < nbDPrime[DeC->val[is]-1]) {
-                if(mask & tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]].mask ) {
-                    indFree[is]++ ; continue ;
+        if(DeC->val[0] > 7) continue ; // 9 and 8 digits
+        while(is>=0) { // loop to fill the decomposition (tree exploration)
+            if(indFree[is] < nbDPrime[DeC->val[is]]) {
+                if(mask & tbDigPrime[indDPrime[DeC->val[is]]+indFree[is]].mask ) {
+                    indFree[is]++ ; continue ; // mask conflit ?
                 }
-                mask |= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]].mask ;
+                mask |= tbDigPrime[indDPrime[DeC->val[is]]+indFree[is]].mask ;
                 indFree[is]++ ;
                 if(is == DeC->nbVal - 1) {
-//                    for(j=0;j<DeC->nbVal;j++) printf("%d%c",tbDigPrime[indDPrime[DeC->val[j]-1]+indFree[j]-1].P,(j==DeC->nbVal-1) ? '\n' : '.') ;
-                    nbSub++ ;
-                    mask ^= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]-1].mask ;
+                    nbSub++ ; // remove last digit in the mask
+                    mask ^= tbDigPrime[indDPrime[DeC->val[is]]+indFree[is]-1].mask ;
                 } else {
                     is++ ;
-                    if(DeC->val[is] == DeC->val[is-1]) {
+                    if(DeC->val[is] == DeC->val[is-1]) { // same length, must be different
                         indFree[is] = indFree[is-1] ;
                     } else {
                         indFree[is] = 0 ;
                     }
                 }
-            } else {
+            } else { // no more candidate
                 indFree[is] = 0 ;
                 is-- ;
-                if(is>=0) mask ^= tbDigPrime[indDPrime[DeC->val[is]-1]+indFree[is]-1].mask ;
+                if(is>=0) mask ^= tbDigPrime[indDPrime[DeC->val[is]]+indFree[is]-1].mask ;
             }
         }
-        if(nbSub > oldNbSub) {
-            printf("%d=>",nbSub-oldNbSub) ;
-            for(j=0;j<DeC->nbVal;j++) printf("%d%c",DeC->val[j],(j== DeC->nbVal -1) ? '\n' : '.');
+        if(pbR->isVerbose) {
+            if(nbSub > oldNbSub) {
+                printf("\t PB%s +%-5d form:",pbR->ident,nbSub-oldNbSub) ;
+                for(j=0;j<DeC->nbVal;j++) printf("%d%c",DeC->val[j],(j== DeC->nbVal -1) ? '\n' : '.');
+            }
         }
     } while(DecompNext(DeC) >= 0) ;
-        DecompRewind(DeC) ;
-    }
     DecompFree(DeC) ;
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;

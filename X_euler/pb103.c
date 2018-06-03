@@ -425,7 +425,7 @@ static int CheckEqualityPreH(sum103_t *v,HalfPaths * hlfP) {
 static u_int8_t isSumk[20000] ;
 static u_int8_t isSumk1[20000] ;
 
-static u_int8_t isDelta[1000] ;
+// static u_int8_t isDelta[1000] ;
 
 // static isPrintDebug = 0 ;
 

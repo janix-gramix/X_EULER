@@ -174,6 +174,51 @@ int NextPermutRgRev(u_int8_t *perm,int lg,int rg) {
 }
 
 
+Decomp  * DecompAlloc(u_int16_t Sum) {
+    Decomp * Dec = calloc(1,sizeof(Dec[0])) ;
+    Dec->Sum = Sum ;
+    Dec->val = malloc((Sum+1)*sizeof(Dec->val[0])) ;
+    Dec->val[0] = Sum ;
+    Dec->val[1] = 0 ;
+    Dec->nbVal = 1 ;
+    return Dec ;
+}
+// return  < 0 if end
+int DecompNext(Decomp  * DeC ) {
+    int j ;
+    int sumR ;
+    for(sumR=1,j=DeC->nbVal-1;j>=0;j--) {
+        sumR += DeC->val[j] ; // sumR to dispatch betwwen the remaining val
+        if(DeC->val[j]>1) {
+            sumR -= DeC->val[j] ;
+            DeC->val[j]-- ;
+            int k= j+1 ;
+            while(sumR > 0) {
+                DeC->val[k] = (sumR > DeC->val[j]) ? DeC->val[j] : sumR ;
+                sumR -= DeC->val[k++] ;
+            }
+            DeC->nbVal = k ;
+            DeC->val[k] = 0 ;
+            break ;
+            
+        }
+    }
+    return j ;
+}
+void DecompRewind(Decomp  * DeC ) {
+    DeC->val[0] = DeC->Sum ;
+    DeC->val[1] = 0 ;
+    DeC->nbVal = 1 ;
+    
+}
+Decomp * DecompFree(Decomp  * DeC ) {
+    if(DeC) {
+        free(DeC->val);
+        free(DeC) ;
+    }
+    return NULL ;
+}
+
 
 
 struct  CTX_PRIMETABLE {
@@ -263,7 +308,7 @@ u_int32_t FindPrime_b(T_prime nbMax,void *ctx,TY_CPL_nxtPrime nxtPrime) {
     int32_t *offSet = malloc(nSqrt * sizeof(offSet[0])) ;
     int32_t sizeTable =  (nSqrt < 32768) ? nSqrt : 32768 ;
     int8_t *isComposed = calloc( sizeTable , sizeof(isComposed[0])) ;
-    T_prime nbPrime = 0 ;
+    u_int32_t nbPrime = 0 ;
     T_prime lastPrime = 0 ;
     T_prime offSetTable = 0 ;
     T_prime nbPrimeSqrt = 0 ;
@@ -289,7 +334,7 @@ u_int32_t FindPrime_b(T_prime nbMax,void *ctx,TY_CPL_nxtPrime nxtPrime) {
                     for(icp2 = icp + lastPrime; icp2 < sizeTable ; icp2 += lastPrime ) {
                         isComposed[icp2] = 1 ;
                     }
-                    offSet[nbPrimeSqrt++] = icp2 - sizeTable ;
+                    offSet[nbPrimeSqrt++] = (int32_t)(icp2 - sizeTable) ;
                 }
                 nbPrime++ ;
                 if(nxtPrime(ctx,lastPrime) == 0) {
@@ -301,12 +346,12 @@ u_int32_t FindPrime_b(T_prime nbMax,void *ctx,TY_CPL_nxtPrime nxtPrime) {
         offSetTable += sizeTable ;
         if(isEnd || offSetTable >= nbMax) break ;
         indPrime = offSetTable ;
-        if ( offSetTable + sizeTable > nbMax) { sizeTable = nbMax - offSetTable ; }
+        if ( offSetTable + sizeTable > nbMax) { sizeTable = (int32_t)(nbMax - offSetTable) ; }
         memset(isComposed,0,sizeTable) ;
         {
             int np ;
             for(np=0;np<nbPrimeSqrt;np++) {
-                int32_t p = tbPrime[np] ;
+                T_prime p = tbPrime[np] ;
                 int32_t indPrime = offSet[np] ;
                 while ( indPrime < sizeTable) {
                     isComposed[indPrime] = 1 ;
@@ -336,7 +381,7 @@ CTX_PRIMETABLE * Gen_tablePrime(T_prime maxValue) {
     if(ctx == NULL) return ctx ;
     ctx->maxValue = maxValue ;
     if(maxValue > 100) {
-        ctx->maxNbPrime = (T_prime) (1+ maxValue / (log((double)maxValue) - 4)) ;
+        ctx->maxNbPrime = (u_int32_t) (1+ maxValue / (log((double)maxValue) - 4)) ;
     } else {
         ctx->maxNbPrime = 30 ;
     }
@@ -353,7 +398,7 @@ CTX_PRIMETABLE * Gen_tablePrimeNb(T_prime maxNb) {
     if(maxNb < 30)  {
         ctx->maxNbPrime = 30 ;
     } else {
-        ctx->maxNbPrime = maxNb ;
+        ctx->maxNbPrime = (u_int32_t) maxNb ;
     }
     ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
     if(ctx->tbPrime == NULL) { return Free_tablePrime(ctx) ; }
@@ -488,6 +533,16 @@ int Is_Prime(u_int64_t N, const T_prime *tbPrime) {
     }
     return 1 ;
 }
+
+int Is_Prime32(u_int32_t N, const T_prime *tbPrime) {
+    u_int32_t sqr = Sqrt32(N) ;
+    T_prime p ;
+    for(p= *tbPrime++ ; p<= sqr ;p=*tbPrime++) {
+        if((N % p) ==0) return 0 ;
+    }
+    return 1 ;
+}
+
 
 // return true if P1 and P2 are prime
 int Is_Prime2(u_int64_t N1,u_int64_t N2,const T_prime *tbPrime) {

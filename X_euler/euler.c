@@ -40,7 +40,7 @@ void Execute(TotalRun *ttr, PB_CALL *pbCall) {
             ttr->TotalClock += pbR.nbClock ;
             if(strcmp(pbCall->Solution,pbR.strRes)==0) {
                 ttr->nbPBOK++ ;
-                fprintf(stdout,"OK\tPB%s(%.06fs) Sol=%s '%s'\n",pbCall->ident,(float)pbR.nbClock / CLOCKS_PER_SEC,pbR.strRes,(pbCall->name) ? pbCall->name : "") ;
+                fprintf(stdout,"OK\tPB%s(%.06fs) Sol=%s %s\n",pbCall->ident,(float)pbR.nbClock / CLOCKS_PER_SEC,pbR.strRes,(pbCall->name) ? pbCall->name : "") ;
             } else {
                 ttr->nbPBerror++ ;
                 fprintf(stdout,"ERROR\tPB%s(%.06fs) Find=%s != Exp=%s\n",pbCall->ident,(float)pbR.nbClock / CLOCKS_PER_SEC,pbR.strRes,pbCall->Solution) ;
@@ -120,6 +120,7 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(052,142857,'Permuted multiples')
     ,PROTO_CALL(052a,142857,'Permuted multiples')
     ,PROTO_CALL(053,4075,'Combinatoric selections')
+    ,PROTO_CALL(054,376,'Poker hands')
     ,PROTO_CALL(055,249,'Lychrel numbers')
     ,PROTO_CALL(056_gmp,972,'Powerful digit sum')
     ,PROTO_CALL(057,153,'Square root convergents')
@@ -165,30 +166,50 @@ static PB_CALL ALL_calls[] = {
 //    ,PROTO_CALL(093a,1258,'Arithmetic expressions'),
     ,PROTO_CALL(094,518408346,'Almost equilateral triangles')
     ,PROTO_CALL(095,14316,'Amicable chains')
+    ,PROTO_CALL(097,8739992577,'Large non-Mersenne prime')
 
-    ,PROTO_CALL(579,3805524,'Lattice points in lattice cubes')
 
-// a revoir beaucoup trop lent
-//    ,{100,  PB100,756872327473,'XX')
-//    ,PROTO_CALL(1000,179424673,'Test 10 000 000 prime numbers')
-// version moins rapide pour grande valeurs
-//    ,PROTO_CALL(597_gmpa,50018178282,'Torpids')
-// version rapide mais calculs complets (pour debug)
-//    ,PROTO_CALL(597_gmp,50018178282',Torpids')
-// version la plus rapide avec calcul FACT en u_int64_t et optimisation last loop
-//    ,PROTO_CALL(597_gmpx,50018178282,'Torpids')
-// version beaucoup plus rapide en O(n**2)
-    ,PROTO_CALL(597_gmpy,50018178282,'Torpids')
-    ,PROTO_CALL(622,3010983666182123972,'Riffle Shuffles')
     ,PROTO_CALL(101,37076114526,'Optimum polynomial')
     ,PROTO_CALL(102,228,'Triangle containment')
+
 //    PROTO_CALL(104_gmp,329468,'Pandigital Fibonacci ends')
     ,PROTO_CALL(104,329468,'Pandigital Fibonacci ends')
-
     ,PROTO_CALL(105,73702,'Special subset sums: testing')
     ,PROTO_CALL(106,21384,'Special subset sums: meta-testing')
+    ,{"108a",PB110,"180180","Diophantine reciprocals I"}                // cas special poure executer par PB110
+//    ,PROTO_CALL(108,180180,'Diophantine reciprocals I')
+    ,PROTO_CALL(109,38182,'Darts')
+    ,PROTO_CALL(110,9350130049860600,'Diophantine reciprocals II')
+    ,PROTO_CALL(111,612407567715,'Primes with runs')
+    ,PROTO_CALL(112,1587000,'Bouncy numbers')
+    ,PROTO_CALL(113,51161058134250,'Non-bouncy numbers')
+    ,PROTO_CALL(114,16475640049,'Counting block combinations I')
+//    ,PROTO_CALL(114a,16475640049,'Counting block combinations I')
+    ,PROTO_CALL(115,168,'Counting block combinations II')
+    ,PROTO_CALL(116,20492570929,'Red, green or blue tiles')
+    ,PROTO_CALL(117,100808458960497,'Red, green, and blue tiles')
+    ,PROTO_CALL(118,44680,'Pandigital prime sets')
 
+    // a revoir beaucoup trop lent
+    //    ,{100,  PB100,756872327473,'XX')
+    //    ,PROTO_CALL(1000,179424673,'Test 10 000 000 prime numbers')
+    // version moins rapide pour grande valeurs
+    //    ,PROTO_CALL(597_gmpa,50018178282,'Torpids')
+    // version rapide mais calculs complets (pour debug)
+    //    ,PROTO_CALL(597_gmp,50018178282',Torpids')
+    // version la plus rapide avec calcul FACT en u_int64_t et optimisation last loop
+    //    ,PROTO_CALL(597_gmpx,50018178282,'Torpids')
+    // version beaucoup plus rapide en O(n**2)
+    ,PROTO_CALL(579,3805524,'Lattice points in lattice cubes')
+    ,PROTO_CALL(597_gmpy,50018178282,'Torpids')
+    ,PROTO_CALL(620a,1470337306,'Planetary Gears')
+//    ,PROTO_CALL(620,1470337306,'Planetary Gears') //slow version
+    ,PROTO_CALL(622,3010983666182123972,'Riffle Shuffles')
+    ,PROTO_CALL(625a,551614306,'Gcd sum')
+//    ,PROTO_CALL(625b,551614306,'Gcd sum') // too slow
+//    ,PROTO_CALL(625,551614306,'Gcd sum') // verification for small values
 
+    
     ,{ NULL,NULL,"","" }
 };
 
@@ -197,9 +218,8 @@ static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
-    PROTO_CALL(110,9350130049860600,'Diophantine reciprocals II')
-    ,{"108a",PB110,"180180","Diophantine reciprocals I"}                // cas special poure executer par PB110 
-    ,PROTO_CALL(108,180180,'Diophantine reciprocals I')
+    PROTO_CALL(626,???,'Counting Binary Matrices')
+//     ,PROTO_CALL(625,???,'Gcd sum')
 //    ,PROTO_CALL(107,259679,'Minimal network')
 //        ,PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
 //        ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')
@@ -223,7 +243,7 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
- //   char * isALL = "100" ;
+//    char * isALL = "115" ;
     char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {

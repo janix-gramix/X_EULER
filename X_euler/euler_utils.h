@@ -52,6 +52,41 @@ int ChkPermutRg(u_int8_t *perm,int lg,int rg) ;
 int NextPermutRev(u_int8_t *perm,int lg) ;
 int NextPermutRgRev(u_int8_t *perm,int lg,int rg) ;
 
+typedef struct Decomp {
+    u_int16_t  Sum ;
+    u_int16_t * val ;
+    u_int16_t nbVal ;
+} Decomp ;
+
+Decomp  * DecompAlloc(u_int16_t Sum) ;
+int DecompNext(Decomp  * DeC );
+void DecompRewind(Decomp  * DeC );
+Decomp * DecompFree(Decomp  * DeC );
+/* pour decomposer Sum en elements (ordre alpha decroissant)
+Ex ; Sum = 9
+ 9
+ 8.1
+ 7.2
+ 7.1.1
+ 6.3
+ 6.2.1
+ 6.1.1.1
+ 5.4
+ 5.3.1
+ 5.2.2
+ 5.2.1.1
+ 5.1.1.1.1
+ 4.4.1
+ 4.3.2
+ 4.3.1.1
+ 4.2.2.1
+ 4.2.1.1.1
+ 4.1.1.1.1.1
+ 3.3.3
+ 3.3.2.1
+ 3.3.1.1.1
+ ...
+ */
 
 typedef  u_int32_t T_prime ;
 
@@ -82,6 +117,8 @@ int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 u_int32_t FindNbDiv(u_int64_t N, const T_prime *tbPrime) ;
 u_int32_t FindNbDivPrime(u_int64_t N, const T_prime *tbPrime) ;
 int Is_Prime(u_int64_t N, const T_prime *tbPrime) ;
+
+int Is_Prime32(u_int32_t N, const T_prime *tbPrime) ;
 
 // return true if P1 and P2 are prime
 int Is_Prime2(u_int64_t N1,u_int64_t N2,const T_prime *tbPrime) ;

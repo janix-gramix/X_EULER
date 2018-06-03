@@ -15,6 +15,8 @@
 
 #include "PB051_100.h"
 
+#include "p054_data.h"
+
 #define PB051_MAXP 1000000
 #define PB051_SQMAXP 3200
 #define PB051_MAXGDIG   7
@@ -75,7 +77,7 @@ int PB051(PB_RESULT *pbR) {
         {
             int p1 ;
             u_int8_t bit = 1; // on extrait les digits en sautant le premier (poids faible)
-            for(p1=p/10;p1 != 0; p1 /= 10 , bit <<= 1 ) {
+            for(p1=(int) (p/10);p1 != 0; p1 /= 10 , bit <<= 1 ) {
                 u_int8_t dg = p1 % 10 ;
                 if(dg < 10 - minSuit) { // on construi le pattern pour de digit
                     occurDig[dg] |= bit ;
@@ -89,11 +91,11 @@ int PB051(PB_RESULT *pbR) {
                 int id ;
                 for(id=0;id<L_d->nb;id++) { // listes des deltas .
                     int j,nbP ;
-                    tbP[0]= p ;
+                    tbP[0]= (int) p ;
                     nbP = 1;
                     int delta = L_d->dt[id]  ;
                     for(j=1;j<10-k;j++) {
-                        if(Is_Prime(p+j*delta,tbPrime)) tbP[nbP++] = p+j*delta ;
+                        if(Is_Prime(p+j*delta,tbPrime)) tbP[nbP++] = (int)(p+j*delta) ;
                     }
                     if(nbP >= minSuit) {
                         if(pbR->isVerbose) {
@@ -114,7 +116,7 @@ int PB051(PB_RESULT *pbR) {
                         minSuit = nbP + 1 ;
                         if(minSuit > PB051_MAXLGSUI ) {
                             Free_tablePrime(ctxP);
-                            sprintf(pbR->strRes,"%d",p) ;
+                            sprintf(pbR->strRes,"%u",p) ;
                             pbR->nbClock = clock() - pbR->nbClock ;
                             return 1 ;
                         }
@@ -269,6 +271,230 @@ int PB053(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
+
+#define PB054_NB    1000
+
+// warning reverse order
+int Cmp_Card(const void * c0, const void *c1) {
+    return ((Card *)c1)[0].h - ((Card *)c0)[0].h ;
+}
+#define PB054_HC    1
+#define PB054_1P    2
+#define PB054_2P    3
+#define PB054_BR    4
+#define PB054_SU    5
+#define PB054_CO     6
+#define PB054_FU     7
+#define PB054_SQ    8
+#define PB054_FL   9
+#define PB054_FR   10
+
+
+
+
+
+
+
+
+void Get_Value(Card *hand, char *Value) {
+    qsort(hand,5,sizeof(hand[0]),Cmp_Card) ;
+    if(hand[0].c == hand[1].c && hand[0].c == hand[2].c && hand[0].c == hand[3].c && hand[0].c == hand[4].c) {
+        // couleur ou autre
+        if(hand[0].h == hand[1].h+1 && hand[0].h == hand[2].h+2 && hand[0].h == hand[3].h+3 && hand[0].h == hand[4].h+4) {
+            if(hand[0].h == 14) {
+                Value[0] = PB054_FR ; // quinte flush royale
+                Value[1] = 0 ;
+            } else {
+                Value[0] = PB054_FL ; // qinte flush , on compte la hauteur
+                Value[1] = hand[0].h ;
+                Value[2] = 0 ;
+            }
+        } else {
+            Value[0] = PB054_CO ; // couleur, on compte toutes les huateurs
+            Value[1] = hand[0].h ;
+            Value[2] = hand[1].h ;
+            Value[3] = hand[2].h ;
+            Value[4] = hand[3].h ;
+            Value[5] = hand[4].h ;
+            Value[6] = 0 ;
+        }
+    } else if (hand[0].h == hand[1].h+1 && hand[0].h == hand[2].h+2 && hand[0].h == hand[3].h+3 && hand[0].h == hand[4].h+4) {
+        Value[0] = PB054_SU ; // suite, on compte toutes les hauteurs
+        Value[1] = hand[0].h ;
+        Value[2] = 0 ;
+    } else if (hand[0].h == hand[1].h || hand[1].h == hand[2].h || hand[2].h == hand[3].h || hand[3].h == hand[4].h) {
+        // au moins une paire
+        if (hand[0].h == hand[1].h && hand[1].h == hand[2].h && hand[2].h == hand[3].h ) {
+            Value[0] = PB054_SQ ; // carre
+            Value[1] = hand[0].h ;
+            Value[2] = hand[4].h ;
+            Value[3] = 0 ;
+        } else if (hand[1].h == hand[2].h && hand[2].h == hand[3].h && hand[3].h == hand[4].h) {
+            Value[0] = PB054_SQ ; // carre
+            Value[1] = hand[1].h ;
+            Value[2] = hand[0].h ;
+            Value[3] = 0 ;
+        } else if ( hand[0].h == hand[1].h && hand[1].h == hand[2].h) {
+            if(hand[3].h == hand[4].h) {
+                Value[0] = PB054_FU ; // Full
+                Value[1] = hand[0].h ;
+                Value[2] = hand[3].h ;
+                Value[3] = 0 ;
+            } else {
+                Value[0] = PB054_BR ; // brelan
+                Value[1] = hand[0].h ;
+                Value[2] = hand[3].h ;
+                Value[3] = hand[4].h ;
+                Value[4] = 0 ;
+            }
+        } else if ( hand[1].h == hand[2].h && hand[2].h == hand[3].h) {
+            Value[0] = PB054_BR ; // brelan
+            Value[1] = hand[1].h ;
+            Value[2] = hand[0].h ;
+            Value[3] = hand[4].h ;
+            Value[4] = 0 ;
+        } else if ( hand[2].h == hand[3].h && hand[3].h == hand[4].h) {
+            if(hand[0].h == hand[1].h) {
+                Value[0] = PB054_FU ; // Full
+                Value[1] = hand[2].h ;
+                Value[2] = hand[0].h ;
+                Value[3] = 0 ;
+            } else {
+                Value[0] = PB054_BR ; // brelan
+                Value[1] = hand[2].h ;
+                Value[2] = hand[0].h ;
+                Value[3] = hand[1].h ;
+                Value[4] = 0 ;
+            }
+        } else if ( hand[0].h == hand[1].h && hand[2].h == hand[3].h) {
+            Value[0] = PB054_2P ; // double paire
+            Value[1] = hand[0].h ;
+            Value[2] = hand[2].h ;
+            Value[3] = hand[4].h ;
+            Value[4] = 0 ;
+        } else if ( hand[0].h == hand[1].h && hand[3].h == hand[4].h) {
+            Value[0] = PB054_2P ; // double paire
+            Value[1] = hand[0].h ;
+            Value[2] = hand[3].h ;
+            Value[3] = hand[2].h ;
+            Value[4] = 0 ;
+        } else if ( hand[1].h == hand[2].h && hand[3].h == hand[4].h) {
+            Value[0] = PB054_2P ; // double paire
+            Value[1] = hand[1].h ;
+            Value[2] = hand[3].h ;
+            Value[3] = hand[0].h ;
+            Value[4] = 0 ;
+        } else if ( hand[0].h == hand[1].h) {
+            Value[0] = PB054_1P ; // paire
+            Value[1] = hand[0].h ;
+            Value[2] = hand[2].h ;
+            Value[3] = hand[3].h ;
+            Value[4] = hand[4].h ;
+            Value[5] = 0 ;
+        } else if ( hand[1].h == hand[2].h) {
+            Value[0] = PB054_1P ; // paire
+            Value[1] = hand[1].h ;
+            Value[2] = hand[0].h ;
+            Value[3] = hand[3].h ;
+            Value[4] = hand[4].h ;
+            Value[5] = 0 ;
+        } else if ( hand[2].h == hand[3].h) {
+            Value[0] = PB054_1P ; // paire
+            Value[1] = hand[2].h ;
+            Value[2] = hand[0].h ;
+            Value[3] = hand[1].h ;
+            Value[4] = hand[4].h ;
+            Value[5] = 0 ;
+        }else if ( hand[3].h == hand[4].h) {
+            Value[0] = PB054_1P ; // paire
+            Value[1] = hand[3].h ;
+            Value[2] = hand[0].h ;
+            Value[3] = hand[1].h ;
+            Value[4] = hand[2].h ;
+            Value[5] = 0 ;
+        } else {
+            printf("BIG PROBLEM") ;
+            Value[0] = 0 ;
+        }
+
+
+
+
+
+        
+    } else {
+        Value[0] = PB054_HC ; // rien, on compte toutes les cartes
+        Value[1] = hand[0].h ;
+        Value[2] = hand[1].h ;
+        Value[3] = hand[2].h ;
+        Value[4] = hand[3].h ;
+        Value[5] = hand[4].h ;
+        Value[6] = 0 ;
+        
+    }
+}
+
+
+// #define PB054_DEBUG
+
+int PB054(PB_RESULT *pbR) {
+#if defined(PB054_DEBUG)
+    char * valHand[] = { "?" ,"Card" , "Pair", "2Pairs" , "Brelan", "Suite", "Couleur" , "Full", "Carré", "Quinte" , "Quinte_Flush" ,"Quinte_Royale" } ;
+    char valCard[]="??23456789TJQKA" ;
+    char valColor[] = "CDHS" ;
+    
+#endif
+    pbR->nbClock = clock()  ;
+    char * bb = "leki eklup ikffhycuhtu bq byiju tui ikifusji bu nkcuhe kd" ;
+    char aa[200] ;
+    strcpy(aa,bb) ;
+    int ia ;
+    for(ia=0;aa[ia];ia++) {
+        if(aa[ia] != ' ') {
+            int il = aa[ia] - 'a' ;
+            il += 'k' - 'a' ;
+            if( il >=26) il -= 26 ;
+            aa[ia] = il + 'a' ;
+        }
+    }
+    printf("%s\n",aa);
+    const Play * PL = P054_GetData() ;
+    int nbWinP0 =0 ;
+    int i ;
+    for(i=0;i<PB054_NB;i++) {
+        Play curPlay = PL[i] ;
+#if defined(PB054_DEBUG)
+        int k ;
+        for(k=0;k<5;k++) printf("%c%c ",valCard[curPlay.Hand0[k].h],valColor[curPlay.Hand0[k].c]) ;
+        printf("\t");
+        for(k=0;k<5;k++) printf("%c%c ",valCard[curPlay.Hand1[k].h],valColor[curPlay.Hand1[k].c]) ;
+#endif
+        char Value0[10]  ;
+        char Value1[10] ;
+        Get_Value(curPlay.Hand0,Value0) ;
+        Get_Value(curPlay.Hand1,Value1) ;
+        int issue = strcmp(Value0,Value1) ;
+#if defined(PB054_DEBUG)
+        printf("%s",valHand[Value0[0]]) ; for(k=1;Value0[k];k++) printf("%c%c",(k==1) ? '(' : ',' , valCard[Value0[k]] ) ;
+        printf(")\t%c\t",(issue > 0) ? '>' : '<');
+        printf("%s",valHand[Value1[0]]) ; for(k=1;Value1[k];k++) printf("%c%c",(k==1) ? '(' : ',' , valCard[Value1[k]] ) ;
+        printf(")\n");
+#endif
+       
+        if(issue > 0){
+            nbWinP0++ ;
+//            printf("W1(%d)",i) ;
+        } else if(issue == 0) {
+            printf("Egalite %d\n",i);
+        }
+    }
+    
+    sprintf(pbR->strRes,"%d",nbWinP0);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
 
 #define PB055_MAXN  10000
 #define PB055_MAXITER   50
@@ -508,7 +734,7 @@ int PB060(PB_RESULT *pbR) {
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     u_int32_t nbPrime = GetNbPrime(ctxP) ;
     NPMAX = GetNbPrime(ctxP)-1 ;
-    int32_t maxP = tbPrime[nbPrime-1] ;
+    int32_t maxP = (int32_t)tbPrime[nbPrime-1] ;
     {   // on limite la valeur max des nb premiers a tester pour que la concat de 2 d'entre eux
         // soit testable avec la table calculee
         int32_t pow10 = 10 ;
@@ -518,13 +744,13 @@ int PB060(PB_RESULT *pbR) {
     }
     
     NP = NPMAX ;
-    maxS = tbPrime[NP-1] ;
+    maxS = (int32_t)tbPrime[NP-1] ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s NPMAX=%d,maxS=%d,maxP=%d\n",pbR->ident,NP,maxS,maxP);
     pow10 = calloc(NP, sizeof(pow10[0])) ;
     {
         int i ;
         for(i=0;i<NP;i++) {
-            int32_t Pi = tbPrime[i] ;
+            int32_t Pi = (int32_t) tbPrime[i] ;
             int32_t ip10 = 10 ;
             while(ip10< Pi) ip10 *= 10 ;
             pow10[i] = ip10 ;
@@ -535,7 +761,7 @@ int PB060(PB_RESULT *pbR) {
         // parcours arborescent jusqu'a atteindre la profondeur 5
         int index[5],i ;
         u_int64_t P[5],SP ;
-        if(minS==0) maxS = tbPrime[NP-1] ;
+        if(minS==0) maxS = (int32_t) tbPrime[NP-1] ;
         
         for(i=0,index[i]=0,SP=0;i>=0;) {
             int j , isOK ;
@@ -1108,11 +1334,11 @@ int PB070a(PB_RESULT *pbR) {
     for(i=0;i<nbPrime && (tbPrime[i] < nSqrt) ;i++) ;
     // on continue la boucle sur les Pi (croissants) et jmax est la valeur maxi pour que Pi*Pj < N)
     for(jmax=i-1;i<nbPrime;i++){
-        int Pi = tbPrime[i] ;
+        int Pi = (int)tbPrime[i] ;
         int Pj ;
         int n,phi ;
         for(j=jmax;j>=0; j--) {
-            if( (n=Pi*(Pj=tbPrime[j])) >= N) { jmax-- ; continue ; }
+            if( (n=Pi*(Pj=(int)tbPrime[j])) >= N) { jmax-- ; continue ; }
             if(n*(u_int64_t) phiBest < (phi=(Pi-1)*(Pj-1)) * (u_int64_t) nBest) {
                 unsigned char str_n[10], str_phi[10] ;
                 int lg = sprintf((char *)str_n,"%d",Pi*Pj) ;
@@ -1623,7 +1849,7 @@ int PB077(PB_RESULT *pbR) {
     }
     
     for(ip=1;ip<nbPrime;ip++) {
-        p = tbPrime[ip] ;
+        p = (int)tbPrime[ip] ;
         int np ;
         for(np=0; np < PB077_MAXN; np+=p) {
             for(k=np;k < PB077_MAXN;k++) {
@@ -1919,7 +2145,7 @@ int PB087(PB_RESULT *pbR) {
     
     for(i=i2=i3=i4=0;i<nbPrime;i++) {
         u_int32_t p,p2 ;
-        p = tbPrime[i] ;
+        p = (u_int32_t)tbPrime[i] ;
         pow2[i2++] = p2 = p*p ;
         if(p< n_sqr3) {
             pow3[i3++] = p*p2 ;
@@ -2487,7 +2713,7 @@ int PB094(PB_RESULT *pbR) {
             if(P >= PB094_MAX) break ;
             assert((2*N-1)*(2*N-1) - h*h - N*N == 0 ); // check Pythagore
             if(pbR->isVerbose)fprintf(stdout,"\t PB%s T(2x%lld,%lld) %lld^2 = %lld^2 + %lld^2\n"
-                    ,pbR->ident,2*N-1,2*N,2*N-1,N,h) ;
+                                      ,pbR->ident,2*N-1,2*N,2*N-1,N,h) ;
             sumP += P ;
         }
         { // cas B (2N+1)
@@ -2523,7 +2749,7 @@ int PB095(PB_RESULT *pbR) {
 
     int i ;
     int nbP = GetNbPrime(ctxP);
-    const u_int32_t *tbPrime = GetTbPrime(ctxP) ;
+    const T_prime *tbPrime = GetTbPrime(ctxP) ;
     int sqrtMax = Sqrt32(PB095_MAX) ;
     int np ;
 
@@ -2532,7 +2758,7 @@ int PB095(PB_RESULT *pbR) {
     }
     // compute Sum of divisor with prime P < sqrt(PB095_MAXLG)
     for(np=0;np<nbP; np++) {
-        u_int32_t P = tbPrime[np] ;
+        u_int32_t P = (u_int32_t) tbPrime[np] ;
         if(P> sqrtMax) break ;
         u_int32_t m_powP , m  ,powP , mulP , mGtP;
         for(mGtP=1,powP=P,mulP= (P+1);mGtP;powP *= P , mulP = mulP*P+1) {
@@ -2545,7 +2771,7 @@ int PB095(PB_RESULT *pbR) {
     
     // only m x P**1 can occurs
     for(;np < nbP ; np++) {
-        u_int32_t P = tbPrime[np] ;
+        u_int32_t P = (u_int32_t)tbPrime[np] ;
         u_int32_t m_P ;
         for(m_P = P ; m_P < PB095_MAX ; m_P += P ) {
             SumDiv[m_P] *= P+1 ;
@@ -2609,6 +2835,40 @@ int PB095(PB_RESULT *pbR) {
     return 1 ;
 }
 
+
+#define PB097_M0D   10000000000LL
+#define PB097_POW2  7830457
+
+u_int64_t mult097(u_int64_t m1, u_int64_t m2) {
+    u_int64_t hm1 = m1 >> 30 ;
+    u_int64_t lm1 = m1 & 0x3fffffff ;
+    u_int64_t hm2 = m2 >> 30 ;
+    u_int64_t lm2 = m2 & 0x3fffffff ;
+    u_int64_t ll = (lm1 *lm2 ) % PB097_M0D ;
+    u_int64_t lh = (((lm1 * hm2 + hm1 * lm2 ) % PB097_M0D) << 30) % PB097_M0D  ;
+    u_int64_t hh = ((((hm1 * hm2) << 30 ) % PB097_M0D) << 30) % PB097_M0D  ;
+    return (ll +lh + hh) % PB097_M0D ;
+}
+
+int PB097(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int exp = 0 ;
+    int exp2 = 1 ;
+    u_int64_t pow2 =  2;
+    u_int64_t pow2Exp = 1 ;
+    do {
+        if(exp2 & PB097_POW2) {
+            exp += exp2 ;
+            pow2Exp = mult097(pow2Exp,pow2);
+        }
+        exp2 <<= 1 ;
+        pow2 = mult097(pow2,pow2) ;
+    } while(exp < PB097_POW2) ;
+    u_int64_t result = mult097(28433,pow2Exp) +1 ;
+    sprintf(pbR->strRes,"%lld",result);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
 
 
 

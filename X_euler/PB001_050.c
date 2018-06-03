@@ -204,7 +204,7 @@ int PB007(PB_RESULT *pbR) {
 #endif
     if(pbR->isVerbose) {
         pbR->nbClock = clock() -  pbR->nbClock ;
-        printf("\t PB%s(%.6fs)  prime n°%d  = %d\n",pbR->ident,(float)pbR->nbClock / CLOCKS_PER_SEC ,ctx.nbPrime,ctx.lastPrime) ;
+        printf("\t PB%s(%.6fs)  prime n°%d  = %u\n",pbR->ident,(float)pbR->nbClock / CLOCKS_PER_SEC ,ctx.nbPrime,ctx.lastPrime) ;
     }
     ctx.nbPrime = 0 ;
     ctx.lastPrime = 0 ;
@@ -220,8 +220,8 @@ int PB007(PB_RESULT *pbR) {
     printf("\n");
 #endif
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",ctx.lastPrime);
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%sb  prime n°%d  = %d\n",pbR->ident,ctx.nbPrime,ctx.lastPrime) ;
+    sprintf(pbR->strRes,"%u",ctx.lastPrime);
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s  prime n°%d  = %u\n",pbR->ident,ctx.nbPrime,ctx.lastPrime) ;
     return 1 ;
     
     
@@ -314,7 +314,7 @@ int PB010(PB_RESULT *pbR) {    CTX_PB010 ctx ;
     FindPrime(nbMax,&ctx,PB010_nxtPrime) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     
-    if(pbR->isVerbose)fprintf(stdout,"\t PB%s SUM(prime<%d)  = %lld\n",pbR->ident,nbMax,ctx.sum) ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s SUM(prime<%u)  = %lld\n",pbR->ident,nbMax,ctx.sum) ;
     sprintf(pbR->strRes,"%lld",ctx.sum) ;
     return 1 ;
 }
@@ -987,7 +987,7 @@ int PB027(PB_RESULT *pbR) {
         int32_t  a , b ;
         int32_t aMax = 0 , bMax = 0 ;
         const T_prime * tbPrime = GetTbPrime(ctxP) ;
-        while ( (b=tbPrime[ib++]) < PB027_MAX_B) {
+        while ( (b=(int32_t) tbPrime[ib++]) < PB027_MAX_B) {
             for ( a= (- PB027_MAX_A+1 ); a < PB027_MAX_A ;  a+=2) {
                 int nbPrime = 0 ;
                 int32_t n = 0 ;
@@ -1313,7 +1313,7 @@ int PB035(PB_RESULT *pbR) {
             }
             
             if(nr == n) {
-                if(pbR->isVerbose)fprintf(stdout," %d",n) ;
+                if(pbR->isVerbose)fprintf(stdout," %u",n) ;
                 nbFind += lgCyclePrime ;
             }
         }
@@ -1779,7 +1779,7 @@ int PB041(PB_RESULT *pbR) {
     Free_tablePrime(ctxP);
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pBest) {
-        sprintf(pbR->strRes,"%d",pBest);
+        sprintf(pbR->strRes,"%u",pBest);
         return 1 ;
     } else {
         return 0 ;
@@ -1942,7 +1942,7 @@ int PB046(PB_RESULT *pbR) {
         const T_prime * tbPrime= GetTbPrime(ctxP);
         for(i=1;i<nbPrime;i++) {
             int n ;
-            T_prime p = tbPrime[i] ;
+            int32_t p = (int32_t) tbPrime[i] ;
             int indP = p/2 ;
             while(curOdd < indP) {
                 if(!oddDec[curOdd]) {
@@ -2056,7 +2056,7 @@ int PB049(PB_RESULT *pbR) {
     for(;i<nbPrime;i++) {
         int num ;
         u_int8_t dig[4];
-        int p = tbPrime[i] ;
+        int p = (int) tbPrime[i] ;
         dig[0] = p / 1000 ;
         dig[1] = (p/100) % 10 ;
         dig[2] = (p/10) % 10 ;
@@ -2137,7 +2137,7 @@ int PB050(PB_RESULT *pbR) {
         //exit if the chain beginning at indP0 and length=bestLg
         // has a SUM exeeding MAX. It will be worse for superior indP0
     } while (indP0+bestLg < indP1) ;
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%s lg=%d %d=sum(%d..%d)\n",pbR->ident,bestLg,bestP,
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s lg=%d %d=sum(%u..%u)\n",pbR->ident,bestLg,bestP,
                                tbPrime[bestIndP0],tbPrime[bestIndP0+bestLg-1]);
     
     pbR->nbClock = clock() - pbR->nbClock ;
