@@ -2,9 +2,6 @@
 //  pb103.c
 //  X_euler
 //
-//  PB101_150.c
-//  X_euler
-//
 //  Created by Jeannot on 19/03/2018.
 //  Copyright © 2018 Jeannot. All rights reserved.
 //
@@ -22,7 +19,7 @@
 //*********************** many variant pour PB103 ************************************
 
 #define PB103_MAXNB     16
-#define PB103_NB  9
+#define PB103_NB  7
 #define PB103_MAX_DELTA   300
 
 typedef int32_t sum103_t ;
@@ -1325,6 +1322,16 @@ int PB103f(PB_RESULT *pbR) {
                             printf("%s%c\t",DD[is].History,(newSol->D.S <= newSol->R.S) ? 'd' : 'r');
                             for(j=1;j<=is;j++) printf("%d%c",DeltSol->deltas[j-1],(j==is) ? '\n' : '.') ;
                             //                            Smin = DeltBest->S ;
+                            
+                            {
+                                int lg = 0 ;
+                                for(j=0;j<PB103_NB;j++){
+                                    lg+=sprintf(pbR->strRes+lg,"%2.2d",DeltSol->val[j]+v0) ;
+                                }
+                                
+                            }
+
+                            
                         }
                         if(DD[is].isDR) {
                             is-- ; continue ; // on passe D et R, c'est fini
@@ -1534,6 +1541,13 @@ int PB103g(PB_RESULT *pbR) {
                             for(j=1;j<=is;j++) printf("%d%c",DeltSol->deltas[j-1],(j==is) ? '\t' : '.') ;
                             printf("\t");
                             for(j=0;j<=is;j++) printf("%d%c",DeltSol->val[j]+v0,(j==is) ? '\n' : ',') ;
+                            {
+                                int lg = 0 ;
+                                for(j=0;j<PB103_NB;j++){
+                                    lg+=sprintf(pbR->strRes+lg,"%2.2d",DeltSol->val[j]+v0) ;
+                                }
+
+                            }
                         }
                         if(DD[is].isDR) {
                             
