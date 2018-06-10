@@ -1235,3 +1235,165 @@ int PB118(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%d",nbSub) ;
     return 1 ;
 }
+
+#define PB119_MAX   30
+#define PB119_NBD_MAX 20
+int PB119(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nd,nb = 0 ;
+    u_int64_t s ;
+    u_int64_t Pow[PB119_NBD_MAX*9];
+    u_int64_t Pow10 ;
+    u_int64_t Pfind[2*PB119_MAX] ;
+    for(s=2;s<PB119_NBD_MAX*9;s++){
+        Pow[s] = s*s ;
+    }
+    int antNb = 0 ;
+    for(nd=3,Pow10=1000;nb<PB119_MAX;nd++ , Pow10 *= 10) {
+        antNb = nb ;
+        for(s=2;s<=9*PB119_NBD_MAX;s++){
+            u_int64_t pow  ;
+            for(pow=Pow[s];pow < Pow10 ; pow *= s){
+                u_int64_t p1 = pow  ;
+                int s1 = 0 , np =0 ;
+                while(p1) {
+                    s1 += p1 % 10 ;
+                    np++ ;
+                    if(s1 > s) break ;
+                    p1 /= 10 ;
+                }
+                if(s1 == s) {
+                    Pfind[++nb] = pow  ;
+                    if(pbR->isVerbose) fprintf(stdout,"\t PB%s %lld\t=\t%lld**%d\n",pbR->ident,pow,s,np) ;
+                }
+            }
+            Pow[s] = pow ;
+            
+        }
+    }
+    while(antNb < PB119_MAX) {
+        int in ;
+        antNb++ ;
+        for(in=antNb+1; in<=nb;in++) {
+            if(Pfind[antNb] > Pfind[in]) {
+                u_int64_t tmp = Pfind[antNb] ;
+                Pfind[antNb] = Pfind[in] ;
+                Pfind[in] = tmp ;
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s The %dth is %lld\n",pbR->ident,antNb,Pfind[antNb]) ;
+    sprintf(pbR->strRes,"%lld",Pfind[antNb]) ;
+    return 1 ;
+}
+
+
+int PB120(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int SumR = 0 ;
+
+    pbR->nbClock = clock() - pbR->nbClock ;
+    
+    SumR += 2*3 ;
+    int n4 ;
+    for(n4=4;n4<1000;n4 += 4) {
+        SumR += n4 *(n4-2) + (n4+1)*(n4) + (n4+2)*(n4) + (n4+3)*(n4+2) ;
+    }
+    SumR += n4 * (n4-2) ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum of rest=%d\n",pbR->ident,SumR) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",SumR) ;
+    return 1 ;
+}
+
+#define PB121_NBTURN    15
+// On calcule par recurrence Pn(x) = Sigma(P(k,n) x**k ) avec P(k,n) = nb cas avec k bleu
+// on a la recurrence Pn(x) = Pn-1(x) * (x+n)
+// le nombre total  de cas est Factoriel(n+1)
+// Il restec ensuite a sommer les cas favorables.
+int PB121(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    
+    u_int64_t Cf[PB121_NBTURN+1] ;
+    u_int64_t fact = 2;
+    Cf[0] = 1 ;
+    Cf[1] = 1 ;
+    int n,k ;
+    // Pn(x) = Pn-1(x) * (x+n)
+    for(n=2;n<=PB121_NBTURN;n++) {
+        fact *= n+1 ;
+        u_int64_t ck = Cf[0] ;
+        Cf[0] = ck * n ;
+        Cf[n]= 0 ;
+        for(k=1;k<=n;k++) {
+            u_int64_t tmp = ck + n * Cf[k] ;
+            ck = Cf[k] ;
+            Cf[k] = tmp ;
+        }
+    }
+    u_int64_t sumCkMin = 0 ;
+    for(k=PB121_NBTURN;k>PB121_NBTURN/2;k--) {
+        sumCkMin += Cf[k] ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum=%lld (%lld/%lld)\n",pbR->ident,fact/sumCkMin,fact,sumCkMin) ;
+    sprintf(pbR->strRes,"%d",(int) (fact/sumCkMin)) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+#define PB122_MAX   20000
+#define PB122_NBCHAIN   1000000000
+typedef struct Chain122 {
+    u_int32_t   n ;
+    u_int32_t   iNext ;
+    
+} Chain122 ;
+int PB122(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int SumR = 0 ;
+    
+    Chain122 * tbCH = malloc(sizeof(tbCH[0])*PB122_NBCHAIN) ;
+    u_int8_t MinM[PB122_MAX+1] ;
+    int nxtCH = 0 ;
+    int antCH = 0 ;
+    int nbMulMax = 1 ;
+    memset(MinM,0,sizeof(MinM)) ;
+    while((1<<nbMulMax) <= PB122_MAX) nbMulMax++ ;
+    nbMulMax = 2 * (nbMulMax - 1 ) ; // decomposition binaire (calculer les puissances, les sommer)
+    MinM[2] = 1 ;
+    int nm ;
+    tbCH[nxtCH].n = 1 ;
+    tbCH[nxtCH].iNext = nxtCH ;
+    nxtCH++ ;
+    for(nm=1;nm <= nbMulMax;nm++) {
+        int k ;
+        int curCH = nxtCH ;
+        for(k=antCH;k<curCH;k++) {
+            Chain122 endCH = tbCH[k] ;
+            int  iCh = k ;
+            while(1) {
+                int n = endCH.n + tbCH[iCh].n ;
+                if ((n <= PB122_MAX) && (MinM[n] == 0 || MinM[n] >= nm)) {
+                    tbCH[nxtCH].n = n ;
+                    tbCH[nxtCH++].iNext = k ;
+                    MinM[n] = nm ;
+                }
+                if(iCh) {
+                    iCh = tbCH[iCh].iNext ;
+                } else {
+                    break ;
+                }
+            } ;
+        }
+        antCH = curCH ;
+    }
+    int i,sumM = 0 ;
+    for(i=1;i<=PB122_MAX;i++) sumM +=  MinM[i] ;
+    free(tbCH);
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum([1 %d]=%d, %d nodes\n",pbR->ident,PB122_MAX,sumM,nxtCH) ;
+    sprintf(pbR->strRes,"%d",sumM) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
