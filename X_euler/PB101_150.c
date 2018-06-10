@@ -1342,8 +1342,8 @@ int PB121(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB122_MAX   20000
-#define PB122_NBCHAIN   1000000000
+#define PB122_MAX   10000
+#define PB122_NBCHAIN   100000000
 typedef struct Chain122 {
     u_int32_t   n ;
     u_int32_t   iNext ;
@@ -1358,15 +1358,17 @@ int PB122(PB_RESULT *pbR) {
     int nxtCH = 0 ;
     int antCH = 0 ;
     int nbMulMax = 1 ;
+    int nbFind = 0 ;
     memset(MinM,0,sizeof(MinM)) ;
     while((1<<nbMulMax) <= PB122_MAX) nbMulMax++ ;
     nbMulMax = 2 * (nbMulMax - 1 ) ; // decomposition binaire (calculer les puissances, les sommer)
     MinM[2] = 1 ;
+    nbFind = 2 ;
     int nm ;
     tbCH[nxtCH].n = 1 ;
     tbCH[nxtCH].iNext = nxtCH ;
     nxtCH++ ;
-    for(nm=1;nm <= nbMulMax;nm++) {
+    for(nm=1;nbFind < PB122_MAX;nm++) {
         int k ;
         int curCH = nxtCH ;
         for(k=antCH;k<curCH;k++) {
@@ -1377,7 +1379,10 @@ int PB122(PB_RESULT *pbR) {
                 if ((n <= PB122_MAX) && (MinM[n] == 0 || MinM[n] >= nm)) {
                     tbCH[nxtCH].n = n ;
                     tbCH[nxtCH++].iNext = k ;
-                    MinM[n] = nm ;
+                    if(MinM[n] == 0) {
+                        MinM[n] = nm ;
+                        nbFind++ ;
+                    }
                 }
                 if(iCh) {
                     iCh = tbCH[iCh].iNext ;
@@ -1386,6 +1391,7 @@ int PB122(PB_RESULT *pbR) {
                 }
             } ;
         }
+        printf("%d,%d ",nxtCH,nbFind) ;
         antCH = curCH ;
     }
     int i,sumM = 0 ;
