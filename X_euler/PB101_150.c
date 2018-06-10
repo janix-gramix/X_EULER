@@ -1342,8 +1342,9 @@ int PB121(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB122_MAX   10000
+#define PB122_MAX   200
 #define PB122_NBCHAIN   100000000
+
 typedef struct Chain122 {
     u_int32_t   n ;
     u_int32_t   iNext ;
@@ -1396,6 +1397,98 @@ int PB122(PB_RESULT *pbR) {
     }
     int i,sumM = 0 ;
     for(i=1;i<=PB122_MAX;i++) sumM +=  MinM[i] ;
+    free(tbCH);
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum([1 %d]=%d, %d nodes\n",pbR->ident,PB122_MAX,sumM,nxtCH) ;
+    sprintf(pbR->strRes,"%d",sumM) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+typedef struct Min122a {
+    u_int32_t min ;
+    u_int32_t iChain ;
+} Min122a ;
+
+typedef struct Chain122a {
+    u_int32_t   n ;
+    u_int32_t   iNextChain ;
+    
+} Chain122a ;
+int PB122a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int SumR = 0 ;
+    
+    Chain122a * tbCH = malloc(sizeof(tbCH[0])*PB122_NBCHAIN) ;
+    Min122a MinM[PB122_MAX+1] ;
+    int newVal[PB122_MAX+1] ;
+    int nxtBrother[30] ;
+    int nxtCH = 0 ;
+    int nxtVal = 0 ;
+    int antVal = 0 ;
+    int nbMulMax = 1 ;
+    int nbFind = 0 ;
+    memset(MinM,0,sizeof(MinM)) ;
+    while((1<<nbMulMax) <= PB122_MAX) nbMulMax++ ;
+    nbMulMax = 2 * (nbMulMax - 1 ) ; // decomposition binaire (calculer les puissances, les sommer)
+    MinM[1].min = 0 ;
+    MinM[1].iChain =nxtCH ;
+    tbCH[nxtCH].n = 0 ;
+    tbCH[nxtCH++].iNextChain = 0 ;
+    MinM[2].min = 1 ;
+    MinM[2].iChain =nxtCH ;
+    tbCH[nxtCH].n = 1 ;
+    tbCH[nxtCH++].iNextChain = 0 ;
+    nbFind = 2 ;
+    newVal[nxtVal++] = 2 ;
+    int nm ;
+    for(nm=2;nbFind < PB122_MAX;nm++) {
+        int k ;
+        int curVal = nxtVal ;
+        for(k=antVal;k<curVal;k++) {
+            int n = newVal[k] ;
+            Min122a minV = MinM[newVal[k]] ;
+            int  iCh = minV.iChain ;
+            int m = n ;
+            int is = 0 ;
+            nxtBrother[is++] = tbCH[iCh].iNextChain ;
+            while(1) {
+                int n1 = n + m ;
+                if ((n1 <= PB122_MAX) && (MinM[n1].min == 0 || MinM[n1].min == nm)) {
+                    tbCH[nxtCH].n = n ;
+                    if(MinM[n1].min == 0) {
+                        printf("+%d->[n%d(%d)->b0] ",n1,n,nxtCH);
+                        newVal[nxtVal++] = n1 ;
+                        MinM[n1].min = nm ;
+                        MinM[n1].iChain = nxtCH ;
+                        tbCH[nxtCH++].iNextChain = 0 ;
+                        nbFind++ ;
+                    } else {
+                        printf("I%d->[n%d(%d)->b%d] ",n1,n,nxtCH,MinM[n1].iChain);
+                        tbCH[nxtCH].iNextChain = MinM[n1].iChain ;
+                        MinM[n1].iChain = nxtCH++ ;
+                    }
+                }
+                if(tbCH[iCh].n) {
+                    m = tbCH[iCh].n ;
+                    iCh = MinM[tbCH[iCh].n].iChain ;
+                    nxtBrother[is++] = tbCH[iCh].iNextChain ;
+                } else {
+                    while(--is>=0 && nxtBrother[is] == 0) ;
+                    if (is < 0 ) break ;
+                    iCh = nxtBrother[is] ;
+                    m = tbCH[iCh].n ;
+                    nxtBrother[is++] = tbCH[iCh].iNextChain ;
+                    iCh = MinM[tbCH[iCh].n].iChain ;
+ //                   printf("\nB{is%d}->[m%d->%d] ",is,m,iCh);
+                }
+            }
+        }
+        printf("\n%d,%d\n",nxtVal,nbFind) ;
+        antVal = curVal ;
+    }
+    int i,sumM = 0 ;
+    for(i=1;i<=PB122_MAX;i++) sumM +=  MinM[i].min ;
     free(tbCH);
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum([1 %d]=%d, %d nodes\n",pbR->ident,PB122_MAX,sumM,nxtCH) ;
     sprintf(pbR->strRes,"%d",sumM) ;
