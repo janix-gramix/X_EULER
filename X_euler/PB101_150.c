@@ -1343,8 +1343,9 @@ int PB121(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// #define PB122_MAX   630
 #define PB122_MAX   20000
-#define PB122_NBCHAIN   1000000000
+#define PB122_NBCHAIN   2000000000
 #define PB122_CHK 1
 typedef struct Chain122 {
     u_int32_t   n ;
@@ -1376,13 +1377,20 @@ int PB122(PB_RESULT *pbR) {
             Chain122 endCH = tbCH[k] ;
             int  iCh = k ;
             while(1) {
-                int n = endCH.n + tbCH[iCh].n ;
+                 int n = endCH.n + tbCH[iCh].n ;
                 if ((n <= PB122_MAX) && (MinM[n] == 0 || MinM[n] >= nm)) {
+ //                   printf("(%d->%d)",n,endCH.n) ;
                     tbCH[nxtCH].n = n ;
                     tbCH[nxtCH++].antCh = k ;
                     if(MinM[n] == 0) {
                         MinM[n] = nm ;
                         nbFind++ ;
+                    }
+                    if(iCh==0 && endCH.antCh > 0) {
+                        tbCH[nxtCH].n = endCH.n - tbCH[endCH.antCh].n +1 ;
+                        tbCH[nxtCH++].antCh =  tbCH[endCH.antCh].antCh ;
+                        tbCH[nxtCH].n = n ;
+                        tbCH[nxtCH].antCh = nxtCH-1 ; nxtCH++ ;
                     }
                 }
                 if(iCh) {
@@ -1424,9 +1432,11 @@ int PB122(PB_RESULT *pbR) {
 int PB122a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     Chain122 tbCH[30] ;
+    int isDeltaOne[30] ;
     u_int8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
+    int iOut= 0 ;
     memset(MinM,0,sizeof(MinM)) ;
     while((1<<nbMulMax) <= PB122_MAX) nbMulMax++ ;
 //    nbMulMax = 2 * (nbMulMax - 1 )-1 ; // decomposition binaire (calculer les puissances, les sommer)
@@ -1437,11 +1447,32 @@ int PB122a(PB_RESULT *pbR) {
         tbCH[is].n = 1 ;
         tbCH[is].antCh = 1 ;
         while(is > 0) {
-            while ((( is>=nbMulMax) || (tbCH[is].antCh < 1)  ) && (--is > 0)) ;
+ //           if(is > 2 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
+ //           while ((( is>=nbMulMax) || (tbCH[is].antCh < 1)  ) && (--is > 0)) ;
+            while(is > 0) {
+                if(is>=nbMulMax) { is-- ; continue ;}
+                if(isDeltaOne[is] ) {
+                    isDeltaOne[is] = 0 ;
+//                    if (tbCH[is].n > tbCH[is-1].n)
+                    {
+                        tbCH[is].n -= tbCH[is-1].n - 1 ;
+                        tbCH[is].antCh = is - 1 ;
+                        break ;
+                    }
+                }
+ 
+                if(tbCH[is].antCh < 1) { is-- ; continue; }
+                else { break ; }
+                
+            }
+            
+            
             if(is > 0 ) {
                 int n = tbCH[is].n + tbCH[tbCH[is].antCh].n ;
-    //            printf("%d(%d)=%d+%d ",n,is,tbCH[is].n,tbCH[tbCH[is].antCh].n) ;
+                
+ //               iOut++ ; printf("%d(%d)=%d+%d%c",n,is,tbCH[is].n,tbCH[tbCH[is].antCh].n,(iOut & 7) ? ' ' : '\n') ;
                 tbCH[is].antCh-- ;
+//                isDeltaOne[is] = 0 ;
                 if(n <= PB122_MAX) {
                     if(MinM[n] == 0 || MinM[n] >= is ) {
                         if(MinM[n] == 0) {
@@ -1453,6 +1484,12 @@ int PB122a(PB_RESULT *pbR) {
                         }
                         MinM[n] = is ;
                         if(n < PB122_MAX){
+                            if(is > 2 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
+                                isDeltaOne[is] = 1 ;
+//                                tbCH[is].n = n - tbCH[is-1].n ;
+//                                tbCH[is].antCh = is-1;
+                            }
+                            
                             tbCH[++is].n = n ;
                             tbCH[is].antCh = is ;
                         }
