@@ -1439,7 +1439,8 @@ int PB122a(PB_RESULT *pbR) {
     int iOut= 0 ;
     memset(MinM,0,sizeof(MinM)) ;
     while((1<<nbMulMax) <= PB122_MAX) nbMulMax++ ;
-//    nbMulMax = 2 * (nbMulMax - 1 )-1 ; // decomposition binaire (calculer les puissances, les sommer)
+    nbMulMax += 2 ;
+    //    nbMulMax = 2 * (nbMulMax - 1 )-1 ; // decomposition binaire (calculer les puissances, les sommer)
     MinM[2] = 1 ;
     nbFind = 2 ;
     for(;nbFind<PB122_MAX;nbMulMax++) {
@@ -1447,52 +1448,36 @@ int PB122a(PB_RESULT *pbR) {
         tbCH[is].n = 1 ;
         tbCH[is].antCh = 1 ;
         while(is > 0) {
- //           if(is > 2 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
- //           while ((( is>=nbMulMax) || (tbCH[is].antCh < 1)  ) && (--is > 0)) ;
-            while(is > 0) {
-                if(is>=nbMulMax) { is-- ; continue ;}
-                if(isDeltaOne[is] ) {
-                    isDeltaOne[is] = 0 ;
-//                    if (tbCH[is].n > tbCH[is-1].n)
-                    {
-                        tbCH[is].n -= tbCH[is-1].n - 1 ;
-                        tbCH[is].antCh = is - 1 ;
-                        break ;
-                    }
-                }
+           if(is>=nbMulMax) { is-- ; continue ;}
+           if(isDeltaOne[is] )
+           {
+                isDeltaOne[is] = 0 ;
+                tbCH[is].n -= tbCH[is-1].n - 1 ;
+                tbCH[is].antCh = is - 1 ;
+           } else
  
-                if(tbCH[is].antCh < 1) { is-- ; continue; }
-                else { break ; }
-                
-            }
-            
-            
-            if(is > 0 ) {
-                int n = tbCH[is].n + tbCH[tbCH[is].antCh].n ;
-                
+           if(tbCH[is].antCh < 1) {
+               is-- ; continue;
+           }
+          int n = tbCH[is].n + tbCH[tbCH[is].antCh].n ;
  //               iOut++ ; printf("%d(%d)=%d+%d%c",n,is,tbCH[is].n,tbCH[tbCH[is].antCh].n,(iOut & 7) ? ' ' : '\n') ;
-                tbCH[is].antCh-- ;
-//                isDeltaOne[is] = 0 ;
-                if(n <= PB122_MAX) {
-                    if(MinM[n] == 0 || MinM[n] >= is ) {
-                        if(MinM[n] == 0) {
-                            nbFind++ ;
-                            if(nbFind >= PB122_MAX) {
-                                MinM[n] = is ;
-                                break ;
-                            }
+          tbCH[is].antCh-- ;
+            if(n <= PB122_MAX) {
+                if(MinM[n] == 0 || MinM[n] >= is ) {
+                    if(MinM[n] == 0) {
+                        nbFind++ ;
+                        if(nbFind >= PB122_MAX) {
+                            MinM[n] = is ;
+                            break ;
                         }
-                        MinM[n] = is ;
-                        if(n < PB122_MAX){
-                            if(is > 2 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
-                                isDeltaOne[is] = 1 ;
-//                                tbCH[is].n = n - tbCH[is-1].n ;
-//                                tbCH[is].antCh = is-1;
-                            }
-                            
-                            tbCH[++is].n = n ;
-                            tbCH[is].antCh = is ;
+                    }
+                    MinM[n] = is ;
+                    if(n < PB122_MAX){
+                        if(is > 2 && is < nbMulMax-1 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
+                            isDeltaOne[is] = 1 ;
                         }
+                        tbCH[++is].n = n ;
+                        tbCH[is].antCh = is ;
                     }
                 }
             }
