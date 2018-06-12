@@ -1343,7 +1343,7 @@ int PB121(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB122_MAX   20000
+#define PB122_MAX   100000
 // #define PB122_MAX   15000
 #define PB122_NBCHAIN   2000000000
 #define PB122_CHK 1
@@ -1515,6 +1515,7 @@ int PB122a(PB_RESULT *pbR) {
 
 typedef struct Chain122b {
     u_int32_t   n ;
+    u_int32_t   n2 ;
     u_int32_t   antCh1 ;
     u_int32_t   antCh2 ;
 } Chain122b ;
@@ -1542,28 +1543,33 @@ int PB122b(PB_RESULT *pbR) {
         tbCH[is].n = 1 ;
         tbCH[is].antCh1 = is ;
         tbCH[is].antCh2 = 0 ;
+        tbCH[is].n2 = tbCH[is].n ;
         while(is > 0) {
             if(is>=nbMulMax) { is-- ; continue ;}
             if(tbCH[is].antCh1 < tbCH[is].antCh2 + 1) {
-                if(tbCH[is].antCh2 < is-1 ) {
+ //               if(tbCH[is].antCh2 < is-1 ) {
+                if(tbCH[is].antCh2 < is-1 && tbCH[is].antCh2 < 2 ) {
+//                if(tbCH[is].antCh2 < is-1 && tbCH[is].antCh2 < 100 ) {
                     tbCH[is].antCh1 = is ;
                     tbCH[is].antCh2++ ;
+                    tbCH[is].n2 = tbCH[is].n + tbCH[tbCH[is].antCh2].n  ;
                 } else {
                     is-- ; continue;
                 }
             }
-            int n = tbCH[is].n+tbCH[tbCH[is].antCh1].n + tbCH[tbCH[is].antCh2].n ;
+//            int n = tbCH[is].n+tbCH[tbCH[is].antCh1].n + tbCH[tbCH[is].antCh2].n ;
+            int n = tbCH[is].n2 + tbCH[tbCH[is].antCh1].n  ;
 //            iOut++ ; if(n<=PB122_MAX)printf("%d(%d)=%d+%d%c",n,is,tbCH[tbCH[is].antCh1].n,tbCH[tbCH[is].antCh2].n,(iOut & 7) ? ' ' : '\n') ;
             tbCH[is].antCh1-- ;
             if(n <= PB122_MAX) {
                 if(MinM[n] == 0 || (MinM[n] >= is && tbCH[is].antCh2 == 0) || MinM[n] >= is+1  ) {
                     if(MinM[n] == 0 ) {
                         nbFind++ ;
-                        if(nbFind >= PB122_MAX) {
+ /*                       if(nbFind >= PB122_MAX) {
                             MinM[n] = (tbCH[is].antCh2 == 0) ? is : is+1 ;
                             break ;
                         }
-                    }
+ */                   }
                     if(tbCH[is].antCh2 == 0) {
                         MinM[n] = is ;
                     } else {
@@ -1574,6 +1580,7 @@ int PB122b(PB_RESULT *pbR) {
                             tbCH[++is].n = n ;
                             tbCH[is].antCh1 = is ;
                             tbCH[is].antCh2 = 0 ;
+                            tbCH[is].n2 = n ;
                         } else {
                             tbCH[is+1].n = tbCH[tbCH[is].antCh1+1].n + tbCH[tbCH[is].antCh2].n ;
                             tbCH[is+1].antCh1 = is ;
@@ -1582,6 +1589,7 @@ int PB122b(PB_RESULT *pbR) {
                             
                             tbCH[++is].n = n ;
                             tbCH[is].antCh1 = is ;
+                            tbCH[is].n2 = n ;
                             tbCH[is].antCh2 = 0 ;
                         }
                     }
