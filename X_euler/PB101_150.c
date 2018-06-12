@@ -1453,13 +1453,6 @@ int PB122a(PB_RESULT *pbR) {
         tbCH[is].antCh = 1 ;
         while(is > 0) {
            if(is>=nbMulMax) { is-- ; continue ;}
-/*           if(isDeltaOne[is] )
-           {
-                isDeltaOne[is] = 0 ;
-                tbCH[is].n -= tbCH[is-1].n - 1 ;
-                tbCH[is].antCh = is - 1 ;
-           } else
-*/
            if(tbCH[is].antCh < 1) {
                is-- ; continue;
            }
@@ -1468,7 +1461,6 @@ int PB122a(PB_RESULT *pbR) {
           tbCH[is].antCh-- ;
             if(n <= PB122_MAX) {
                if(MinM[n] == 0 || MinM[n] >= is ) {
-//                if(MinM[n] >= is ) {
                     if(MinM[n] == 0) {
                         nbFind++ ;
                         if(nbFind >= PB122_MAX) {
@@ -1478,10 +1470,6 @@ int PB122a(PB_RESULT *pbR) {
                     }
                     MinM[n] = is ;
                     if(n < PB122_MAX){
-/*                        if(is > 2 && is < nbMulMax-1 && tbCH[is].antCh == 0 && (tbCH[is].n > tbCH[is-1].n) ) {
-                            isDeltaOne[is] = 1 ;
-                        }
-*/
                         tbCH[++is].n = n ;
                         tbCH[is].antCh = is ;
                     }
@@ -1536,7 +1524,49 @@ int PB122b(PB_RESULT *pbR) {
     MinM[1] = 0 ;
     MinM[2] = 1 ;
     nbFind = 2 ;
+    
+    MinM[1] = 0 ;
+    MinM[2] = 1 ;
+    nbFind = 2 ;
     for(;nbFind<PB122_MAX;nbMulMax++) {
+        int is = 1 ;
+        tbCH[is].n = 1 ;
+        tbCH[is].antCh1 = 1 ;
+        while(is > 0) {
+            if(is>=nbMulMax) { is-- ; continue ;}
+            if(tbCH[is].antCh1 < 1) {
+                is-- ; continue;
+            }
+            int n = tbCH[is].n + tbCH[tbCH[is].antCh1].n ;
+            //          iOut++ ; printf("%d(%d)=%d+%d%c",n,is,tbCH[is].n,tbCH[tbCH[is].antCh].n,(iOut & 7) ? ' ' : '\n') ;
+            tbCH[is].antCh1-- ;
+            if(n <= PB122_MAX) {
+                if(MinM[n] == 0 || MinM[n] >= is ) {
+                    if(MinM[n] == 0) {
+                        nbFind++ ;
+                        if(nbFind >= PB122_MAX) {
+                            MinM[n] = is ;
+                            break ;
+                        }
+                    }
+                    MinM[n] = is ;
+                    if(n < PB122_MAX){
+                        tbCH[++is].n = n ;
+                        tbCH[is].antCh1 = is ;
+                    }
+                }
+            }
+        }
+        printf("%d->%d ",nbMulMax,nbFind);
+    }
+
+    
+    
+    
+    nbMulMax -=2 ;
+    
+//    for(;nbFind<PB122_MAX;nbMulMax++)
+    {
         tbCH[0].n = 0 ;
         tbCH[0].antCh1 = tbCH[0].antCh2 = 0 ;
         int is = 1 ;
@@ -1547,8 +1577,8 @@ int PB122b(PB_RESULT *pbR) {
         while(is > 0) {
             if(is>=nbMulMax) { is-- ; continue ;}
             if(tbCH[is].antCh1 < tbCH[is].antCh2 + 1) {
- //               if(tbCH[is].antCh2 < is-1 ) {
-                if(tbCH[is].antCh2 < is-1 && tbCH[is].antCh2 < 2 ) {
+                if(tbCH[is].antCh2 < is-1 ) {
+//                if(tbCH[is].antCh2 < is-1 && tbCH[is].antCh2 < 2 ) {
 //                if(tbCH[is].antCh2 < is-1 && tbCH[is].antCh2 < 100 ) {
                     tbCH[is].antCh1 = is ;
                     tbCH[is].antCh2++ ;
@@ -1562,18 +1592,21 @@ int PB122b(PB_RESULT *pbR) {
 //            iOut++ ; if(n<=PB122_MAX)printf("%d(%d)=%d+%d%c",n,is,tbCH[tbCH[is].antCh1].n,tbCH[tbCH[is].antCh2].n,(iOut & 7) ? ' ' : '\n') ;
             tbCH[is].antCh1-- ;
             if(n <= PB122_MAX) {
-                if(MinM[n] == 0 || (MinM[n] >= is && tbCH[is].antCh2 == 0) || MinM[n] >= is+1  ) {
-                    if(MinM[n] == 0 ) {
-                        nbFind++ ;
- /*                       if(nbFind >= PB122_MAX) {
-                            MinM[n] = (tbCH[is].antCh2 == 0) ? is : is+1 ;
-                            break ;
-                        }
- */                   }
+                if((MinM[n] >= is && tbCH[is].antCh2 == 0) || MinM[n] >= is+1  ) {
                     if(tbCH[is].antCh2 == 0) {
-                        MinM[n] = is ;
+                        if(is < MinM[n]) {
+                            MinM[n] = is ;
+                            printf("\n%d(%d)->",n,is);
+                            int j ;
+                            for(j=is;j>0;j--) printf("%d ",tbCH[j].n) ;
+                        }
                     } else {
-                        MinM[n] = is+1 ;
+                        if(is+1 < MinM[n]) {
+                            MinM[n] = is+1 ;
+                            printf("\n%d(%d)->*%d %d ",n,is+1,tbCH[tbCH[is].antCh1+1].n, tbCH[tbCH[is].antCh2].n );
+                            int j ;
+                            for(j=is;j>0;j--) printf("%d ",tbCH[j].n) ;
+                        }
                     }
                     if(n < PB122_MAX){
                         if(tbCH[is].antCh2 == 0) {
