@@ -1809,3 +1809,203 @@ int PB123(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%d",nbPrime) ;
     return 1 ;
 }
+
+#define PB126_NB    1000
+#define PB126_MAXV 10000
+
+//
+// la Taille de la couche n est
+// L(n) = 2 * S2 + 4 * (n-1)(S1 + n-2)
+// Avec S1 = a+b+c et S2 = a*b + b*c + a*c
+
+int PB126(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int minLayerNB = PB126_MAXV ;
+    int * histLayer = calloc(PB126_MAXV,sizeof(histLayer[0])) ;
+    int a=1,b=1,c=1 ;
+    int layer ;
+
+    int S2 ;
+    // parcours a>=b>=c
+    // on controle a chaque etape que S2=L(1) est inferieur a PB126_MAXV
+    for(a=1;2*a+1<PB126_MAXV;a++) {
+        for(b=1;b<=a && (a*b+a+b < PB126_MAXV);b++) {
+            for(c=1;c<=b && ((S2=a*b+b*c+a*c)<PB126_MAXV);c++){
+                int S1 = a+b+c ;
+                int n ;
+                for(n=1;(layer = S2 + 2*(n-1)*(S1+n-2) ) <PB126_MAXV;n++) {
+                    histLayer[layer]++ ;
+                }                
+            }
+        }
+    }
+    for(layer=6;layer < PB126_MAXV;layer++) {
+        if(histLayer[layer]== PB126_NB) break ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+/*    {
+        int i ;
+        for(i=10;i<PB126_MAXV;i++) printf("%c%d",((i % 10) == 0) ? '\n':' ',histLayer[i]);
+    }
+*/    if(layer < PB126_MAXV){
+        sprintf(pbR->strRes,"%d",layer*2) ;
+        return 1 ;
+    } else {
+        return 0 ;
+    }
+}
+
+#define PB129_NB    1000000
+#define PB129_PRIME 1100
+// on joue sur le fait que R(n) = (10**n -1) / 9
+//  si n % 3 != 0  et n premier avec 10.
+//      Si n=p premier On a 10**(p-1)=1 Mod[p]
+//      Il reste a verifier qu'il ny a pas un diviseur d de p-1 tel que 10**d=1 Mod[p]
+//      Si n pas premier n=p1*p2*..
+//      Alors 10**((p1-1)*(p2-2).. ) =1 Mod[n] et (p1-1)*(p2-1)... < 10000000 donc ne marche pas
+// si n % 3 == 0
+//      Si n/3-1 est divisible par 3 alors 10**(n/3-1)=1 Mod[3* (n/3)] ne marche pas
+//      si n/3 pas premier ramene au cas 10**(3*(p1-1)*(p2-2).. ) =1 Mod[3*(n/3)]
+//      Si n/3 est  premier on est ramene a peu pres au cas précédent
+//          avac 10**[3*(n/3-1)] = 1 Mod[3*n/3] qui convient car 3*(n/3-1) tres proche de n
+
+int PB129(PB_RESULT *pbR) {
+    int64_t tbPow[32] ;
+    int maxPow ;
+    int isMult3=0 ;
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB129_PRIME)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int n,n0;
+    for(n0=(PB129_NB & 0x7ffffffe) + 1 ;;n0 += 2)  { // n impair
+        int i,p ;
+        isMult3=0 ;
+        if((n0 % 3) == 0) {
+            isMult3= 1 ;
+            n = n0/3 ;
+            if(((n-1) % 3) == 0 ) continue ;
+        } else {
+            n = n0 ;
+        }
+        for(i=0;p=tbPrime[i], p*p <=n ;i++) {
+            if( (n%p)==0) break ;
+        }
+        if(p*p <=n ) continue ;
+        maxPow = 0 ;
+        tbPow[maxPow] = 10 ;
+        if((n % 5) == 0  ) continue ;
+        int d1, n1=n-1 ;
+        int64_t pd1,pd2 ;
+        for(d1=2;d1*d1<=n1;d1++) {
+            if((n1 % d1) == 0) {
+                int d2 = n1 / d1 ;
+                int k ;
+                for(k=0;(1<<k) <= d2;k++) ;
+                k-- ;
+                while(maxPow++< k) {
+                    tbPow[maxPow] =  (tbPow[maxPow-1]* tbPow[maxPow-1]) % n ;
+                }
+                pd1=1 ;
+                pd2=1 ;
+                while(k>=0) {
+                    if((1<<k) & d1) pd1 = (pd1 * tbPow[k]) % n ;
+                    if((1<<k) & d2) pd2 = (pd2 * tbPow[k]) % n ;
+                    k--;
+                }
+                if(pd1==1 || pd2==1) {
+                 break ;
+                }
+            }
+        }
+        if(d1*d1 > n1) {
+            break ;
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(n0 <  PB129_PRIME * PB129_PRIME) {
+        if(isMult3) n *= 3  ;
+        sprintf(pbR->strRes,"%d",n) ;
+        return 1 ;
+    } else {
+        return 0 ;
+    }
+}
+
+// return 10**pow mod[n]
+// on suppose que pow est pair
+int pb130_10mod(int pow,int n) {
+    int k,ln2 ;
+    int64_t tbPow[32] ;
+    for(ln2=0;(1<<ln2) <= pow;ln2++) ;
+    ln2-- ;
+    k = 0 ;
+    tbPow[k] = 10 ;
+    int p10 = 1 ; // car pow est pair
+    while(k++ < ln2) {
+        tbPow[k] =  (tbPow[k-1]* tbPow[k-1]) % n ;
+        if( (pow & (1<<k)) != 0) p10 = ( p10 * tbPow[k] ) % n ;
+    }
+    return p10 ;
+}
+
+#define PB130_PRIME 100000
+#define PB130_NB  2000
+// on peut eliminer les multiples de 3
+// si n = 3 * k alors n-1 pas multiple de 3 hors A[n] est multiple de 3.
+// Donc on prend n=p1**k1 *p2**k2 *.. pj**kj (non premier avec pi != 2,3,5)
+// A[n] est un diviseur de Q = PPCM { (p1-1)**k1 , (p2-2)**k2 , ... (pj-1)**kj }
+// puis il faut on verifie que A[n] divise n-1, pour cela il suffit de verifier
+// que 10** PGCD(Q,n-1) = 1 mod[n] ou encore pour 1..j que 10 * PGCD( (pi-1)**ki , n-1 ) = 1 mod[pi**ki]
+int PB130(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB130_PRIME)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int n ,nbfound=0 ;
+    uint64_t sum = 0 ;
+// debut par 49 car avant multiple de 3, ou 5 ou premier
+    for(n=91 ;;n += 2)  { // n impair
+        int i,p ;
+        if( ((n % 3) == 0) || ((n % 5) == 0)) continue ;
+        int n0 = n ;
+        // on saute 2,3,5
+        for(i=3;p=tbPrime[i], p*p <=n ;i++) {
+            int pe,p1 ;
+            for(p1= 1 ,pe= 1; (n0 % (pe*p))== 0; p1 *= p-1 , pe *=p  ) ;
+            if(p1 > 1 ) {
+                n0 /= pe ;
+                int g = PGCD(n-1,p1) ;
+                if( pb130_10mod(g,pe)!=1) {
+                    n0 = n ; break ;
+                } else if(n0==1) break ;
+                
+            }
+            
+        }
+        if(n0==1) {
+            nbfound++ ; sum += n ;
+//            if(pbR->isVerbose) fprintf(stdout," %d",n)  ;
+        } else if(n0 < n ) { // dernier diviseur
+        
+            int g = PGCD(n-1,n0-1) ;
+            if( pb130_10mod(g,n0) == 1) {
+                nbfound++ ;
+                sum += n ;
+ //               if(pbR->isVerbose) fprintf(stdout," %d",n)  ;
+            }
+        }
+        if(nbfound>=PB130_NB) break ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Repunit[%d]=%d Sum=%lld\n",pbR->ident,PB130_NB,n,sum) ;
+
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",sum) ;
+    return 1 ;
+}
