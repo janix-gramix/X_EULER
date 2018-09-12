@@ -713,6 +713,32 @@ int PB016(PB_RESULT *pbR) {
     return 1 ;
 }
 
+int PB017(PB_RESULT *pbR) {
+    char * digits[9] = { "one" , "two", "three" , "four", "five", "six", "seven" , "eight", "nine" } ;
+    char * d11_19[9] = { "eleven", "twelve" , "thirteen" , "fourteen" , "fifteen" , "sixteen" , "seventeen" , "eighteen" , "nineteen" } ;
+    char * d10[8] = { "twenty", "thirty", "forty", "fifty", "sixty", "seventy" , "eighty" , "ninety" } ;
+    pbR->nbClock = clock()  ;
+    int len,lenDigits,lenD11_19, lenD10 ;
+    int i ;
+    for(i=0,lenDigits=0;i<9;i++) lenDigits += strlen(digits[i]) ;
+    for(i=0,lenD11_19=0;i<9;i++) lenD11_19 += strlen(d11_19[i]) ;
+    for(i=0,lenD10=0;i<8;i++) lenD10 += strlen(d10[i]) ;
+    
+    len =
+        lenDigits // 1..9
+        + strlen("ten") // 10
+        + lenD11_19 // 11..19
+        + lenD10 * 10 + 8 * lenDigits // 20 21 ..29 30 31 .. 99
+        + 100 * lenDigits + 900 * strlen("hundred") + 891 * strlen("and")
+        + 9 * ( lenDigits + strlen("ten") + lenD11_19 + lenD10 * 10 + 8 * lenDigits  )
+        + strlen("one" ) + strlen("thousand")
+    ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Len=%d\n",pbR->ident,len);
+    sprintf(pbR->strRes,"%d",len);
+     return 1;
+}
+
 
 #define PB018_SIZE  15
 #define PB018_TSIZE ((PB018_SIZE*(PB018_SIZE+1))/2)
@@ -747,6 +773,33 @@ int PB018(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%d",vals[0]) ;
     return 1 ;
 }
+
+int PB019(PB_RESULT *pbR) {
+    pbR->nbClock = clock()  ;
+    int nbSunday = 0 ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    int iy ;
+    int d0 = (1 + 365) % 7 ; // monday + 365 car 1900 non bissextile
+    for(iy=1901;iy<=2000;iy++) {
+        if(d0 == 0) nbSunday++ ; // 1 janvier
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 fevrier
+        d0 = (d0+28 +  (  ((iy & 3) == 0) ? 1 : 0 ) ) % 7  ;  if(d0 == 0) nbSunday++ ; // 1 mars
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 avril
+        d0 = (d0+30) % 7 ;  if(d0 == 0) nbSunday++ ;
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 juin
+        d0 = (d0+30) % 7 ;  if(d0 == 0) nbSunday++ ;
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 aout
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ;
+        d0 = (d0+30) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 octobre
+        d0 = (d0+31) % 7 ;  if(d0 == 0) nbSunday++ ;
+        d0 = (d0+30) % 7 ;  if(d0 == 0) nbSunday++ ; // 1 decembre
+        d0 = (d0+31) % 7 ; 
+    }
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Number of sundays=%d\n",pbR->ident,nbSunday);
+    sprintf(pbR->strRes,"%d",nbSunday);
+    return 1;
+}
+
 
 #define PB020_MAXL  (100*2)
 #define PB020_FACT   100
@@ -815,6 +868,42 @@ int PB021(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%d",S) ;
     return 1 ;
 }
+
+#include "p022_data.h"
+
+int CmpName022(const void *e1, const void *e2) {
+    static const char ** ptNames =  NULL;
+    if(ptNames== NULL) ptNames =   P022_GetData()  ;
+    int i1 = ((int *)e1)[0] ;
+    int i2 = ((int *)e2)[0] ;
+    return strcmp(ptNames[i1], ptNames[i2] );
+}
+
+int PB022(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nameOrder[p022_size] ;
+    int i;
+    for(i=0;i<p022_size;i++) {
+        nameOrder[i] = i ;
+    }
+    qsort(nameOrder,p022_size,sizeof(nameOrder[0]),CmpName022);
+    int sum = 0 ;
+    char * * ptNames =   P022_GetData()  ;
+    for(i=0;i<p022_size;i++) {
+        char * c = ptNames[nameOrder[i]] ;
+        int cost = 0 ;
+        while(*c) {
+            cost += *c++ - '@' ;
+        }
+        if(i==937) printf("%s(%d) ",ptNames[nameOrder[i]],cost) ;
+        sum += (i+1) * cost ;
+    }
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s Sum=%d\n",pbR->ident,sum) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
 
 #define PB023_MAXM  28123
 int PB023(PB_RESULT *pbR) {
