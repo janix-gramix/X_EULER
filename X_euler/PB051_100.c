@@ -2022,6 +2022,255 @@ int PB083(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB084_NBCASE    40
+#define PB084_NBFACE    6   
+#define PB084_NBITER    100
+#define JAIL_CASE   10
+#define GOTO_JAIL_CASE   30
+#define C1_CASE  11
+#define E3_CASE  24
+#define H2_CASE  39
+#define R1_CASE  5
+
+int PB084(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    double MatTr[PB084_NBCASE*PB084_NBCASE] ;
+    double DoubleDice[2*PB084_NBFACE] ;
+    double oldProb[PB084_NBCASE] , CaseProb[PB084_NBCASE] ;
+    int i,j,d,n ;
+    DoubleDice[0] = 0 ;
+    for(i=1;i<=PB084_NBFACE;i++) {
+        DoubleDice[i]=DoubleDice[2*PB084_NBFACE-i] = i / (((double)PB084_NBFACE) * PB084_NBFACE) ;
+    }
+    for(i=0;i<PB084_NBCASE*PB084_NBCASE;i++) MatTr[i] = 0 ;
+    // Dice deplacement
+    for(i=0;i<PB084_NBCASE;i++) {
+        for(d=0;d<2*PB084_NBFACE;d++) {
+            MatTr[PB084_NBCASE*i +  ( (i+PB084_NBCASE-d-1)  % PB084_NBCASE) ] = DoubleDice[d] ;
+        }
+    }
+    // correction Triple double
+    for(i=0;i<PB084_NBCASE;i++) {
+        for(j=0;j<PB084_NBCASE;j++) {
+            if(MatTr[PB084_NBCASE*i+j] > 0 && ((j+i) & 1) == 0 && j !=JAIL_CASE) {
+                MatTr[PB084_NBCASE*i+j] -= 1/(36.0*36.0) ;
+                MatTr[PB084_NBCASE*JAIL_CASE+j] += 1/(36.0*36.0) ;
+            }
+        }
+    }
+   
+     // Correction GTJ
+    for(j=0;j<PB084_NBCASE;j++) {
+        MatTr[JAIL_CASE*PB084_NBCASE+j] += MatTr[GOTO_JAIL_CASE*PB084_NBCASE+j] ;
+        MatTr[GOTO_JAIL_CASE*PB084_NBCASE+j] = 0 ;
+    }
+    // CC correction case 02, 17, 33
+    int CCcase[3] = { 2,17,33} ;
+    for(n=0;n<3;n++) {
+        int cc = CCcase[n] ;
+        for(j=0;j<PB084_NBCASE;j++) {
+            MatTr[0*PB084_NBCASE+j] += MatTr[cc*PB084_NBCASE+j] / 16.0 ;
+            MatTr[JAIL_CASE*PB084_NBCASE+j] += MatTr[cc*PB084_NBCASE+j] / 16.0 ;
+            MatTr[cc*PB084_NBCASE+j] *= 14.0/16.0 ;
+        }
+    }
+    // CH correction 7 , 22 , 36
+    int CHcase[3] = {7,22,36} ;
+    
+    for(n=0;n<3;n++) {
+        int ch = CHcase[n] ;
+        for(j=0;j<PB084_NBCASE;j++) {
+            MatTr[0*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[JAIL_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[C1_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[E3_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[H2_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[R1_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            int nextR = (n==0) ? 15 : ((n==1) ? 25 : 5 ) ;
+            MatTr[nextR*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 8.0 ;
+            int nextU = (n==1) ? 28 : 12 ;
+            MatTr[nextU*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+            MatTr[(ch-3)*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ; // goto bach 3 case
+            MatTr[ch*PB084_NBCASE+j] *= 6.0/16.0 ;
+        }
+    }
+   
+    for(i=0;i<PB084_NBCASE;i++) CaseProb[i] = 0 ;
+    CaseProb[0] = 1 ;
+    for(n=0;n<PB084_NBITER;n++) {
+        memcpy(oldProb,CaseProb,sizeof(CaseProb)) ;
+        for(i=0;i<PB084_NBCASE;i++) {
+            double sum = 0 ;
+            for(j=0;j<PB084_NBCASE;j++) {
+                sum += MatTr[PB084_NBCASE*i +j] * oldProb[j] ;
+            }
+            CaseProb[i] = sum ;
+        }
+    }
+    int best=0,best1=0,best2=0 ;
+    double prBest=0.0, prBest1=0.0, prBest2=0.0;
+    for(i=0;i<PB084_NBCASE;i++) {
+        if(CaseProb[i] > prBest) {
+            prBest2= prBest1 ; prBest1 = prBest ; prBest = CaseProb[i] ;
+            best2=best1 ; best1= best ; best = i ;
+        } else if( CaseProb[i] > prBest1) {
+            prBest2= prBest1 ; prBest1 =  CaseProb[i] ;
+            best2=best1 ; best1= i ;
+        } else if( CaseProb[i] > prBest2) {
+            prBest2=  CaseProb[i] ;
+            best2 = i ;
+        }
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s P[%02d]=%.5f P[%02d]=%.5f P[%02d]=%.5f\n"
+                               ,pbR->ident,best,prBest,best1,prBest1,best2,prBest2);
+    sprintf(pbR->strRes,"%02d%02d%02d",best,best1,best2);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+#define PB084_NBCASE_3   (PB084_NBCASE*3)
+#define IND84(di,i,dj,j)    ( ( ((di)*PB084_NBCASE+(i)) * PB084_NBCASE_3 ) + (dj)*PB084_NBCASE+(j) )
+int PB084a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    double MatTr[PB084_NBCASE_3*PB084_NBCASE_3] ;
+    double DoubleDice[2*PB084_NBFACE] ;
+    double oldProb[PB084_NBCASE_3] , CaseProb[PB084_NBCASE_3] ;
+    int i,d,di,dj,j,n ;
+    DoubleDice[0] = 0 ;
+    for(i=1;i<=PB084_NBFACE;i++) {
+        DoubleDice[i]=DoubleDice[2*PB084_NBFACE-i] = i / (((double)PB084_NBFACE) * PB084_NBFACE) ;
+    }
+    for(i=0;i<PB084_NBCASE_3*PB084_NBCASE_3;i++) MatTr[i] = 0 ;
+    // Dice deplacement
+    for(dj=0;dj<3;dj++) {
+        int di = (dj >= 2) ? 2 : dj+1 ;
+        for(j=0;j<PB084_NBCASE;j++) {
+            for(d=0;d<2*PB084_NBFACE;d++) {
+                int i = (j+d+1)  % PB084_NBCASE ;
+                MatTr[IND84(0,i,dj,j)] = DoubleDice[d] ;
+                if(d & 1) { // double possibility
+                    MatTr[IND84(0,i,dj,j)] -= 1/36.0 ;
+                    if(dj < 2) {
+                        MatTr[IND84(di,i,dj,j)] += 1/36.0 ;
+                    } else {
+                        MatTr[IND84(di,JAIL_CASE,dj,j)] += 1/36.0 ;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Correction GTJ
+    for(dj=0;dj<3;dj++) {
+        int di = (dj >= 2) ? 2 : dj+1 ;
+        for(j=0;j<PB084_NBCASE;j++) {
+            MatTr[IND84(di,JAIL_CASE,dj,j)] +=  MatTr[IND84(di,GOTO_JAIL_CASE,dj,j)];
+            MatTr[IND84(di,GOTO_JAIL_CASE,dj,j)] = 0 ;
+            MatTr[IND84(0,JAIL_CASE,dj,j)] +=  MatTr[IND84(0,GOTO_JAIL_CASE,dj,j)];
+            MatTr[IND84(0,GOTO_JAIL_CASE,dj,j)] = 0 ;
+        }
+    }
+    // CC correction case 02, 17, 33
+    int CCcase[3] = { 2,17,33} ;
+    for(n=0;n<3;n++) {
+        int cc = CCcase[n] ;
+        for(dj=0;dj<3;dj++) {
+            int di = (dj >= 2) ? 2 : dj+1 ;
+            for(j=0;j<PB084_NBCASE;j++) {
+                MatTr[IND84(di,0,dj,j)] += MatTr[IND84(di,cc,dj,j)] / 16.0 ;
+                MatTr[IND84(0,0,dj,j)] += MatTr[IND84(0,cc,dj,j)] / 16.0;
+//                MatTr[0*PB084_NBCASE+j] += MatTr[cc*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,JAIL_CASE,dj,j)] += MatTr[IND84(di,cc,dj,j)] / 16.0;
+                MatTr[IND84(0,JAIL_CASE,dj,j)] += MatTr[IND84(0,cc,dj,j)] /16.0 ;
+
+//                MatTr[JAIL_CASE*PB084_NBCASE+j] += MatTr[cc*PB084_NBCASE+j] / 16.0 ;
+
+                MatTr[IND84(di,cc,dj,j)] *= 14.0/16.0 ;
+                MatTr[IND84(0,cc,dj,j)] *= 14.0/16.0 ;
+
+//                MatTr[cc*PB084_NBCASE+j] *= 14.0/16.0 ;
+            }
+        }
+    }
+    // CH correction 7 , 22 , 36
+    int CHcase[3] = {7,22,36} ;
+    
+    for(n=0;n<3;n++) {
+        int ch = CHcase[n] ;
+        for(dj=0;dj<3;dj++) {
+            int di = (dj >= 2) ? 2 : dj+1 ;
+            for(j=0;j<PB084_NBCASE;j++) {
+                MatTr[IND84(di,0,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,0,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[0*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,JAIL_CASE,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,JAIL_CASE,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[JAIL_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,C1_CASE,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,C1_CASE,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+                
+//                MatTr[C1_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,E3_CASE,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,E3_CASE,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[E3_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,H2_CASE,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,H2_CASE,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[H2_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,R1_CASE,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,R1_CASE,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[R1_CASE*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                int nextR = (n==0) ? 15 : ((n==1) ? 25 : 5 ) ;
+                MatTr[IND84(di,nextR,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 8.0;
+                MatTr[IND84(0,nextR,dj,j)] += MatTr[IND84(0,ch,dj,j)] /8.0 ;
+//                MatTr[nextR*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 8.0 ;
+                int nextU = (n==1) ? 28 : 12 ;
+                MatTr[IND84(di,nextU,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,nextU,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[nextU*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ;
+                MatTr[IND84(di,ch-3,dj,j)] += MatTr[IND84(di,ch,dj,j)] / 16.0;
+                MatTr[IND84(0,ch-3,dj,j)] += MatTr[IND84(0,ch,dj,j)] /16.0 ;
+//                MatTr[(ch-3)*PB084_NBCASE+j] += MatTr[ch*PB084_NBCASE+j] / 16.0 ; // goto bach 3 case
+                MatTr[IND84(di,ch,dj,j)] *=  6.0 / 16.0;
+                MatTr[IND84(0,ch,dj,j)] *=  6.0 /16.0 ;
+//                MatTr[ch*PB084_NBCASE+j] *= 6.0/16.0 ;
+            }
+        }
+    }
+    
+    for(i=0;i<PB084_NBCASE_3;i++) CaseProb[i] = 0 ;
+    CaseProb[0] = 1 ;
+    for(n=0;n<PB084_NBITER;n++) {
+        memcpy(oldProb,CaseProb,sizeof(CaseProb)) ;
+        for(i=0;i<PB084_NBCASE_3;i++) {
+            double sum = 0 ;
+            for(j=0;j<PB084_NBCASE_3;j++) {
+                sum += MatTr[PB084_NBCASE_3*i +j] * oldProb[j] ;
+            }
+            CaseProb[i] = sum ;
+        }
+    }
+    int best=0,best1=0,best2=0 ;
+    double prBest=0.0, prBest1=0.0, prBest2=0.0;
+    for(i=0;i<PB084_NBCASE;i++) {
+        CaseProb[i]+= CaseProb[i+PB084_NBCASE]+CaseProb[i+2*PB084_NBCASE] ;
+        if(CaseProb[i] > prBest) {
+            prBest2= prBest1 ; prBest1 = prBest ; prBest = CaseProb[i] ;
+            best2=best1 ; best1= best ; best = i ;
+        } else if( CaseProb[i] > prBest1) {
+            prBest2= prBest1 ; prBest1 =  CaseProb[i] ;
+            best2=best1 ; best1= i ;
+        } else if( CaseProb[i] > prBest2) {
+            prBest2=  CaseProb[i] ;
+            best2 = i ;
+        }
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s P[%02d]=%.5f P[%02d]=%.5f P[%02d]=%.5f\n"
+                               ,pbR->ident,best,prBest,best1,prBest1,best2,prBest2);
+    sprintf(pbR->strRes,"%02d%02d%02d",best,best1,best2);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
 
 
 // number of rectangles is NB(n,p) = n(n+1)/2 x p(p+1)/2
