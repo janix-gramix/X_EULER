@@ -81,12 +81,14 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(015,137846528820,'Lattice paths')
     ,PROTO_CALL(016,1366,'Power digit sum')
     ,PROTO_CALL(016_gmp,1366,'Power digit sum')
- //         ,PROTO_CALL(017,XXX,'Number letter counts')
+    ,PROTO_CALL(017,21124,'Number letter counts')
     ,PROTO_CALL(018,1074,'Maximum path sum I')
-    //        ,PROTO_CALL(19,XXXX,'Counting Sundays')
+    ,PROTO_CALL(019,171,'Counting Sundays')
+
     ,PROTO_CALL(020,648,'Factorial digit sum')
     ,PROTO_CALL(021,31626,'Amicable numbers')
-    //        ,PROTO_CALL(022,XXX,'Names scores')
+    ,PROTO_CALL(022,871198282,'Names scores')
+
     ,PROTO_CALL(023,4179871,'Non-abundant sums')
     ,PROTO_CALL(024,2783915460,'Lexicographic permutations')
     ,PROTO_CALL(025,4782,'1000-digit Fibonacci number')
@@ -153,10 +155,14 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(081,427337,'Path sum: two ways')
     ,PROTO_CALL(082,260324,'Path sum: three ways')
     ,PROTO_CALL(083,425185,'Path sum: four ways')
+    //,PROTO_CALL(084,101524,'Monopoly odds')
+    //,PROTO_CALL(084a,101524,'Monopoly odds')
+    ,PROTO_CALL(084b,101524,'Monopoly odds')
     ,PROTO_CALL(085,2772,'Counting rectangles')
     ,PROTO_CALL(086,1818,'Cuboid route')
     ,PROTO_CALL(087,1097343,'Prime power triples')
     ,PROTO_CALL(088,7587457,'Product-sum numbers')
+    ,PROTO_CALL(089,743,'Roman numerals')
     ,PROTO_CALL(090,1217,'Cube digit pairs')
     ,PROTO_CALL(091,14234,'Right triangles with integer coordinates')
 //    ,PROTO_CALL(092,8581146,'Square digit chains')
@@ -168,10 +174,22 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(095,14316,'Amicable chains')
     ,PROTO_CALL(097,8739992577,'Large non-Mersenne prime')
 
+    ,PROTO_CALL(098,18769,'Anagramic squares')
+    ,PROTO_CALL(099,709,'Largest exponential')
 
     ,PROTO_CALL(101,37076114526,'Optimum polynomial')
     ,PROTO_CALL(102,228,'Triangle containment')
 
+    ,PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
+// diverse variante de moins en moins efficaces surtout pour des ordres superieurs (8,9,10 PB NP-complet)
+//    ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103e,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103c,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103b,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103a,20313839404245,'Special subset sums: optimum')
+//    ,PROTO_CALL(103,20313839404245,'Special subset sums: optimum')
+
+    
 //    PROTO_CALL(104_gmp,329468,'Pandigital Fibonacci ends')
     ,PROTO_CALL(104,329468,'Pandigital Fibonacci ends')
     ,PROTO_CALL(105,73702,'Special subset sums: testing')
@@ -189,6 +207,21 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(116,20492570929,'Red, green or blue tiles')
     ,PROTO_CALL(117,100808458960497,'Red, green, and blue tiles')
     ,PROTO_CALL(118,44680,'Pandigital prime sets')
+    ,PROTO_CALL(119,248155780267521,'Digit power sum')
+    ,PROTO_CALL(120,333082500,'Square remainders')
+    ,PROTO_CALL(121,2269,'Disc game prize fund')
+    ,PROTO_CALL(123,21035,'Prime square remainders')
+    ,PROTO_CALL(126,18522,'Cuboid layers')
+    ,PROTO_CALL(129,1000023,'Repunit divisibility')
+    ,PROTO_CALL(130,149253,'Composites with prime repunit property')
+    ,PROTO_CALL(131,173,'Prime cube partnership')
+    ,PROTO_CALL(132,843296,'Large repunit factors')
+//    ,PROTO_CALL(133,453647705,'Repunit nonfactors')
+    ,PROTO_CALL(133a,453647705,'Repunit nonfactors')
+
+
+
+
 
     // a revoir beaucoup trop lent
     //    ,{100,  PB100,756872327473,'XX')
@@ -218,16 +251,19 @@ static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
-    PROTO_CALL(626,???,'Counting Binary Matrices')
+
+    PROTO_CALL(099,709,'Largest exponential')
+
+
+//    PROTO_CALL(122c,1582,'Efficient exponentiation')
+//    ,PROTO_CALL(122b,1582,'Efficient exponentiation')
+//    ,PROTO_CALL(122a,1582,'Efficient exponentiation')
+//    ,PROTO_CALL(122,1582,'Efficient exponentiation')
+    
+//    PROTO_CALL(626,???,'Counting Binary Matrices')
+
 //     ,PROTO_CALL(625,???,'Gcd sum')
 //    ,PROTO_CALL(107,259679,'Minimal network')
-//        ,PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
-//        ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')
- //       ,PROTO_CALL(103e,20313839404245,'Special subset sums: optimum')
-//    ,PROTO_CALL(103c,20313839404245,'Special subset sums: optimum')
-//    ,PROTO_CALL(103b,20313839404245,'Special subset sums: optimum')
-//    ,PROTO_CALL(103a,20313839404245,'Special subset sums: optimum')
-//    ,PROTO_CALL(103,20313839404245,'Special subset sums: optimum')
     
 
     ,{NULL,NULL,"",""}
@@ -243,8 +279,8 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-//    char * isALL = "115" ;
-    char * isALL = NULL ;
+    char * isALL = "100" ;
+//    char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {
         Execute(&ttr,ptCall);

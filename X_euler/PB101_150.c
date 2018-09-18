@@ -1936,7 +1936,7 @@ int PB129(PB_RESULT *pbR) {
 }
 
 // return 10**pow mod[n]
-// on suppose que pow est pair
+// assumes pow is even
 int pb130_10mod(int pow,int n) {
     int k,ln2 ;
     int64_t tbPow[32] ;
@@ -1952,8 +1952,12 @@ int pb130_10mod(int pow,int n) {
     return p10 ;
 }
 
-#define PB130_PRIME 100000
-#define PB130_NB  2000
+#define PB130_PRIME 1000
+#define PB130_NB  25
+
+//#define PB130_PRIME 10000
+//#define PB130_NB  1000
+
 // on peut eliminer les multiples de 3
 // si n = 3 * k alors n-1 pas multiple de 3 hors A[n] est multiple de 3.
 // Donc on prend n=p1**k1 *p2**k2 *.. pj**kj (non premier avec pi != 2,3,5)
@@ -1971,20 +1975,20 @@ int PB130(PB_RESULT *pbR) {
     int n ,nbfound=0 ;
     uint64_t sum = 0 ;
 // debut par 49 car avant multiple de 3, ou 5 ou premier
-    for(n=91 ;;n += 2)  { // n impair
+    for(n=49 ;;n += 2)  { // n impair
         int i,p ;
         if( ((n % 3) == 0) || ((n % 5) == 0)) continue ;
         int n0 = n ;
         // on saute 2,3,5
         for(i=3;p=tbPrime[i], p*p <=n ;i++) {
-            int pe,p1 ;
-            for(p1= 1 ,pe= 1; (n0 % (pe*p))== 0; p1 *= p-1 , pe *=p  ) ;
-            if(p1 > 1 ) {
-                n0 /= pe ;
+           
+            if((n0 % p) == 0) {
+                int pe,p1 ;
+                for(p1= p-1 ,pe= p; (n0 % (pe*p))== 0; p1 *= p-1 , pe *=p  ) ;
                 int g = PGCD(n-1,p1) ;
                 if( pb130_10mod(g,pe)!=1) {
                     n0 = n ; break ;
-                } else if(n0==1) break ;
+                } else if((n0=n0/pe) ==1 ) break ;
                 
             }
             
@@ -2009,3 +2013,164 @@ int PB130(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",sum) ;
     return 1 ;
 }
+
+
+// n**3+n**2 * p = m**3
+// si pi**ai divise n (pi premier exposant ai)
+// n**2 (n+p) est divisible par pi**(2xai) car n+p premier avec pi (sauf** si pi=p)
+// donc ai doit etre multiple de 3 (puisque decomposition de m**3)
+// donc n=q**3
+// n**2 (n+p) = q**6 (q**3+p)
+// donc q**3+p = r**3 (cube) <=> p = r**3-q**3 = (r-q) (r**2+rq+q**2)
+// dc r=q+1 en remplacant => p = 3*q*(q+1) + 1
+// donc les p sont tels que : p=1 mod[3] (p-1)/3 = q*(q+1) (unicite de q)
+// **(pi=p) n = p**a0 ;   n**3+n**2 * p = q**3 p**(2.a0) ( p**a0 q**3 + p)
+// = q**3 x p**(2.a0+1)  (p**(a0-1) x q**3 + 1)
+// si a0=1 il faudrait q**3+1 egal a un cube. Impossible (cubes consecutifs)
+// si a0=1+3a il faudrait (p**3a x q**3 +1) egal a un cube.  Impossible (cubes consecutifs)
+// Les solutions sont p premier p-1 =  3 * p1 et p1 = q * (q+1)
+// Comme les n/ln(n) > sqrt(n) on va parcourir les q(q+1) et regarder si 3*q*(q+1)+1 est premier
+//#define PB131_MAX       1000000000000LL
+//#define PB131_PRIME     1000000
+
+#define PB131_MAX       1000000
+#define PB131_PRIME     1000
+int PB131(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB131_PRIME+1)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int64_t q,p1 ;
+    int nb = 0 ;
+    for(q=1;( p1=3*q*(q+1)+1) <= PB131_MAX ;q++)  { // n impair
+        int i;
+        int64_t p ;
+        // on saute 2
+        for(i=1; (i< nbPrime) && ( p=tbPrime[i], (p*p) <= p1 ) ;i++) {
+            if((p1 % p) == 0) break ;
+        }
+        if(i==nbPrime ||  p*p > p1) {
+            nb++ ;
+            //    if(pbR->isVerbose) fprintf(stdout," %d",p1)  ;
+        }
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Found %d\n",pbR->ident,nb) ;
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nb) ;
+    return 1 ;
+}
+
+
+#define PB132_POW10     1000000000
+#define PB132_MAXP      40
+#define PB132_PRIME     1000000
+int PB132(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB132_PRIME)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int32_t pow = PB132_POW10 ;
+    int32_t nbFind = 0 ;
+    int32_t sum = 0 ;
+    int i ;
+    // on saute 2,3,5
+    for(i=3;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        if( pb130_10mod(pow,p)==1) {
+            nbFind++ ;
+            sum += p ;
+//            printf("%d ",p);
+            if(nbFind >= PB132_MAXP) break ;
+        }
+        
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Sum[%d prime factors]=%d\n",pbR->ident,nbFind,sum) ;
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
+#define PB133_PRIME 100000
+
+int PB133(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB133_PRIME)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int nbFind =0 ;     int i;
+    int sum  = 2+3+5; // qui ne sont pas possible 2 et 5 trivial, 3 car ne nombre de 1 est 10**n non multiple de 3
+    // il faut sauter 2,3,5
+    for(i=3;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        int n0 = p-1 ;
+        int q ;
+        int d1 ;
+        int dmin = n0 ;
+        for(d1=2;d1*d1<=n0;d1++) {
+            if((n0 % d1) == 0) {
+                if(pb130_10mod(d1,p)==1) {
+                    dmin = d1; break ; // c'est forcement la plus petite valeur
+                }
+                int d2 = n0 / d1 ;
+                if(pb130_10mod(d2,p)==1) {
+                    dmin = d2 ;
+                }
+            }
+        }
+        // on teste maintenant si dmin admet comme facteur seulement 2 et 5
+        while((dmin & 1) == 0) dmin /= 2;
+        while((dmin % 5)==0) dmin /=  5;
+        if(dmin>1) {
+            sum += p ;
+            nbFind++ ;
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
+int PB133a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB133_PRIME)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int nbFind =0 ;     int i;
+    int sum  = 2+3+5; // 2 and 5 trivial, 3 because 10**n is not a multiple of 3
+    // begin by 3 to skip 2,3,5
+    // loop for primes
+    for(i=3;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        int n0 = p-1 ;
+        int g = 1 ;
+        while((n0 & 1) == 0 ) { n0 /= 2; g *= 2 ; }
+        while((n0 % 5) == 0 ) { n0 /= 5; g *= 5 ; }
+        if(pb130_10mod(g,p) !=1) {
+            sum += p ;
+            nbFind++ ;
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
+
