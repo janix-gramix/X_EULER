@@ -1929,6 +1929,7 @@ int PB126(PB_RESULT *pbR) {
 }
 
 #define PB127_MAXP   120000
+// #define PB127_MAXP   50
 #define PB127_MAXF  20
 int cmp127(const void * e1,const  void * e2) {
     return ((int *)e1)[0] - ((int *)e2)[0] ;
@@ -1998,35 +1999,136 @@ int PB127(PB_RESULT *pbR) {
         }
         
     }
-//  for(i=0;i<=PB127_MAXP;i++) printf("%d ",n2rad[i] );
-//    printf("\n");
-
-//    for(i=0;i<=PB127_MAXP;i++) printf("%d ",rad2n[i] );
  
+
+    //boucle externe sur b
     int a,b,c ;
     int sum = 0 ;
     for(b=3;b<PB127_MAXP;b++) {
         int rb = n2rad[b] ;
+        if(rb == b) continue ;
         int maxRa = PB127_MAXP / rb ;
         for(a=1;a<b;a++) {
            c = a+b ;
              if(c>PB127_MAXP) break ;
 
-//            if(a*b*c>PB127_MAXP) break ;
             int ra = n2rad[a] ;
             if(ra >= maxRa) continue ;
             int rc = n2rad[c] ;
             if((int64_t)ra*rb*rc < c ) {
-//                if(PGCD(ra,rb) == 1 && PGCD(ra,rc) == 1 && PGCD(rb,rc) == 1)
-                if(PGCD(ra,rb) == 1 )
-                {
-                    
- //                   printf("rad(%dx%dx%d)=%d<%d\n",a,b,c,ra*rb*rc,c) ;
+                if(n2rad[ra*rb*rc]==ra*rb*rc){
+//                       printf("rad(%dx%dx%d)=%d<%d\n",a,b,c,ra*rb*rc,c) ;
                     sum += c ;
                 }
             }
         }
     }
+    
+    Free_tablePrime(ctxP);
+    free(n2rad) ;
+    free(rad2n) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
+
+int PB127a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(Sqrt32(PB127_MAXP)+1)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    
+    int * rad2n = malloc((PB127_MAXP+1)*sizeof(rad2n[0]));
+    int32_t * n2rad = calloc(PB127_MAXP+1,sizeof(n2rad[0]));
+    int i ;
+    int rgN = 0 ;
+    rad2n[rgN++] = 1 ;
+    n2rad[1] = 1 ;
+    int indRad = 2 ;
+    //    n2rad[1] = 1 ;
+    int antRad = 1 ;
+    while (rgN <= PB127_MAXP) {
+        while(n2rad[indRad]) indRad++ ;
+        int curRad = indRad++ ;
+        //        n2rad[antRad] = curRad ; // chainage avant des rad
+        antRad = curRad ;
+        n2rad[curRad] = curRad ;
+        int fact[PB127_MAXF] ;
+        int nbFact = 0 ;
+        int val ;
+        for(i=0,val=curRad;val>1 && i < nbPrime ;i++) {
+            if((val % tbPrime[i]) == 0) {
+                fact[nbFact++] = tbPrime[i] ;
+                val /= tbPrime[i] ;
+            }
+        }
+        if(val > 1) fact[nbFact++] = val ;
+        int nbSup = 0 ;
+        rad2n[rgN + nbSup++] = curRad ;
+        for(i=0;i<nbFact;i++) {
+            int p = fact[i] ;
+            int powp ;
+            int pSup = 0 ;
+            for(powp=p; curRad*powp <= PB127_MAXP; powp *=p) {
+                int j ;
+                int maxRad = PB127_MAXP / powp ;
+                for(j=0;j<nbSup;j++) {
+                    if(rad2n[rgN+j] <= maxRad) {
+                        int n = rad2n[rgN+j]*powp ;
+                        rad2n[rgN+nbSup+pSup] = n ;
+                        n2rad[n] = curRad ;  // printf("+%d ",n) ;
+                        pSup++ ;
+                    }
+                }
+            }
+            nbSup += pSup ;
+        }
+        
+        if(rgN+nbSup < PB127_MAXP) {
+            //           rad2n[rgN] = nbSup ;
+            rgN += nbSup ;
+            continue ;
+        } else {
+            //            rad2n[rgN] = nbSup ;
+            break ;
+        }
+        
+    }
+/*
+    printf("n2rad=") ;
+    for(i=0;i<=PB127_MAXP;i++) printf("%d ",n2rad[i]) ;
+    printf("\nrad2n=") ;
+    for(i=0;i<=PB127_MAXP;i++) printf("%d ",rad2n[i]) ;
+    printf("\n");
+*/
+    
+     int a,b,c ;
+     int sum = 0 ;
+     for(c=3;c<PB127_MAXP;c++) {
+         int rc = n2rad[c] ;
+         if(rc == c) continue ;
+         int maxRa = (c & 1) ? c/(2*rc) : c/(3*rc) ;
+         int ia,ra ;
+         for(ia=0;a=rad2n[ia], (ra=n2rad[a])<=maxRa;ia++) {
+             if(2*a>=c) continue ;
+             b=c-a ;
+             int rb = n2rad[b] ;
+             if((int64_t)ra*rb*rc < c ) {
+                 if(PGCD(ra,rb) == 1 ){
+//                   printf("rad(%dx%dx%d)=%d<%d\n",a,b,c,ra*rb*rc,c) ;
+                     sum += c ;
+                 }
+             }
+         }
+     }
+    
+    
+    
     Free_tablePrime(ctxP);
     free(n2rad) ;
     free(rad2n) ;
