@@ -1810,6 +1810,79 @@ int PB123(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB124_RG    10000
+#define PB124_MAXP   100000
+#define PB124_MAXF  20
+int cmpRad(const void * e1,const  void * e2) {
+    return ((int *)e1)[0] - ((int *)e2)[0] ;
+}
+int PB124(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB124_RG+1)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int * nSup = malloc(PB124_RG*sizeof(nSup[0]));
+    u_int8_t * isFound = calloc(PB124_RG+1,sizeof(isFound[0]));
+    int i ;
+    int nAsk = 0 ;
+   int rgN = 1 ;
+    int indRad = 2 ;
+    while (rgN < PB124_RG) {
+        while(isFound[indRad]) indRad++ ;
+        int curRad = indRad ;
+        int fact[PB124_MAXF] ;
+        int nbFact = 0 ;
+        int val ;
+        for(i=0,val=curRad;val>1;i++) {
+            if((val % tbPrime[i]) == 0) {
+                fact[nbFact++] = tbPrime[i] ;
+                val /= tbPrime[i] ;
+            }
+        }
+        int nbSup = 0 ;
+        nSup[nbSup++] = curRad ; isFound[curRad] = 1 ;
+        for(i=0;i<nbFact;i++) {
+            int p = fact[i] ;
+            int powp ;
+            int pSup = 0 ;
+            for(powp=p; curRad*powp <= PB124_MAXP; powp *=p) {
+                int j ;
+                for(j=0;j<nbSup;j++) {
+                    int n = nSup[j]*powp ;
+                    if(n<=PB124_MAXP){
+                        nSup[nbSup+pSup] = n ;
+                        if(n < PB124_RG)  {
+                            isFound[n] = 1 ; // printf("+%d ",n) ;
+                        }
+                        pSup++ ;
+                    }
+                }
+            }
+            nbSup += pSup ;
+        }
+        if(rgN+nbSup < PB124_RG) {
+            rgN += nbSup ;
+            continue ;
+        } else {
+            printf("curRad=%d\n",curRad);
+            qsort(nSup,nbSup,sizeof(nSup[0]),cmpRad) ;
+            nAsk = nSup[PB124_RG-rgN-1] ;
+            break ;
+        }
+        
+    }
+    Free_tablePrime(ctxP);
+    free(isFound) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nAsk) ;
+    return 1 ;
+}
+
+
 #define PB126_NB    1000
 #define PB126_MAXV 10000
 
@@ -1854,6 +1927,115 @@ int PB126(PB_RESULT *pbR) {
         return 0 ;
     }
 }
+
+#define PB127_MAXP   120000
+#define PB127_MAXF  20
+int cmp127(const void * e1,const  void * e2) {
+    return ((int *)e1)[0] - ((int *)e2)[0] ;
+}
+int PB127(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(Sqrt32(PB127_MAXP)+1)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    
+    int * rad2n = malloc((PB127_MAXP+1)*sizeof(rad2n[0]));
+    int32_t * n2rad = calloc(PB127_MAXP+1,sizeof(n2rad[0]));
+    int i ;
+    int rgN = 0 ;
+    n2rad[1] = 1 ;
+    int indRad = 2 ;
+//    n2rad[1] = 1 ;
+        int antRad = 1 ;
+    while (rgN <= PB127_MAXP) {
+        while(n2rad[indRad]) indRad++ ;
+        int curRad = indRad++ ;
+//        n2rad[antRad] = curRad ; // chainage avant des rad
+        antRad = curRad ;
+        n2rad[curRad] = curRad ;
+        int fact[PB127_MAXF] ;
+        int nbFact = 0 ;
+        int val ;
+        for(i=0,val=curRad;val>1 && i < nbPrime ;i++) {
+            if((val % tbPrime[i]) == 0) {
+                fact[nbFact++] = tbPrime[i] ;
+                val /= tbPrime[i] ;
+            }
+        }
+        if(val > 1) fact[nbFact++] = val ;
+        int nbSup = 0 ;
+        rad2n[rgN + nbSup++] = curRad ;
+        for(i=0;i<nbFact;i++) {
+            int p = fact[i] ;
+            int powp ;
+            int pSup = 0 ;
+            for(powp=p; curRad*powp <= PB127_MAXP; powp *=p) {
+                int j ;
+                int maxRad = PB127_MAXP / powp ;
+                for(j=0;j<nbSup;j++) {
+                    if(rad2n[rgN+j] <= maxRad) {
+                        int n = rad2n[rgN+j]*powp ;
+                        rad2n[rgN+nbSup+pSup] = n ;
+                        n2rad[n] = curRad ;  // printf("+%d ",n) ;
+                        pSup++ ;
+                    }
+                }
+            }
+            nbSup += pSup ;
+        }
+        
+        if(rgN+nbSup < PB127_MAXP) {
+ //           rad2n[rgN] = nbSup ;
+            rgN += nbSup ;
+            continue ;
+        } else {
+//            rad2n[rgN] = nbSup ;
+            break ;
+        }
+        
+    }
+//  for(i=0;i<=PB127_MAXP;i++) printf("%d ",n2rad[i] );
+//    printf("\n");
+
+//    for(i=0;i<=PB127_MAXP;i++) printf("%d ",rad2n[i] );
+ 
+    int a,b,c ;
+    int sum = 0 ;
+    for(b=3;b<PB127_MAXP;b++) {
+        int rb = n2rad[b] ;
+        int maxRa = PB127_MAXP / rb ;
+        for(a=1;a<b;a++) {
+           c = a+b ;
+             if(c>PB127_MAXP) break ;
+
+//            if(a*b*c>PB127_MAXP) break ;
+            int ra = n2rad[a] ;
+            if(ra >= maxRa) continue ;
+            int rc = n2rad[c] ;
+            if((int64_t)ra*rb*rc < c ) {
+//                if(PGCD(ra,rb) == 1 && PGCD(ra,rc) == 1 && PGCD(rb,rc) == 1)
+                if(PGCD(ra,rb) == 1 )
+                {
+                    
+ //                   printf("rad(%dx%dx%d)=%d<%d\n",a,b,c,ra*rb*rc,c) ;
+                    sum += c ;
+                }
+            }
+        }
+    }
+    Free_tablePrime(ctxP);
+    free(n2rad) ;
+    free(rad2n) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",sum) ;
+    return 1 ;
+}
+
+
 
 #define PB129_NB    1000000
 #define PB129_PRIME 1100
