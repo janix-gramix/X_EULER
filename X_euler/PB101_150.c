@@ -2022,6 +2022,110 @@ int PB127a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB128_P 2000000
+#define PB128_ASK 2000
+
+typedef struct TILEXY {
+    int32_t x ;
+    int32_t y ;
+}TILEXY ;
+
+TILEXY n2xy(int64_t n) {
+    TILEXY txy ;
+    if(n==1) {
+        txy.x=txy.y = 0 ;
+        return txy ;
+    }
+    int64_t k = (Sqrt64((4*n-5)/3)+1)/2 ; // layer
+    int io = n - (3*(int64_t)k*(k-1)+2) ; // order in layer
+    int is = io / k ; // side  [0..5]
+    if(is<3) {
+        if(is==0) {
+            txy.x = - io ;    txy.y = 2*k - io  ;
+        } else if (is==1) {
+            txy.x = -k ;    txy.y = 3*k - 2*io  ;
+        }else {
+            txy.x = -3*k+io ;  txy.y = k - io ;
+          }
+    } else {
+        if(is==3) {
+            txy.x = io - 3*k;    txy.y = io  - 5 * k ;
+        } else if (is==4) {
+            txy.x = k ;  txy.y = -9*k + 2*io  ;
+        }else {
+            txy.x = 6*k-io ;  txy.y = -4*k + io ;
+        }
+    }
+    return txy ;
+}
+
+int64_t xy2n ( TILEXY txy) {
+    int k,io;
+    int64_t n ;
+    if(txy.x == 0 && txy.y == 0) return 1 ;
+    if(txy.x<=0) {
+        if(txy.x+txy.y > 0) {
+            io = -txy.x ;   k = (txy.y+io)/2 ;
+        } else if(txy.x-txy.y< 0) {
+            k = -txy.x ;    io =  (3*k-txy.y)/2 ;
+        } else {
+            k = - (txy.x +txy.y)/2 ;  io = k -txy.y ;
+        }
+    } else {
+        if(txy.x+txy.y < 0) {
+            k = (txy.x - txy.y)/2 ;    io = 3*k +txy.x ;
+        } else if(txy.x-txy.y > 0) {
+            k = txy.x ;     io =  (9*k+txy.y)/2 ;
+        } else {
+            k = (txy.x+txy.y)/2 ;  io = 4*k + txy.y ;
+        }
+    }
+    n = 3*(int64_t)k*(k-1)+2  + io ;
+    return n ;
+}
+
+int PB128(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB128_P)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    u_int8_t *PD = calloc(PB128_P,sizeof(PD[0])) ;
+    int i,k,nFound=0;
+    int64_t n ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    for(k=1;nFound<PB128_ASK;k++) {
+        int64_t n0 = 3*(int64_t)k*(k-1)+2 ;
+        for(n=n0-1;n<n0+1;n++) {
+            TILEXY txy = n2xy(n) ;
+//            printf("\n%d->",n);
+            int nbP = 0 ;
+            int64_t nb;
+            int64_t diff ;
+            txy.y += 2;               nb = xy2n(txy) ; diff = n -nb ;/* printf("%d,",diff) ; */ if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+            txy.x -= 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = n -nb ;  /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+                         txy.y -= 2 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+            txy.x += 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+            txy.x += 1 ; txy.y += 1 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+                         txy.y += 2 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */ if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
+            if(nbP==3) {nFound++;printf("%lld ",n); if(nFound>=PB128_ASK) break ;}
+        }
+    }
+    printf("\nk=%d",k);
+/*
+    for(n=1;n<40;n++) {
+        TILEXY txy = n2xy(n) ;
+        printf("%d,(%d,%d),%d ",n,txy.x,txy.y,xy2n(txy)) ;
+    }
+ */
+    sprintf(pbR->strRes,"%lld",n) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+
+    return 1 ;
+ }
 
 
 #define PB129_NB    1000000
@@ -2105,15 +2209,15 @@ int PB129(PB_RESULT *pbR) {
 }
 
 // return 10**pow mod[n]
-// assumes pow is even
-int pb130_10mod(int pow,int n) {
+//
+int pow10_modn(int pow,int n) {
     int k,ln2 ;
     int64_t tbPow[32] ;
     for(ln2=0;(1<<ln2) <= pow;ln2++) ;
     ln2-- ;
     k = 0 ;
     tbPow[k] = 10 ;
-    int p10 = 1 ; // car pow est pair
+    int p10 = (pow & 1) ? 10 : 1 ; //
     while(k++ < ln2) {
         tbPow[k] =  (tbPow[k-1]* tbPow[k-1]) % n ;
         if( (pow & (1<<k)) != 0) p10 = ( p10 * tbPow[k] ) % n ;
@@ -2155,7 +2259,7 @@ int PB130(PB_RESULT *pbR) {
                 int pe,p1 ;
                 for(p1= p-1 ,pe= p; (n0 % (pe*p))== 0; p1 *= p-1 , pe *=p  ) ;
                 int g = PGCD(n-1,p1) ;
-                if( pb130_10mod(g,pe)!=1) {
+                if( pow10_modn(g,pe)!=1) {
                     n0 = n ; break ;
                 } else if((n0=n0/pe) ==1 ) break ;
                 
@@ -2168,7 +2272,7 @@ int PB130(PB_RESULT *pbR) {
         } else if(n0 < n ) { // dernier diviseur
         
             int g = PGCD(n-1,n0-1) ;
-            if( pb130_10mod(g,n0) == 1) {
+            if( pow10_modn(g,n0) == 1) {
                 nbfound++ ;
                 sum += n ;
  //               if(pbR->isVerbose) fprintf(stdout," %d",n)  ;
@@ -2254,7 +2358,7 @@ int PB132(PB_RESULT *pbR) {
     // on saute 2,3,5
     for(i=3;i<nbPrime;i++) {
         int p = tbPrime[i] ;
-        if( pb130_10mod(pow,p)==1) {
+        if( pow10_modn(pow,p)==1) {
             nbFind++ ;
             sum += p ;
 //            printf("%d ",p);
@@ -2291,11 +2395,11 @@ int PB133(PB_RESULT *pbR) {
         int dmin = n0 ;
         for(d1=2;d1*d1<=n0;d1++) {
             if((n0 % d1) == 0) {
-                if(pb130_10mod(d1,p)==1) {
+                if(pow10_modn(d1,p)==1) {
                     dmin = d1; break ; // c'est forcement la plus petite valeur
                 }
                 int d2 = n0 / d1 ;
-                if(pb130_10mod(d2,p)==1) {
+                if(pow10_modn(d2,p)==1) {
                     dmin = d2 ;
                 }
             }
@@ -2332,7 +2436,7 @@ int PB133a(PB_RESULT *pbR) {
         int g = 1 ;
         while((n0 & 1) == 0 ) { n0 /= 2; g *= 2 ; }
         while((n0 % 5) == 0 ) { n0 /= 5; g *= 5 ; }
-        if(pb130_10mod(g,p) !=1) {
+        if(pow10_modn(g,p) !=1) {
             sum += p ;
             nbFind++ ;
         }
@@ -2342,4 +2446,76 @@ int PB133a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB134_MAXP  1000000
+// n * 10**k1 + p1 = 0 mod(p2)
+// <=> n = (p2-p1) * 1/ 10**k1 mod(p2)
+// comme 10**p2-1 = 1 mod(p2) 10**(p2-1-k1) = 1/ 10**k1
+
+int PB134(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB134_MAXP+10000)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int  i;
+    int64_t sum  = 0;
+    // loop for primes, begin by 5
+    int pow10 = 1 , k1 = 0 ;
+    int p1 ;
+    for(i=2;(p1=tbPrime[i])<PB134_MAXP;i++) {
+        int p1 = tbPrime[i] ;
+        int p2 = tbPrime[i+1] ;
+        while(pow10<p1) { k1++ ; pow10 *= 10 ; }
+        int n =  ((p2-p1) * pow10_modn(p2-1-k1,p2)) % p2 ;
+        sum += n*(int64_t)pow10+p1 ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",sum) ;
+    return 1 ;
+}
+
+int inverse(int a, int n) {
+    int t = 0;     int nt = 1;
+    int r = n;     int nr = a;
+    while(nr != 0) {
+        int q = r / nr ;
+        int tmp = nt ;
+        nt = t -q * nt ;
+        t = tmp ;
+        tmp = nr ;
+        nr = r - q * nr ;
+        r = tmp ;
+    }
+    if ( r > 1 )  return 0 ;
+    else if (t < 0 ) t +=  n ;
+    return t ;
+}
+// on inverse 10**k1 mod(p2) par extended gcg
+int PB134a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB134_MAXP+10000)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int  i;
+    int64_t sum  = 0;
+    // loop for primes, begin by 5
+    int pow10 = 1 , k1 = 0 ;
+    int p1 ;
+    for(i=2;(p1=tbPrime[i])<PB134_MAXP;i++) {
+        int p1 = tbPrime[i] ;
+        int p2 = tbPrime[i+1] ;
+        while(pow10<p1) { k1++ ; pow10 *= 10 ; }
+        int n = ((p2-p1) * inverse(pow10 % p2,p2)) % p2 ;
+        sum += n*(int64_t)pow10+p1 ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",sum) ;
+    return 1 ;
+}
 
