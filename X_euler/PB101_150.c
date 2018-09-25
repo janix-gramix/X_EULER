@@ -2022,7 +2022,8 @@ int PB127a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB128_P 2000000
+#define PB128_P  5000
+#define PB128_Pa 500000
 #define PB128_ASK 2000
 
 typedef struct TILEXY {
@@ -2036,8 +2037,8 @@ TILEXY n2xy(int64_t n) {
         txy.x=txy.y = 0 ;
         return txy ;
     }
-    int64_t k = (Sqrt64((4*n-5)/3)+1)/2 ; // layer
-    int io = n - (3*(int64_t)k*(k-1)+2) ; // order in layer
+    int k = (Sqrt64((4*n-5)/3)+1)/2 ; // layer
+    int io = (int) (n - (3*(int64_t)k*(k-1)+2)) ; // order in layer
     int is = io / k ; // side  [0..5]
     if(is<3) {
         if(is==0) {
@@ -2096,22 +2097,23 @@ int PB128(PB_RESULT *pbR) {
     u_int8_t *PD = calloc(PB128_P,sizeof(PD[0])) ;
     int i,k,nFound=0;
     int64_t n ;
-    pbR->nbClock = clock() - pbR->nbClock ;
     for(k=1;nFound<PB128_ASK;k++) {
         int64_t n0 = 3*(int64_t)k*(k-1)+2 ;
         for(n=n0-1;n<n0+1;n++) {
+
+//    { for(n=1;nFound<PB128_ASK;n++) {
             TILEXY txy = n2xy(n) ;
 //            printf("\n%d->",n);
             int nbP = 0 ;
             int64_t nb;
-            int64_t diff ;
-            txy.y += 2;               nb = xy2n(txy) ; diff = n -nb ;/* printf("%d,",diff) ; */ if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-            txy.x -= 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = n -nb ;  /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-                         txy.y -= 2 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-            txy.x += 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-            txy.x += 1 ; txy.y += 1 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-                         txy.y += 2 ; nb = xy2n(txy) ; diff = n -nb ;   /* printf("%d,",diff);  */ if(diff <0)diff = -diff;  if(Is_Prime(diff,tbPrime)) nbP++ ;
-            if(nbP==3) {nFound++;printf("%lld ",n); if(nFound>=PB128_ASK) break ;}
+            int32_t diff ;
+            txy.y += 2;               nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;/* printf("%d,",diff) ; */ if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+            txy.x -= 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;  /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+                         txy.y -= 2 ; nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+            txy.x += 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+            txy.x += 1 ; txy.y += 1 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+                         txy.y += 2 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */ if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
+        if(nbP==3) {nFound++;/*printf("%lld%c",n,(nFound & 0xf) ? ' ' : '\n' );*/ if(nFound>=PB128_ASK) break ;}
         }
     }
     printf("\nk=%d",k);
@@ -2126,6 +2128,80 @@ int PB128(PB_RESULT *pbR) {
 
     return 1 ;
  }
+
+int PB128a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB128_Pa)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int64_t n = 0 ;
+    
+   int i,k,nFound=2;
+    n= 0 ;
+ /*
+    for(k=2;nFound<PB128_ASK;k++) {
+//        int64_t n0 = 3*(int64_t)k*(k-1)+2 ;
+        if(Is_Prime32(6*k-1,tbPrime)) {
+            
+            if(Is_Prime32(12*k+5,tbPrime) && Is_Prime32(6*k+1,tbPrime) ) {
+                nFound++;
+                if(nFound>=PB128_ASK) {
+                    n = 3*(int64_t)k*(k-1)+2 ;
+
+                    break ;
+                }
+            }
+            if( Is_Prime32(12*k-7,tbPrime) && Is_Prime32(6*k+5,tbPrime) ) {
+                nFound++; if(nFound>=PB128_ASK) {
+                    n = 3*(int64_t)k*(k+1)+1 ;
+                    break ;
+                }
+            }
+        }
+    }
+    printf("\nk=%d",k);
+*/
+
+    int p ;
+    for(i=4;nFound<PB128_ASK && i<nbPrime-2;i++) {
+        p = tbPrime[i] ; // p = 6*k-1
+        if((p % 6) == 5) {
+            if(tbPrime[i+1] == p+2 && Is_Prime32(2*p+7,tbPrime)) {
+                nFound++;
+                if(nFound>=PB128_ASK) {
+                    k = (p+1)/6 ;
+                    n = 3*(int64_t)k*(k-1)+2 ; break ;
+                }
+            }
+//            if(Is_Prime32(p+6,tbPrime) && Is_Prime32(2*p-5,tbPrime)) {
+            if((tbPrime[i+1] == p+6 || tbPrime[i+2] == p+6) && Is_Prime32(2*p-5,tbPrime)) {
+                nFound++;
+                if(nFound>=PB128_ASK) {
+                    k = (p+1)/6 ;
+                    n = 3*(int64_t)k*(k-1)+2 + 6*k - 1 ; break ;
+                }
+            }
+
+        }
+    }
+    printf("\nP[%d]=p=%d",i,p);
+ 
+    /*
+     for(n=1;n<40;n++) {
+     TILEXY txy = n2xy(n) ;
+     printf("%d,(%d,%d),%d ",n,txy.x,txy.y,xy2n(txy)) ;
+     }
+     */
+    sprintf(pbR->strRes,"%lld",n) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    
+    return 1 ;
+}
+
 
 
 #define PB129_NB    1000000
