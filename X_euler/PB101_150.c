@@ -2022,69 +2022,13 @@ int PB127a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// exceot for first and last tile of each ring, each tile has +1 and -1 for difference (ring neighbours)
+// plus 2 neighbours of the same parity => maximum 2 prime differences.
+// Only the first and the last tile of each ring can be a candidate
+// For first tile of ring k, n=3*(int64_t)k*(k-1)+2 and TEST <=> IsPrime(6*k-1) && IsPrime(6*k+1) && IsPrime(12*k+5)
+// For last tile of ring k, n = 3*(int64_t)k*(k+1)+1  and TEST <=> IsPrime(6*k-1) && IsPrime(6*k+5) && && IsPrime(12*k+7)
 #define PB128_P  5000
-#define PB128_Pa 500000
 #define PB128_ASK 2000
-
-typedef struct TILEXY {
-    int32_t x ;
-    int32_t y ;
-}TILEXY ;
-
-TILEXY n2xy(int64_t n) {
-    TILEXY txy ;
-    if(n==1) {
-        txy.x=txy.y = 0 ;
-        return txy ;
-    }
-    int k = (Sqrt64((4*n-5)/3)+1)/2 ; // layer
-    int io = (int) (n - (3*(int64_t)k*(k-1)+2)) ; // order in layer
-    int is = io / k ; // side  [0..5]
-    if(is<3) {
-        if(is==0) {
-            txy.x = - io ;    txy.y = 2*k - io  ;
-        } else if (is==1) {
-            txy.x = -k ;    txy.y = 3*k - 2*io  ;
-        }else {
-            txy.x = -3*k+io ;  txy.y = k - io ;
-          }
-    } else {
-        if(is==3) {
-            txy.x = io - 3*k;    txy.y = io  - 5 * k ;
-        } else if (is==4) {
-            txy.x = k ;  txy.y = -9*k + 2*io  ;
-        }else {
-            txy.x = 6*k-io ;  txy.y = -4*k + io ;
-        }
-    }
-    return txy ;
-}
-
-int64_t xy2n ( TILEXY txy) {
-    int k,io;
-    int64_t n ;
-    if(txy.x == 0 && txy.y == 0) return 1 ;
-    if(txy.x<=0) {
-        if(txy.x+txy.y > 0) {
-            io = -txy.x ;   k = (txy.y+io)/2 ;
-        } else if(txy.x-txy.y< 0) {
-            k = -txy.x ;    io =  (3*k-txy.y)/2 ;
-        } else {
-            k = - (txy.x +txy.y)/2 ;  io = k -txy.y ;
-        }
-    } else {
-        if(txy.x+txy.y < 0) {
-            k = (txy.x - txy.y)/2 ;    io = 3*k +txy.x ;
-        } else if(txy.x-txy.y > 0) {
-            k = txy.x ;     io =  (9*k+txy.y)/2 ;
-        } else {
-            k = (txy.x+txy.y)/2 ;  io = 4*k + txy.y ;
-        }
-    }
-    n = 3*(int64_t)k*(k-1)+2  + io ;
-    return n ;
-}
-
 int PB128(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE * ctxP  ;
@@ -2093,65 +2037,15 @@ int PB128(PB_RESULT *pbR) {
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
-    int nbPrime = GetNbPrime(ctxP) ;
     u_int8_t *PD = calloc(PB128_P,sizeof(PD[0])) ;
-    int i,k,nFound=0;
-    int64_t n ;
-    for(k=1;nFound<PB128_ASK;k++) {
-        int64_t n0 = 3*(int64_t)k*(k-1)+2 ;
-        for(n=n0-1;n<n0+1;n++) {
-
-//    { for(n=1;nFound<PB128_ASK;n++) {
-            TILEXY txy = n2xy(n) ;
-//            printf("\n%d->",n);
-            int nbP = 0 ;
-            int64_t nb;
-            int32_t diff ;
-            txy.y += 2;               nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;/* printf("%d,",diff) ; */ if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-            txy.x -= 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;  /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-                         txy.y -= 2 ; nb = xy2n(txy) ; diff = (int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-            txy.x += 1 ; txy.y -= 1 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-            txy.x += 1 ; txy.y += 1 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-                         txy.y += 2 ; nb = xy2n(txy) ; diff =(int32_t) (n -nb) ;   /* printf("%d,",diff);  */ if(diff <0)diff = -diff;  if(Is_Prime32(diff,tbPrime)) nbP++ ;
-        if(nbP==3) {nFound++;/*printf("%lld%c",n,(nFound & 0xf) ? ' ' : '\n' );*/ if(nFound>=PB128_ASK) break ;}
-        }
-    }
-    printf("\nk=%d",k);
-/*
-    for(n=1;n<40;n++) {
-        TILEXY txy = n2xy(n) ;
-        printf("%d,(%d,%d),%d ",n,txy.x,txy.y,xy2n(txy)) ;
-    }
- */
-    sprintf(pbR->strRes,"%lld",n) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-
-    return 1 ;
- }
-
-int PB128a(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    CTX_PRIMETABLE * ctxP  ;
-    if((ctxP = Gen_tablePrime(PB128_Pa)) == NULL) {
-        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
-        return 0 ;
-    }
-    const T_prime * tbPrime = GetTbPrime(ctxP);
-    int nbPrime = GetNbPrime(ctxP) ;
-    int64_t n = 0 ;
-    
-   int i,k,nFound=2;
-    n= 0 ;
- /*
+    int k,nFound=2;
+    int64_t n=0 ;
     for(k=2;nFound<PB128_ASK;k++) {
-//        int64_t n0 = 3*(int64_t)k*(k-1)+2 ;
         if(Is_Prime32(6*k-1,tbPrime)) {
-            
             if(Is_Prime32(12*k+5,tbPrime) && Is_Prime32(6*k+1,tbPrime) ) {
                 nFound++;
                 if(nFound>=PB128_ASK) {
                     n = 3*(int64_t)k*(k-1)+2 ;
-
                     break ;
                 }
             }
@@ -2163,42 +2057,50 @@ int PB128a(PB_RESULT *pbR) {
             }
         }
     }
-    printf("\nk=%d",k);
-*/
+    sprintf(pbR->strRes,"%lld",n) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+ }
 
-    int p ;
+//
+// little more efficient version by checking that
+// p = 6*k-1 prime First tile TST <=> IsPrime(p+2) && IsPrime(2*p+7)
+//                 Last tile TST <=> IsPrime(p+6) && IsPrime(2*p-5)
+#define PB128_Pa 500000
+int PB128a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB128_Pa)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int64_t n = 0 ;
+    int i,nFound=2;
     for(i=4;nFound<PB128_ASK && i<nbPrime-2;i++) {
-        p = tbPrime[i] ; // p = 6*k-1
+        int p = tbPrime[i] ; // p = 6*k-1
         if((p % 6) == 5) {
+            // Is_Prime32(12*k+5,tbPrime) && Is_Prime32(6*k+1,tbPrime)
             if(tbPrime[i+1] == p+2 && Is_Prime32(2*p+7,tbPrime)) {
                 nFound++;
                 if(nFound>=PB128_ASK) {
-                    k = (p+1)/6 ;
+                    int k = (p+1)/6 ;
                     n = 3*(int64_t)k*(k-1)+2 ; break ;
                 }
             }
-//            if(Is_Prime32(p+6,tbPrime) && Is_Prime32(2*p-5,tbPrime)) {
+//           (Is_Prime32(p+6,tbPrime) && Is_Prime32(2*p-5,tbPrime))
             if((tbPrime[i+1] == p+6 || tbPrime[i+2] == p+6) && Is_Prime32(2*p-5,tbPrime)) {
                 nFound++;
                 if(nFound>=PB128_ASK) {
-                    k = (p+1)/6 ;
+                    int k = (p+1)/6 ;
                     n = 3*(int64_t)k*(k-1)+2 + 6*k - 1 ; break ;
                 }
             }
-
         }
     }
-    printf("\nP[%d]=p=%d",i,p);
- 
-    /*
-     for(n=1;n<40;n++) {
-     TILEXY txy = n2xy(n) ;
-     printf("%d,(%d,%d),%d ",n,txy.x,txy.y,xy2n(txy)) ;
-     }
-     */
     sprintf(pbR->strRes,"%lld",n) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    
     return 1 ;
 }
 
