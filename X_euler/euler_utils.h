@@ -46,6 +46,9 @@ void HeapSortUint8Rev(u_int8_t *H,int n) ;
 
 int NextArrangement(u_int8_t *arr,int k, int n) ;
 int NextSub(u_int8_t *sub,int k, int n) ;
+int NextSub16(u_int16_t *sub,int k, int n) ;
+int NextSub32(u_int32_t *sub,int k, int n) ;
+
 int NextPermut(u_int8_t *perm,int lg) ;
 int NextPermutRg(u_int8_t *perm,int lg,int rg) ;
 int ChkPermutRg(u_int8_t *perm,int lg,int rg) ;

@@ -110,6 +110,47 @@ int NextSub(u_int8_t *sub,int k, int n) {
     return -1 ;
 }
 
+// return -1 if last sous-ensemble, or the lower index of modification
+int NextSub16(u_int16_t *sub,int k, int n) {
+    int j,i ;
+    if(sub[k-1]< n-1) {
+        sub[k-1]++ ; return k-1 ;
+    } else if (sub[k-2] < n-2) {
+        sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
+    }
+    for(i=k-3;i>=0;i--) {
+        if(sub[i]<n-k+i) {
+            sub[i]++ ;
+            for(j=i+1;j<k;j++) {
+                sub[j] = sub[i]+j-i ;
+            }
+            return i ;
+        }
+    }
+    return -1 ;
+}
+
+// return -1 if last sous-ensemble, or the lower index of modification
+int NextSub32(u_int32_t *sub,int k, int n) {
+    int j,i ;
+    if(sub[k-1]< n-1) {
+        sub[k-1]++ ; return k-1 ;
+    } else if (sub[k-2] < n-2) {
+        sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
+    }
+    for(i=k-3;i>=0;i--) {
+        if(sub[i]<n-k+i) {
+            sub[i]++ ;
+            for(j=i+1;j<k;j++) {
+                sub[j] = sub[i]+j-i ;
+            }
+            return i ;
+        }
+    }
+    return -1 ;
+}
+
+
 // return -1 if last arrangement, or the lower index of modification
 int NextArrangement(u_int8_t *arr,int k, int n) {
     HeapSortUint8Rev(arr+k,n-k) ;
@@ -526,6 +567,7 @@ u_int32_t FindNbDivPrime(u_int64_t N, const T_prime *tbPrime) {
 
 
 int Is_Prime(u_int64_t N, const T_prime *tbPrime) {
+    if(N<=1) return 0 ;
     u_int64_t sqr = Sqrt64(N) ;
     T_prime p ;
     for(p= *tbPrime++ ; p<= sqr ;p=*tbPrime++) {
@@ -535,6 +577,7 @@ int Is_Prime(u_int64_t N, const T_prime *tbPrime) {
 }
 
 int Is_Prime32(u_int32_t N, const T_prime *tbPrime) {
+    if(N<=1) return 0 ;
     u_int32_t sqr = Sqrt32(N) ;
     T_prime p ;
     for(p= *tbPrime++ ; p<= sqr ;p=*tbPrime++) {
@@ -546,6 +589,8 @@ int Is_Prime32(u_int32_t N, const T_prime *tbPrime) {
 
 // return true if P1 and P2 are prime
 int Is_Prime2(u_int64_t N1,u_int64_t N2,const T_prime *tbPrime) {
+    if(N1<=1 || N2 <=1) return 0 ;
+    
     u_int64_t sqr = Sqrt64((N1>N2) ? N1 : N2 ) ;
     
     T_prime p ;

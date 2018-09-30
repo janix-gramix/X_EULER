@@ -2497,3 +2497,307 @@ int PB134a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+
+#define PB135_MAX 1000000
+// x = y+d , z=y-d
+// x**2 - y**2 -z**2 = (4*d-y)* y
+// so n=d1*d2
+// d2=y ; 4*d-y=d1  <=> d = (d2+d1)/4
+// z>0 <=> d<y <=> d2 < 3 * d1
+int PB135(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int n ;
+    int num  =0 ;
+    for(n=2;n<PB135_MAX;n++) {
+        if((n & 3) ==1 || (n & 3) == 2) continue ;
+        int d1,d2 ;
+        int nb= 0 ;
+        for(d1=1;d1*d1<=n;d1++) {
+            d2 = n / d1 ;
+            if((d1+d2) & 3 ) continue ;
+            if(n==d1*d2) {
+                nb++ ;
+                if(d2< 3*d1 && d1 != d2) nb++ ;
+                if(nb > 10) break ;
+            }
+        }
+        if(nb==10) num++;
+     }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",num) ;
+    return 1 ;
+}
+// replace loop on n, by loop on d1 ,d2
+// and  as n % 3 = 0 or 3 so we can hash for n/2
+//
+int PB135a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    u_int8_t *nbSol = calloc(PB135_MAX/2,sizeof(nbSol[0])) ;
+    int n ;
+    int d1, d2 ;
+    for(d1=1;d1<PB135_MAX;d1++) {
+        int d2max = 3*d1-1 ;
+        if(d2max > PB135_MAX/d1 ) d2max = PB135_MAX/d1 ;
+        for(d2= 4 - (d1 & 3) , n = (d1*d2)/2 ;d2<= d2max ;d2+=4 , n+= 2*d1) {
+            if(nbSol[n]<=10) nbSol[n]++ ;
+        }
+    }
+    int num =0 ;
+    for(n=2;n<PB135_MAX/2;n++) {
+        if(nbSol[n]==10)  num++ ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",num) ;
+    return 1 ;
+}
+
+
+
+#define PB143_MAX   120000
+// brute force
+// find all (p,q) tel que p**2+p*q+q**2 est un carre parfait
+// puis trouver (p,q), (p,r) tel que (q,r) OK
+
+int PB143(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int32_t p,r ;
+    int32_t M[1000] ;
+    u_int64_t Sum = 0 ;
+    u_int8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
+    int totNb = 0 ;
+    for(p=1;p<PB143_MAX;p++) {
+        int nb =0 ;
+        int M0 = 0 ;
+        for(r=p;r+p+M0<PB143_MAX;r++) {
+//            if(PGCD(p,r) != 1) continue ;
+            int64_t S =p*(int64_t)p+r*(int64_t)r+p*(int64_t)r ;
+            int64_t sq =Sqrt64(S);
+            if(S==sq*sq) {
+//                printf("(%d,%d)->%d ",p,r,sq);
+                if(nb==0) M0 = r ;
+                M[nb++] = r ;
+            }
+            
+        }
+        if(nb>1) {
+            int i , j ;
+            totNb += nb ;
+            for(i=1;i<nb;i++) {
+                for(j=0;j<i && p+M[i]+M[j]< PB143_MAX;j++) {
+                    int64_t S = M[i]*(int64_t)M[i]+M[j]*(int64_t)M[j]+M[i]*(int64_t)M[j] ;
+                    int64_t sq =Sqrt64(S);
+                    if(S==sq*sq) {
+                        int32_t pqr = p+M[i]+M[j] ;
+                        if(isFound[pqr] == 0) {
+                            Sum += pqr ;
+                            isFound[pqr] = 1 ;
+                        }
+//                        printf("%lld+%lld+%lld=%lld ",p,M[i],M[j],pqr) ;
+                    }
+                }
+            }
+        }
+    }
+    printf("TotNb=%d\n",totNb);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum) ;
+    return 1 ;
+}
+
+typedef struct DIOPH143 {
+    int32_t p ;
+    int32_t q ;
+    
+} DIOPH143 ;
+
+int CmpDioph43(const void *e1, const void *e2) {
+    const DIOPH143 * d1 = (DIOPH143 *) e1 ;
+    const DIOPH143 * d2 = (DIOPH143 *) e2 ;
+    int diff = d1->p - d2->p  ;
+    if(diff) return diff ;
+    else return d1->q - d2->q ;
+}
+
+#define PB143_MAXDIOPH  150000
+//
+// on genere les p,q par p =m*m-n*n ; q=n*(2*m+n)
+// on trie puis idem
+int PB143a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    u_int64_t Sum = 0 ;
+    u_int8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
+    DIOPH143 *dioph = malloc(PB143_MAXDIOPH*sizeof(dioph[0]));
+    int nbDioph = 0 ;
+    int m,n ;
+    int mMax = Sqrt32(PB143_MAX) ;
+    for(m=2;m<mMax;m++) {
+        for(n=1;n<m;n++) {
+            int p = m*m -n*n ;
+            int q = n*(2*m+n) ;
+            int s = p+q ;
+            if(s >= PB143_MAX) continue ;
+            if(PGCD(p,q) != 1) continue ;
+            if(p < q) {
+                int k ;
+                for(k=1;k*s<PB143_MAX;k++) {
+                        dioph[nbDioph].p = p*k ;
+                        dioph[nbDioph++].q = q*k ;
+                }
+            } else {
+                int k ;
+                for(k=1;k*s<PB143_MAX;k++) {
+                        dioph[nbDioph].p = q*k ;
+                        dioph[nbDioph++].q = p*k ;
+                }
+                
+            }
+        }
+    }
+    qsort(dioph,nbDioph,sizeof(dioph[0]),CmpDioph43) ;
+    memset(isFound,0,PB143_MAX);
+    dioph[nbDioph].p = 0 ; // terminator
+    int i;
+    for(i=0;i<nbDioph-1;i++) {
+        int j;
+        for(j=i;dioph[i].p == dioph[j+1].p ; j++) ;
+        if(j>i) {
+            int p = dioph[i].p ;
+            int k1,k2 ;
+            for(k1=i+1;k1<=j;k1++) {
+                int32_t pqr ;
+                for(k2=i; k2<k1 && (pqr=p+dioph[k1].q+dioph[k2].q)< PB143_MAX; k2++) {
+                    int64_t S = dioph[k1].q*(int64_t)dioph[k1].q+dioph[k2].q*(int64_t)dioph[k2].q+dioph[k1].q*(int64_t)dioph[k2].q ;
+                    int64_t sq =Sqrt64(S);
+                    if(S==sq*sq) {
+                        if(isFound[pqr] == 0) {
+                            Sum += pqr ;
+                            isFound[pqr] = 1 ;
+                        }
+                    }
+                }
+            }            
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum) ;
+    return 1 ;
+}
+
+
+
+
+#define PB147_MD    10
+void SumInPlace147(int nbRec[PB147_MD*PB147_MD]) {
+    int i , j ;
+    for(i=0;i<PB147_MD;i++) {
+        for(j=0;j<=i;j++) {
+            if(i > 0 && j > 0) {
+                int S = nbRec[PB147_MD*i+j] + nbRec[PB147_MD*(i-1)+j] + nbRec[PB147_MD*i+j-1]-nbRec[PB147_MD*(i-1)+j-1] ;
+                nbRec[PB147_MD*i+j] = nbRec[PB147_MD*j+i]= S ;
+            } else if(i > 0) {
+                int S = nbRec[PB147_MD*i+j] + nbRec[PB147_MD*(i-1)+j] ;
+                nbRec[PB147_MD*i+j] = nbRec[PB147_MD*j+i]= S ;
+            } else if(j > 0) {
+                int S = nbRec[PB147_MD*i+j] + nbRec[PB147_MD*i+j-1] ;
+                nbRec[PB147_MD*i+j] = nbRec[PB147_MD*j+i]= S ;
+            }
+//            printf("%8d%c",nbRec[PB147_MD*i+j],(nbRec[PB147_MD*i+j] == ((i+1)*(i+2)*(i+3))/6 * ((j+1)*(j+2)*(j+3))/6) ? '=' : '!' ) ;
+        }
+//        printf("\n");
+    }
+}
+int64_t NBRec(int64_t i, int64_t j) {
+    return (i*(i+1))/2 * (j*(j+1))/2 ;
+}
+int64_t NBSumRec(int64_t i,int64_t j) {
+    return (i*(i+1)*(i+2))/6 * (j*(j+1)*(j+2))/6 ;
+}
+int Check147(int nbRec[PB147_MD*PB147_MD], int64_t(*Fcheck)(int64_t,int64_t),FILE * fout) {
+    int i,j,nbErr = 0 ;
+    for(i=0;i<PB147_MD;i++) {
+        for(j=0;j<PB147_MD;j++) {
+            int err = (nbRec[PB147_MD*i+j] != Fcheck(i+1,j+1));
+            if(err)nbErr++ ;
+            if(fout)fprintf(fout,"%8d%c",nbRec[PB147_MD*i+j],(err) ? '*' : ' ' ) ;
+        }
+        if(fout)printf("\n");
+    }
+    return nbErr ;
+}
+int64_t NBRec2(int64_t i, int64_t j) {
+    if(j<i) { // permutation
+        j -= i ;
+        i += j ;
+        j = i - j ;
+    }
+    // i <= j
+    return ((i-1)*i*(4*i*i+4*i+3))/6 + (j-i) * (i * (4*i*i - 1))/3 ;
+}
+int64_t NBSumRec2(int64_t i, int64_t j) {
+    if(j<i) { // permutation
+        j -= i ;
+        i += j ;
+        j = i - j ;
+    }
+    // i <= j
+    return ((i-1)*i*(2*i*i*i*i+8*i*i*i+13*i*i+8*i+1))/30
+        + (j-i) * ((i-1)*i*(3*i*i*i+8*i*i+8*i+3))/15
+        + ((j-i)*(j-i+1))/2 * (i*(2*i*i*i+4*i*i+i-1) )/6;
+}
+
+
+int PB147(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+
+    int  i,j,k;
+    int64_t sum  = 0;
+    int nbRec[PB147_MD*PB147_MD],nbRec2[PB147_MD*PB147_MD] ;
+    int xMin[2*PB147_MD];
+    int xMax[2*PB147_MD];
+    nbRec[0] = 1 ;
+    int nbErr = 0 ;
+    for(i=0;i<PB147_MD;i++) {
+        int ni  = ((i+1)*(i+2))/2 ;
+        for(j=0;j<=i;j++) {
+            nbRec[PB147_MD*i+j] = nbRec[PB147_MD*j+i]= ni * nbRec[j*PB147_MD] ;
+        }
+    }
+    nbErr+=Check147(nbRec,NBRec,NULL);
+    SumInPlace147(nbRec) ;
+    nbErr+=Check147(nbRec,NBSumRec,NULL);
+
+    for(i=1;i<=PB147_MD;i++) {
+        for(j=i;j<=PB147_MD;j++) {
+            for(k=0;k<=i;k++) {  xMin[k] = -k ; xMax[k] = k ;  }
+            for(   ;k<=j;k++) { xMin[k] = k- 2 * i  ; xMax[k] = k ;  }
+            for( ;k<=i+j;k++) { xMin[k] = k- 2 * i  ; xMax[k] = 2*j - k  ;   }
+            //
+            int ay,ax ;
+            int S = 0 ;
+            for(ay=i+j;ay>0;ay--) {
+                for(ax=xMin[ay];ax<xMax[ay];ax++) {
+                    int by ;
+                    for(by=ay-1;by>0;by--) {
+                        int bxMin = xMin[by] ;
+                        if(ax < bxMin) continue ;
+                        if(bxMin < ax+1) bxMin = ax+1 ;
+                        int bxMax = xMax[by] ;
+                        if(bxMax > xMax[ay]) bxMax = xMax[ay] ;
+                        if(bxMax>=bxMin) S += bxMax - bxMin +1 ;
+                    }
+                }
+                
+            }
+            nbRec2[PB147_MD*(i-1)+(j-1)] = nbRec2[PB147_MD*(j-1)+(i-1)] = S ;
+        }
+    }
+    nbErr+=Check147(nbRec2,NBRec2,NULL);
+    SumInPlace147(nbRec2) ;
+    nbErr+=Check147(nbRec2,NBSumRec2,NULL);
+    
+    int64_t S = NBSumRec(43,47)+NBSumRec2(43,47) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s NBerr=%d Found=%lld\n",pbR->ident,nbErr,S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",S) ;
+    return 1 ;
+}

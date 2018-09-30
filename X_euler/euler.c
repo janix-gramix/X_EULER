@@ -211,13 +211,27 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(120,333082500,'Square remainders')
     ,PROTO_CALL(121,2269,'Disc game prize fund')
     ,PROTO_CALL(123,21035,'Prime square remainders')
+    ,PROTO_CALL(124,21417,'Ordered radicals')
+
     ,PROTO_CALL(126,18522,'Cuboid layers')
+//    ,PROTO_CALL(127,18407904,'abc-hits')
+    ,PROTO_CALL(127a,18407904,'abc-hits')
+//   ,PROTO_CALL(128,14516824220,'Hexagonal tile differences')
+    ,PROTO_CALL(128a,14516824220,'Hexagonal tile differences')
+
     ,PROTO_CALL(129,1000023,'Repunit divisibility')
     ,PROTO_CALL(130,149253,'Composites with prime repunit property')
     ,PROTO_CALL(131,173,'Prime cube partnership')
     ,PROTO_CALL(132,843296,'Large repunit factors')
 //    ,PROTO_CALL(133,453647705,'Repunit nonfactors')
     ,PROTO_CALL(133a,453647705,'Repunit nonfactors')
+//    ,PROTO_CALL(134,18613426663617118,'Prime pair connection')
+    ,PROTO_CALL(134a,18613426663617118,'Prime pair connection')
+//    ,PROTO_CALL(143,30758397,'Investigating the Torricelli point of a triangle')
+    ,PROTO_CALL(143a,30758397,'Investigating the Torricelli point of a triangle')
+    
+    ,PROTO_CALL(147,846910284,'Rectangles in cross-hatched grids')
+
 
 
 
@@ -251,8 +265,9 @@ static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
+      PROTO_CALL(135,4989,'Same differences')
+     ,PROTO_CALL(135a,4989,'Same differences')
 
-    PROTO_CALL(099,709,'Largest exponential')
 
 
 //    PROTO_CALL(122c,1582,'Efficient exponentiation')
@@ -279,8 +294,8 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-    char * isALL = "100" ;
-//    char * isALL = NULL ;
+//    char * isALL = "100" ;
+    char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {
         Execute(&ttr,ptCall);
