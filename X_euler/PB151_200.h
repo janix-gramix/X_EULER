@@ -1,0 +1,72 @@
+//
+//  PB151_200.h
+//  X_euler
+//
+//  Created by Jeannot on 01/10/2018.
+//  Copyright © 2018 Jeannot. All rights reserved.
+//
+
+#ifndef PB151_200_h
+#define PB151_200_h
+
+
+#include "euler_utils.h"
+
+PROTO_PB(151) ;
+PROTO_PB(152) ;
+PROTO_PB(153) ;
+PROTO_PB(154) ;
+PROTO_PB(155) ;
+PROTO_PB(156) ;
+PROTO_PB(157) ;
+PROTO_PB(158) ;
+PROTO_PB(159) ;
+
+PROTO_PB(160) ;
+PROTO_PB(161) ;
+PROTO_PB(162) ;
+PROTO_PB(163) ;
+PROTO_PB(164) ;
+PROTO_PB(165) ;
+PROTO_PB(166) ;
+PROTO_PB(167) ;
+PROTO_PB(168) ;
+PROTO_PB(169) ;
+
+PROTO_PB(170) ;
+PROTO_PB(171) ;
+PROTO_PB(172) ;
+PROTO_PB(173) ;
+PROTO_PB(174) ;
+PROTO_PB(175) ;
+PROTO_PB(176) ;
+PROTO_PB(177) ;
+PROTO_PB(178) ;
+PROTO_PB(179) ;
+
+PROTO_PB(180) ;
+PROTO_PB(181) ;
+PROTO_PB(182) ;
+PROTO_PB(183) ;
+PROTO_PB(184) ;
+PROTO_PB(185) ;
+PROTO_PB(186) ;
+PROTO_PB(187) ;
+PROTO_PB(188) ;
+PROTO_PB(189) ;
+
+PROTO_PB(190) ;
+PROTO_PB(191) ;
+PROTO_PB(192) ;
+PROTO_PB(193) ;
+PROTO_PB(194) ;
+PROTO_PB(195) ;
+PROTO_PB(196) ;
+PROTO_PB(197) ;
+PROTO_PB(198) ;
+PROTO_PB(199) ;
+PROTO_PB(200) ;
+
+
+
+#endif /* PB151_200_h */
