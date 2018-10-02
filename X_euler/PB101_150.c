@@ -2546,8 +2546,42 @@ int PB135a(PB_RESULT *pbR) {
     for(n=2;n<PB135_MAX/2;n++) {
         if(nbSol[n]==10)  num++ ;
     }
+    free(nbSol);
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%d",num) ;
+    return 1 ;
+}
+
+#define PB136_MAX   50000000
+// if n % 4 == 0 n = 4 * p with p prime odd
+// if n multiple of 8 no decomposition (d1+d2)%4 == 0
+// if n multiple of 16 n= 16 * p , p prime odd
+// if n multiple of 32 two decompositions : 4 x n/4 ; 8 x n/8
+// if n % 4 == 3
+//     n odd, and any decomposition d1*d2 gives a solution so n must be prime
+//
+int PB136(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB136_MAX)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    int nbPrime = GetNbPrime(ctxP) ;
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbSol = 2 ; // for n= 4 and n=16
+    int i ;
+    for(i=1;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        if((p & 3) == 3) nbSol++ ;
+        if(p <= PB136_MAX/4) {
+            nbSol++ ;
+            if(p <= PB136_MAX/16) nbSol++ ;
+        }
+    }
+    Free_tablePrime(ctxP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbSol) ;
     return 1 ;
 }
 
