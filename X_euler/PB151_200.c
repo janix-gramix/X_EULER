@@ -30,8 +30,8 @@ int PB198(PB_RESULT *pbR) {
     
     
     int32_t N = PB198_MAXQ / 200 ;
-    FRACTRED * fr =malloc((N*(int64_t)(N+1))/200*sizeof(fr[0])) ;
-//   int * den =malloc((N*(int64_t)(N+1))/200*sizeof(den[0])) ;
+//    FRACTRED * fr =malloc((N*(int64_t)(N+1))/200*sizeof(fr[0])) ;
+   int * den =malloc((N*(int64_t)(N+1))/200*sizeof(den[0])) ;
     int64_t nb = 0 ;
     int d ;
     int n ;
@@ -52,24 +52,25 @@ int PB198(PB_RESULT *pbR) {
         tmp = n ;
         n = a * n - n0 ; // n = a * n - n0 ;
         n0 = tmp ;
-        fr[nb].n= n;
-        fr[nb++].d=d ;
+//        fr[nb].n= n;
+//        fr[nb++].d=d ;
+        den[nb++] = d ;
     } while(d != d_end || n != n_end ) ;
     printf("\nEND Farey\n");
     int i ;
     for(i=0;i<nb-1;i++) {
-        d = fr[i].d ;
+        d = den[i] ;
          int j ;
         int64_t dMin ;
-        for(j=i+1, dMin = fr[j].d ;fr[j].d>d;j++) {
+        for(j=i+1, dMin = den[j] ;den[j]>d;j++) {
             if(j==i+1) {
                 if(dMin*d <= PB198_MAXQ/2) nbA++ ;
-            } else if( fr[j].d < dMin ) {
-                dMin = fr[j].d ;
+            } else if( den[j] < dMin ) {
+                dMin = den[j] ;
                 if(dMin*d <= PB198_MAXQ/2) nbA++ ;
             }
         }
-        if((int64_t)fr[j].d*d <= PB198_MAXQ/2) {
+        if((int64_t)den[j]*d <= PB198_MAXQ/2) {
             nbA++ ;
         }
     }
