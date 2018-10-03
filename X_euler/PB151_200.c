@@ -21,6 +21,7 @@
 #define PB198_Nend     1
 #define PB198_Dend     100
 
+
 int PB198(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t nbA = 0 ;
@@ -39,17 +40,11 @@ int PB198(PB_RESULT *pbR) {
     // on va chercher d0 et n0 tel que
     // on ait besout n x d0 - d * n0 = 1
     int d0, n0 ;
-    d=N ;
+    d=Sqrt32(PB198_MAXQ/2)+1 ;
     n=1 ;
-    d0=N+1 ;
+    d0=d+1 ;
     n0=1 ;
-//    fr[0].n=0 ;
-//    fr[0].d=1 ;
-//    nb=1 ;
-//    printf("%d/%d ",n,d);
-//    nbA += 2 ;
-    //    int d0=4 , n0 = 1 ; // satisfait besout n x d0 - d * n0 = 1
-    do {
+    do { // voir PB073 pour l'algorithme
         int a = (N+d0)/d ; // on cherche d = a * d - d0 le plus grand possible
         int tmp = d ;
         d = a * d - d0 ;
@@ -59,27 +54,22 @@ int PB198(PB_RESULT *pbR) {
         n0 = tmp ;
         fr[nb].n= n;
         fr[nb++].d=d ;
-//        if((nb & 0xffff) == 0) printf("%d->%d/%d ",nb,n,d);
-        // on garde le couple (n,d) comme (n0,d0) car
-        // besout  n x d0 - d * n0 = 1 est toujours satisfait
-        // (a *n - n0) *d - (a*d - d0) * n = n x d0 - d * n0 = 1;
     } while(d != d_end || n != n_end ) ;
     printf("\nEND Farey\n");
     int i ;
     for(i=0;i<nb-1;i++) {
         d = fr[i].d ;
          int j ;
-        if(fr[i].n > 1)
-        {
-            for(j=i-1;j>=0 &&  fr[j].d>d;j--) ;
-            if(j>=0 && 2*(int64_t)fr[j].d*d <= PB198_MAXQ) {
-                nbA++ ;
+        int64_t dMin ;
+        for(j=i+1, dMin = fr[j].d ;fr[j].d>d;j++) {
+            if(j==i+1) {
+                if(dMin*d <= PB198_MAXQ/2) nbA++ ;
+            } else if( fr[j].d < dMin ) {
+                dMin = fr[j].d ;
+                if(dMin*d <= PB198_MAXQ/2) nbA++ ;
             }
         }
-
-        
-        for(j=i+1;fr[j].d>d;j++) ;
-        if(2*(int64_t)fr[j].d*d <= PB198_MAXQ) {
+        if((int64_t)fr[j].d*d <= PB198_MAXQ/2) {
             nbA++ ;
         }
     }
@@ -91,32 +81,30 @@ int PB198(PB_RESULT *pbR) {
     return 1 ;
 }
 
-
-int32_t Farey(int d0, int d)
-{
-    // (p2*q1+p1*q2)/(2*q1*q2)
- //   printf("%d,%d ",d0,d) ;
-    int sum=0;
-    if (d0*(int64_t)d <= PB198_MAXQ/2)
-    {
-        sum+=1+Farey(d0, d0+d);
-        sum+=Farey(d0+d, d);
-    }
-    return sum ;
-}
 /*
-int PB198a(PB_RESULT *pbR) {
+
+int PB198(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t nbA = 0 ;
     nbA += (PB198_MAXQ-100)/2 ; //
-    int i ;
-    int iMax= Sqrt32(PB198_MAXQ) ;
-    int loop;
-    for(loop=0;loop<500;loop++) {
-    for(i=100;i<iMax;i++) {
-        nbA += Farey(i,i+1) ;
+    FRACTRED fr0 = {0,1} , fr1 = {1,100} ; ;
+
+    
+    SBTree *sbt = SBT_alloc() ;
+    SBT_init(sbt,fr0, fr1) ;
+    while(sbt->indS > 0 ) {
+        nbA++ ;
+        if((int64_t)fr0.d*fr1.d <= PB198_MAXQ/2) {
+            if(SBT_ValidNxt(sbt,1)==0) {
+                if(pbR->isVerbose) fprintf(stdout,"\tPB%s ERROR REALLOC SBT(%d)\n",pbR->ident,sbt->sizeStack) ;
+                SBT_free(sbt);
+                return 0 ;
+            }
+        } else {
+            SBT_ValidNxt(sbt,0) ;
+        }
     }
-    }
+    SBT_free(sbt);
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
@@ -125,27 +113,7 @@ int PB198a(PB_RESULT *pbR) {
 
 
 
-/*
- N = 10 ** 11
- n = 10 ** 3
- 
- su = N / 2 - n / 2
- 
- a, x = 1, 2
- stack = [(1, 1)]
- while stack:
- b, y = stack[-1]
- f1 = 2 * a * b
- ad = int(sqrt(f1 * N + 1) - a * y - b * x) / f1 - n + 2
- if ad > 0:
- su += ad
- stack.append((a + b, x + y))
- else:
- a, x = stack.pop()
- 
- print su
 
-*/
 // Impementation of Stern-Brocot Tree
 
 int PB198a(PB_RESULT *pbR) {
@@ -247,42 +215,7 @@ int PB198d(PB_RESULT *pbR) {
 
 
 
-/*
 
-int PB198b(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int64_t nbA = 0 ;
-    nbA += (PB198_MAXQ-100)/2 ; //
-    FRACTRED fr[5000] ,fr0, fr1 ;
-    int is = 0 ;
-    fr[is].n = fr[is].d = 1 ;
-    is++ ;
-    fr0.d = 2 ; fr0.n = 1 ;
-    int isMax = 0 ;
-    int nv= 0;
-    while(is>0) {
-         fr1 = fr[is-1] ;
-//        printf("%d/%d,%d/%d",fr0.n,fr0.d,fr1.n,fr1.d) ;
-       int64_t dd = 2 * (int64_t) fr0.n * fr1.n ;
-        nv++ ;
-        int k = (int)((int64_t)(Sqrt64(dd*PB198_MAXQ+1)-fr0.n * (int64_t)fr1.d - fr1.n * (int64_t)fr0.d)/dd) - 100 +2 ;
-        if(k > 0) {
-            nbA += k ;
-            fr[is].n = fr0.n + fr1.n ; fr[is].d = fr0.d + fr1.d ;
-            is++ ;
-            if(is > isMax) isMax= is ;
-        } else {
-            fr0 = fr1 ;
-            is-- ;
-        }
-    }
-    printf("Ismax=%d nv=%d\n",isMax,nv) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
-    return 1 ;
-}
-
-*/
 
 
 
