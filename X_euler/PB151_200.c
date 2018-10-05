@@ -31,31 +31,23 @@ int PB198e(PB_RESULT *pbR) {
     int d0Max = Sqrt32(PB198_MAXQ/2) ;
     FRACTRED fr0 ;
     nbA += (PB198_MAXQ/2 - PB198_MIND) / (PB198_MIND*PB198_MIND) ;
+    int nbLoop = 0 ;
     for(fr0.d=PB198_MIND+1;fr0.d<=d0Max;fr0.d++) {
         for(fr0.n=1;PB198_MIND*fr0.n<=fr0.d;fr0.n++) {
+            nbLoop++ ;
             FRACTRED fr1 =Besout(fr0);
             if(fr1.d*fr0.n-fr1.n*fr0.d != -1) continue ;
-            int diff = PB198_MAXQ/2 - fr0.d * fr1.d ;
-            {
-                int nb = diff / (fr0.d * fr0.d) ;
-                int i ;
- //               for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);
-                nbA += nb  ;
-            }
+            int diff = PB198_MAXQ/2/fr0.d - fr1.d ;
+            nbA += diff / fr0.d  ;
+ //           {  int nb = diff / fr0.d  ; int i ;  for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);       }
             int d = -fr1.d + fr0.d ;
             int n = -fr1.n + fr0.n ;
-            diff = PB198_MAXQ/2 - fr0.d * d ;
-
-//            if(diff > 0)
-            {
-                int nb = diff / (fr0.d * fr0.d) ;
-                int i ;
- //               for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d);
-                nbA += nb  ;
-            }
-            
+            diff = PB198_MAXQ/2/fr0.d - d ;
+            nbA += diff / fr0.d  ;
+//          {   int nb = diff / fr0.d  ; int i ; for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d); }
         }
     }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version with Besout d0<%d n0/d0<%d loops=%d\n",pbR->ident,nbA,d0Max,PB198_MIND,nbLoop) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
@@ -73,50 +65,34 @@ int PB198f(PB_RESULT *pbR) {
     FRACTRED fr0 = {0,1} ;
     FRACTRED fr1= {1,PB198_MIND} ;
     SBT_init(sbt,fr0,fr1) ;
+    int nbLoop = 0 ;
     while(sbt->indS > 0  ) {
+        nbLoop++ ;
         if(sbt->fr0.d + sbt->fr1.d <=d0Max ) {
             SBT_ValidNxt(sbt,1) ;
         } else {
             if(sbt->fr0.d <=d0Max && sbt->fr0.n ) {
  //               printf("%d/%d->%d/%d :",sbt->fr0.n,sbt->fr0.d,sbt->fr1.n,sbt->fr1.d);
-                int d0 = sbt->fr0.d ;
-                int n0 = sbt->fr0.n ;
-                int d1 = sbt->fr1.d ;
-                int n1 = sbt->fr1.n ;
+                int d0 = sbt->fr0.d ;  int n0 = sbt->fr0.n ;  int d1 = sbt->fr1.d ;    int n1 = sbt->fr1.n ;
                 if(d0<d1) {
                     int q = n1/n0 ;
                     d1 -= q * d0 ;
                     n1 -= q * n0 ;
                 }
-                {
- //                   int diff = PB198_MAXQ/2 - d0 * d1 ;
-                    int diff = PB198_MAXQ/2/d0 -  d1 ;
-                    {
-//                        int nb = diff / (d0 * d0 ) ;
-                        int nb = diff /  d0  ;
-                        int i ;
-//                        for(i=1;i<=nb;i++) printf("%d/%d ",n1+i*n0,d1+i*d0);
-                        nbA += nb  ;
-                    }
- //                   printf(";") ;
-                    d1 = -d1 + d0 ;
-                    n1 = -n1 + n0 ;
-//                    diff = PB198_MAXQ/2 - d0 * d1 ;
-                   diff = PB198_MAXQ/2/d0 - d1 ;
-                
-                    {
-//                        int nb = diff / (d0 * d0) ;
-                        int nb = diff / d0 ;
-                        int i ;
- //                       for(i=1;i<=nb;i++) printf("%d/%d ",n1+i*n0,d1+i*d0);
-                        nbA += nb  ;
-                    }
-                }
-//                printf("\n");
+                int diff = PB198_MAXQ/2/d0 -  d1 ;
+                nbA += diff / d0 ;
+//              {  int nb = diff /  d0  ; int i ;  for(i=1;i<=nb;i++) printf("%d/%d ",n1+i*n0,d1+i*d0); printf(";") ; }
+                d1 = -d1 + d0 ;
+                n1 = -n1 + n0 ;
+                diff = PB198_MAXQ/2/d0 - d1 ;
+                nbA += diff / d0 ;
+  //            { int nb = diff / d0 ; int i ; for(i=1;i<=nb;i++) printf("%d/%d ",n1+i*n0,d1+i*d0); printf("\n");}
             }
             SBT_ValidNxt(sbt,0) ;
         }
     }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version with stack(%d) d0<%d loops=%d\n",pbR->ident,nbA,sbt->sizeStack,d0Max,nbLoop) ;
+    SBT_free(sbt);
     
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nbA) ;
