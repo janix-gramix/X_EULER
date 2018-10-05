@@ -14,7 +14,7 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
-#define PB198_MAXQ  100000000
+#define PB198_MAXQ  100000
 //#define PB198_MAXQ  1000000
 #define PB198_N     1
 #define PB198_D     9
@@ -38,7 +38,7 @@ int PB198(PB_RESULT *pbR) {
             if(diff >0) {
                 int nb = diff / (fr0.d * fr0.d) ;
                 int i ;
-//                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);
+                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);
                 nbA += nb  ;
             }
             int d = -fr1.d + fr0.d ;
@@ -48,12 +48,87 @@ int PB198(PB_RESULT *pbR) {
             if(diff > 0) {
                 int nb = diff / (fr0.d * fr0.d) ;
                 int i ;
-//                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d);
+                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d);
                 nbA += nb  ;
             }
             
         }
     }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbA) ;
+    return 1 ;
+}
+
+int PB198c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t nbA = 0 ;
+    nbA += (PB198_MAXQ-100)/2 ; // ajout de 1/2k pour k=51,52,...,99,100
+    int d0Max = Sqrt32(PB198_MAXQ/2) ;
+    printf("D0max=%d\n",d0Max);
+    nbA += (PB198_MAXQ/2 - 100) / (100*100) ;
+    
+    SBTree *sbt = SBT_alloc() ;
+    FRACTRED fr0 = {0,1} ;
+    FRACTRED fr1= {1,100} ;
+    SBT_init(sbt,fr0,fr1) ;
+    while(sbt->indS > 0  ) {
+//        if(sbt->fr0.d <=d0Max && sbt->fr1.d <=d0Max ) {
+        if(sbt->fr0.d + sbt->fr1.d <=d0Max ) {
+            SBT_ValidNxt(sbt,1) ;
+        } else {
+            if(sbt->fr0.d <=d0Max && sbt->fr0.n ) {
+                printf("%d/%d->%d/%d :",sbt->fr0.n,sbt->fr0.d,sbt->fr1.n,sbt->fr1.d);
+                int diff = PB198_MAXQ/2 - sbt->fr0.d * sbt->fr1.d ;
+                if(diff >0) {
+                    int nb = diff / (sbt->fr0.d * sbt->fr0.d) ;
+                    int i ;
+                    for(i=1;i<=nb;i++) printf("%d/%d ",sbt->fr1.n+i*sbt->fr0.n,sbt->fr1.d+i*sbt->fr0.d);
+                    nbA += nb  ;
+                }
+                printf(";") ;
+                int d = -sbt->fr1.d + sbt->fr0.d ;
+                int n = -sbt->fr1.n + sbt->fr0.n ;
+                diff = PB198_MAXQ/2 - sbt->fr0.d * d ;
+                
+                if(diff > 0) {
+                    int nb = diff / (sbt->fr0.d * sbt->fr0.d) ;
+                    int i ;
+                    for(i=1;i<=nb;i++) printf("%d/%d ",n+i*sbt->fr0.n,d+i*sbt->fr0.d);
+                    nbA += nb  ;
+                }
+                printf("\n");
+                
+            }
+            SBT_ValidNxt(sbt,0) ;
+        }
+    }
+    
+ /*
+    for(fr0.d=101;fr0.d<=d0Max;fr0.d++) {
+        for(fr0.n=1;100*fr0.n<=fr0.d;fr0.n++) {
+            FRACTRED fr1 =Besout(fr0);
+            if(fr1.d*fr0.n-fr1.n*fr0.d != -1) continue ;
+            int diff = PB198_MAXQ/2 - fr0.d * fr1.d ;
+            if(diff >0) {
+                int nb = diff / (fr0.d * fr0.d) ;
+                int i ;
+                //                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);
+                nbA += nb  ;
+            }
+            int d = -fr1.d + fr0.d ;
+            int n = -fr1.n + fr0.n ;
+            diff = PB198_MAXQ/2 - fr0.d * d ;
+            
+            if(diff > 0) {
+                int nb = diff / (fr0.d * fr0.d) ;
+                int i ;
+                //                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d);
+                nbA += nb  ;
+            }
+            
+        }
+    }
+  */
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
@@ -157,7 +232,7 @@ int PB198b(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
 }
-
+/*
 int PB198c(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t nbA = 0 ;
@@ -187,6 +262,7 @@ int PB198c(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
 }
+*/
 /*
 
 int PB198c(PB_RESULT *pbR) {
