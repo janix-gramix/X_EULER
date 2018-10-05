@@ -22,147 +22,44 @@
 #define PB198_Nend     1
 #define PB198_Dend     100
 
-/*
+
 int PB198(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t nbA = 0 ;
     nbA += (PB198_MAXQ-100)/2 ; // ajout de 1/2k pour k=51,52,...,99,100
-    // il faut rajouter 2 fois toutes les fractions p/q < 1/100 , irreductibles et q <= 10**8
-   int32_t N = PB198_MAXQ / 200 ;
-   int * den =malloc((N*(int64_t)(N+1))/200*sizeof(den[0])) ;
-    int32_t nb = 0 ;
-    int d_end=PB198_Dend ;
-    int n_end=PB198_Nend ;
-    // on va chercher d0 et n0 tel que
-    // on ait besout n x d0 - d * n0 = 1
-    int d=Sqrt32(PB198_MAXQ/2)+1 ;
-    int d0=d+1 ;
-    int n=1 ;
-    int n0=1 ;
-    do { // voir PB073 pour l'algorithme
-        int a = (N+d0)/d ; // on cherche d = a * d - d0 le plus grand possible
-        int tmp = d ;
-        d = a * d - d0 ;
-        d0 = tmp ;
-        tmp = n ;
-        n = a * n - n0 ; // n = a * n - n0 ;
-        n0 = tmp ;
-        den[nb++] = d ;
-    } while(d != d_end || n != n_end ) ;
-    printf("\nEND Farey(%d)\n",nb);
-    int i ;
-    for(i=0;i<nb-1;i++) {
-        d = den[i] ;
-         int j ;
-        int64_t dMin ;
-        int isMin = 0 ;
-        for(j=i+1, dMin = den[j] ;den[j]>d;j++) {
-            if(j==i+1) {
-                if(dMin*d <= PB198_MAXQ/2) { nbA++ ; isMin = 1 ; }
-            } else if( den[j] < dMin ) {
-                dMin = den[j] ;
-                if(isMin) nbA++;
-                else if(dMin*d <= PB198_MAXQ/2) { nbA++ ; isMin=1 ; }
+    int d0Max = Sqrt32(PB198_MAXQ/2) ;
+    FRACTRED fr0 ;
+    nbA += (PB198_MAXQ/2 - 100) / (100*100) ;
+    for(fr0.d=101;fr0.d<=d0Max;fr0.d++) {
+        for(fr0.n=1;100*fr0.n<=fr0.d;fr0.n++) {
+            FRACTRED fr1 =Besout(fr0);
+            if(fr1.d*fr0.n-fr1.n*fr0.d != -1) continue ;
+            int diff = PB198_MAXQ/2 - fr0.d * fr1.d ;
+            if(diff >0) {
+                int nb = diff / (fr0.d * fr0.d) ;
+                int i ;
+//                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,fr1.n+i*fr0.n,fr1.d+i*fr0.d);
+                nbA += nb  ;
             }
-        }
-        if((int64_t)den[j]*d <= PB198_MAXQ/2) {
-            nbA++ ;
+            int d = -fr1.d + fr0.d ;
+            int n = -fr1.n + fr0.n ;
+            diff = PB198_MAXQ/2 - fr0.d * d ;
+
+            if(diff > 0) {
+                int nb = diff / (fr0.d * fr0.d) ;
+                int i ;
+//                for(i=1;i<=nb;i++) printf("%d/%d->%d/%d\n",fr0.n,fr0.d,n+i*fr0.n,d+i*fr0.d);
+                nbA += nb  ;
+            }
+            
         }
     }
-
-    
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
 }
-*/
-FRACTRED Besout(FRACTRED fr1) { // solve besout
-    int s0 = 1, s1 = 0;
-    int t0 = 0, t1 = -1 ;
-    int n1 = fr1.n ;
-    int d1 = fr1.d ;
-    do {
-        int q = d1 / n1 ;
-        int tmp = d1 - q * n1 ;
-        d1 = n1 ;  n1 = tmp ;
-        
-        tmp = s0 + q * s1 ;
-        s0 = s1 ; s1 = tmp ;
-        
-        tmp = t0  + q * t1 ;
-        t0 = t1 ; t1 = tmp ;
-        
-    } while ( n1 ) ;
-    FRACTRED fr2 ;
-    fr2.d = -t0 ;
-    fr2.n = s0 ;
-    if(fr1.d*fr2.n-fr1.n*fr2.d == -1) { // on inverse le signe
-        int q = fr2.n/fr1.n+1 ;
-        fr2.n = -fr2.n + q*fr1.n;
-        fr2.d = -fr2.d + q*fr1.d ;
-    }
-    return fr2 ;
-}
-/*
 
-int PB198(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int64_t nbA = 0 ;
-    nbA += (PB198_MAXQ-100)/2 ; // ajout de 1/2k pour k=51,52,...,99,100
-    // il faut rajouter 2 fois toutes les fractions p/q < 1/100 , irreductibles et q <= 10**8
-    int32_t N = PB198_MAXQ / 200 ;
-//    int * den =malloc((N*(int64_t)(N+1))/200*sizeof(den[0])) ;
-    int32_t nb = 0 ;
-    int d_end=PB198_Dend ;
-    int n_end=PB198_Nend ;
-    // on va chercher d0 et n0 tel que
-    // on ait besout n x d0 - d * n0 = 1
-    int d=Sqrt32(PB198_MAXQ/2) ;
-    int d0=d+1 ;
-    int n=1 ;
-    int n0=1 ;
-    do { // voir PB073 pour l'algorithme
- //       int a = (N+d0)/d ; // on cherche d = a * d - d0 with
-        printf("%d/%d->%d/%d ",n0,d0,n,d) ;
-        int a = (PB198_MAXQ/2 + d0* (int64_t) d)/(d*(int64_t)d) ;
-        if(a*d-d0 <= 0) {
-            a= d0/d+1 ;
-            d0 = a * d - d0 ;
-            n0 = a * n - n0 ;
-            FRACTRED fr0, fr1 ;
-            fr0.d =d0 ;
-            fr0.n = n0 ;
-            fr1= Besout(fr0) ;
-            d = fr1.d ;
-            n = fr1.n ;
-            
-            a = (PB198_MAXQ/2 + d0* (int64_t) d)/(d0*(int64_t)d0) ;
-            int tmp = d ;
-            d = d + a * d0 ;
-            d0 = tmp ;
-            tmp = n ;
-            n = n + a * n0 ;
-            n0 = tmp ;
 
-            
-            
-        } else {
-            int tmp = d ;
-            d = a * d - d0 ;
-            if(d*(int64_t)tmp <= PB198_MAXQ/2) nbA++ ;
-            d0 = tmp ;
-            tmp = n ;
-            n = a * n - n0 ; // n = a * n - n0 ;
-            n0 = tmp ;
-        }
- //       den[nb++] = d ;
-    } while(d != d_end || n != n_end ) ;
-    
-    pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
-    return 1 ;
-}
-*/
 
 static inline int PB198CB(int d0,int d1) {
     if ( d1 <= PB198_MAXQ/200  && d0*(int64_t)d1 <= PB198_MAXQ/2) return 1 ;
@@ -170,7 +67,7 @@ static inline int PB198CB(int d0,int d1) {
 }
 
 
-
+/*
 int PB198(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t nbA = 0 ;
@@ -200,7 +97,7 @@ int PB198(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",nbA-1) ;
     return 1 ;
 }
-
+*/
 
 
 
@@ -261,7 +158,36 @@ int PB198b(PB_RESULT *pbR) {
     return 1 ;
 }
 
-
+int PB198c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t nbA = 0 ;
+    nbA += (PB198_MAXQ-100)/2 ; //
+    int i ;
+    int iMax= Sqrt32(PB198_MAXQ) ;
+    SBTree *sbt = SBT_alloc() ;
+    int nbLoop = 0;
+    for(i=100;i<iMax;i++) {
+        FRACTRED fr0 = {1,i} ;
+        FRACTRED fr1= {1,i+1} ;
+        SBT_init(sbt,fr0,fr1) ;
+        while(sbt->indS > 0) {
+            nbLoop++ ;
+            if (sbt->fr0.d*(int64_t)sbt->fr1.d <= PB198_MAXQ/2) {
+//                printf("%d/%d->%d/%d\n",sbt->fr0.n,sbt->fr0.d,sbt->fr1.n,sbt->fr1.d);
+                nbA++ ;
+                SBT_ValidNxt(sbt,1) ;
+            } else {
+                SBT_ValidNxt(sbt,0) ;
+            }
+        }
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version stack(%d) Den[100 %d] loops=%d\n",pbR->ident,nbA-1,sbt->sizeStack,iMax,nbLoop) ;
+    SBT_free(sbt);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbA) ;
+    return 1 ;
+}
+/*
 
 int PB198c(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
@@ -289,7 +215,7 @@ int PB198c(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",nbA) ;
     return 1 ;
 }
-
+*/
 
 static int loopPB198d = 0 ;
 static inline int PB198dCB(int d0,int d) {
