@@ -106,39 +106,63 @@ int Dist192(int32_t N,int64_t p1,int64_t q1,int64_t p2,int64_t q2) {
     }
     return dist ;
 }
+int Dist192a(int32_t N,int64_t p0,int64_t q0,int64_t p1,int64_t q1,int k) {
+    int64_t pk = p0 + k * p1 ;
+    int64_t qk = q0 + k * q1 ;
+    
+    int64_t diffk = pk*pk - N * qk * qk ;
+    int64_t diff1 = p1*p1 - N * q1 * q1 ;
+    
+    int dist = - 1;
+    int32_t signk = (diffk > 0) ? 1 : -1 ;
+    int32_t sign1 = (diff1 > 0) ? 1 : -1 ;
+    if(signk*sign1 > 0) {
+        // meme cote
+        if(sign1 * (p1*qk-pk*q1) < 0) {
+            dist = 1 ;
+        }
+    } else {
+        int a = 2*k ;
+        
+        int64_t diff0 = p0*p0 - N * q0 * q0 ;
+        int64_t diff01 = p0*p1 - N*q0*q1 ;
+//        long double diffh = q2*(long double)q2*diff1 + q1*(long double)q1*diff2 + 2*(long double)(q1*q2)* (p1*p2-N*q1*q2) ;
+        
+        int64_t diffh = a*a*diff1+diff0+2*a*diff01 ;
+        if(diffh*sign1 < 0  ) {
+            dist = 1 ;
+        }
+    }
+    return dist ;
+}
 
 int PB192(PB_RESULT *pbR) {
-    int32_t N , k0, k02;
+    int32_t N , a0, a2;
     int32_t n , d ;
-    int64_t p0,q0,p1,q1,p2,q2 ;
+    int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
     int32_t a ;
-    double x ;
     int64_t Sum = 0 ;
-    int NbImpair = 0 ;
     pbR->nbClock = clock()  ;
-    int32_t Fract[1000] ;
-    for(N=2,k0=1,k02=4;N<=PB192_MAXN;N++) {
+    for(N=2,a0=1,a2=4;N<=PB192_MAXN;N++) {
         int i,j ;
-        if(N == k02) { // k02 = (k0+1)*(k0+1)
-            k0++ ;
-            k02 += 2*k0 + 1 ; continue ;
+        if(N == a2) { // a2 = (a0+1)*(a0+1)
+            a0++ ;
+            a2 += 2*a0 + 1 ; continue ;
         }
-
-        a = k0 ; d=1 ;  n = 0 ; i = 0 ; // so k0 =(int) srqt(N)
+        
+        a = a0 ; d=1 ;  n = 0 ; i = 0 ; // so k0 =(int) srqt(N)
         p1 = a ; q1 = 1 ;
         n = d * a - n ;
         d = (N - n*n) / d ;
-        a = (k0+n) / d ;
-        p2 = 1+k0*a ;  q2 = a ;
- 
-//        printf("%d->",N);
+        a = (a0+n) / d ;
+        p2 = 1+a0*a ;  q2 = a ;
         do {
             
             p0 = p1 ;
             q0 = q1 ;
             n = d * a - n ;
             d = (N - n*n) / d ;
-            a = (k0+n) / d ;
+            a = (a0+n) / d ;
             
             int64_t tmp = p1 ;
             p1 = p2 ;
@@ -148,74 +172,150 @@ int PB192(PB_RESULT *pbR) {
             q1 = q2 ;
             q2 =a*q2 + tmp ;
             i++ ;
+        } while( q2 <= PB192_PREC) ; // test loop on (n,d) = (k0,1)first couple
+        int64_t k = (PB192_PREC - q0) / q1 ;
+        if(k == 0) {
+            pk = p1 ;
+            qk = q1 ;
+        } else {
+            pk = p0 + k * p1 ;
+            qk = q0 + k * q1 ;
+            if(2*k < a) {
+                pk = p1 ;
+                qk = q1 ;
+            } else if( 2*k==a){
+                // a == 2*k
+                int dist = Dist192(N,p1,q1,pk,qk) ;
+                if(dist > 0) {
+                    pk = p1 ;
+                    qk = q1 ;
+                }
+            }
+        }
+        Sum += qk ;
+    }
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum);
+    return 1 ;
+}
+
+
+int PB192a(PB_RESULT *pbR) {
+    int32_t N , a0, a2;
+    int32_t n , d ;
+    int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
+    int32_t a ;
+    double x ;
+    int64_t Sum = 0 ;
+    int NbImpair = 0 ;
+    pbR->nbClock = clock()  ;
+    int32_t Fract[1000] ;
+    for(N=2,a0=1,a2=4;N<=PB192_MAXN;N++) {
+        int i,j ;
+        if(N == a2) { // a2 = (a0+1)*(a0+1)
+            a0++ ;
+            a2 += 2*a0 + 1 ; continue ;
+        }
+
+        a = a0 ; d=1 ;  n = 0 ; i = 0 ; // so k0 =(int) srqt(N)
+        Fract[i++] = a ;
+        p1 = a ; q1 = 1 ;
+        n = d * a - n ;
+        d = (N - n*n) / d ;
+        a = (a0+n) / d ;
+        p2 = 1+a0*a ;  q2 = a ;
+        Fract[i++] = a ;
+
+ //       printf("%d->",N);
+        do {
             
+            p0 = p1 ;
+            q0 = q1 ;
+            n = d * a - n ;
+            d = (N - n*n) / d ;
+            a = (a0+n) / d ;
+            Fract[i++] = a ;
+          
+            int64_t tmp = p1 ;
+            p1 = p2 ;
+            p2 = a*p2 + tmp ;
+            
+            tmp = q1 ;
+            q1 = q2 ;
+            q2 =a*q2 + tmp ;
+            i++ ;
+   //         printf("%d,",a);
   //          printf("%lld/%lld ",p2,q2) ;
  //           i++ ;
         } while( q2 <= PB192_PREC) ; // test loop on (n,d) = (k0,1)first couple
         int64_t k = (PB192_PREC - q0) / q1 ;
         if(k == 0) {
-            p2 = p1 ;
-            q2 = q1 ;
+            pk = p1 ;
+            qk = q1 ;
         } else {
-            p2 = p0 + k * p1 ;
-            q2 = q0 + k * q1 ;
-            int dist = Dist192(N,p1,q1,p2,q2) ;
-            if(dist > 0) {
-                p2 = p1 ;
-                q2 = q1 ;
-            }
-        }
-        Sum += q2 ;
+            pk = p0 + k * p1 ;
+            qk = q0 + k * q1 ;
+            if(2*k < a) {
+                pk = p1 ;
+                qk = q1 ;
+            } else if( 2*k==a){
+                // a == 2*k
+//                int dist = Dist192(N,p1,q1,pk,qk) ;
+             
+                
+                int ar ;
+                n = d * a - n ;
+                d = (N - n*n) / d ;
+                a = (a0+n) / d ;
 
-  //      printf(" best=%lld/%lld\n",p2,q2) ;
- /*
-        long double sqN = sqrtl(N) ;
-        long double minD = 1.0 ;
-        int64_t d ,dm = q1 ,nm = p1 ;
-        for(d=2;d<=PB192_PREC;d++) {
-            int64_t n = sqN*d+0.5 ;
-//            if(dist > 0) {
-            if(fabsl(sqN - n/(long double)d)<minD) {
-                minD = fabsl(sqN - n/(long double)d) ;
-                dm = d ; nm = n ;
-            }
-            
-        }
-*/
- /*
-        int64_t d,n ,dm = q1 ,nm = p1 ;
-        for(k=0;n = p0 + k * p1,d = q0 + k * q1,d<=PB192_PREC;k++){
-           int dist = Dist192(N,n,d,nm,dm) ;
-           if(dist > 0) {
-               dm = d ; nm = n ;
-           }
-        }
- */
- /*
-        int64_t d,n ,dm = q1 ,nm = p1 ;
-        for(d=q1;n = Sqrt64(N*d*d),d<=PB192_PREC;d++){
-            int dist = Dist192(N,n,d,nm,dm) ;
-            if(dist > 0) {
-                dm = d ; nm = n ;
-            }
-            dist = Dist192(N,n+1,d,nm,dm) ;
-            if(dist > 0) {
-                dm = d ; nm = n+1 ;
-            }
-        }
-*/
-//        Sum += dm ;
-    // 42->162/25 337/52 4206/649 8749/1350 109194/16849 best=8749/1350 56700/8749 ERROR delta=0,1
- //       if(dm != q2)
- //           printf("%d->%lld/%lld %lld/%lld best=%lld/%lld %lld/%lld %s delta=%lld,%d \n",N,p0,q0,p1,q1,nm,dm,p2,q2,
- //              (dm==q2) ? "OK" : "ERROR", nm*q1-dm*p1,i&1);
+                int64_t np1 = a ;
+                int64_t nq1 = 1 ;
 
+                n = d * a - n ;
+                d = (N - n*n) / d ;
+                a = (a0+n) / d ;
+
+                int64_t np2 =  a*np1+1 ;
+                int64_t nq2 = a*nq1 ;
+                
+                i = 0 ;
+                do {
+                    
+                    n = d * a - n ;
+                    d = (N - n*n) / d ;
+                    a = (a0+n) / d ;
+                    
+                    int64_t tmp = np1 ;
+                    np1 = np2 ;
+                    np2 = a*np2 + tmp ;
+                    
+                    tmp = nq1 ;
+                    nq1 = nq2 ;
+                    nq2 =a*nq2 + tmp ;
+                    
+                    i++ ;
+                } while((np2*q0-nq2*q1) *(2*(i&1)-1) <= 0 ) ; // test loop on (n,d) = (k0,1)first couple
+               int dist2 = -1 ;
+                if((i&1)==0) {
+                    dist2 = 1 ;
+                }
+                
+                if(dist2 > 0) {
+                    pk = p1 ;
+                    qk = q1 ;
+                }
+            }
+        }
+        Sum += qk ;
     }
 
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",Sum);
     return 1 ;
 }
+
+
 
 #define PB198_MAXQ  100000000
 #define PB198_MIND  100
