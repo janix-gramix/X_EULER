@@ -15,6 +15,8 @@
 
 #include "PB051_100.h"
 
+#include "faray_utils.h"
+
 #include "p054_data.h"
 
 #define PB051_MAXP 1000000
@@ -1405,6 +1407,7 @@ int PB072(PB_RESULT *pbR) {
     }
     
     sprintf(pbR->strRes,"%lld",S);
+    free(phi) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -1418,66 +1421,102 @@ int PB072(PB_RESULT *pbR) {
 #define PB073_Nend     1
 #define PB073_Dend     2
 
-
+// version calculant directement une par une les valeurs
 int PB073(PB_RESULT *pbR) {
     int32_t N = PB073_MAXN ;
     int nb = 0 ;
     int d ;
     int n ;
+    pbR->nbClock = clock() ;
     int d_end=PB073_Dend ;
     int n_end=PB073_Nend ;
-    // on va chercher d0 et n0 tel que
-    // on ait besout n x d0 - d * n0 = 1
-    int d0, n0 ;
-    d=PB073_D ;
-    n=PB073_N ;
-    { // solve besout
-        int s0 = 1, s1 = 0;
-        int t0 = 0, t1 = -1 ;
-        int n1 = n ;
-        int d1 = d ;
-        do {
-            int q = d1 / n1 ;
-            int tmp = d1 - q * n1 ;
-            d1 = n1 ;  n1 = tmp ;
-            
-            tmp = s0 + q * s1 ;
-            s0 = s1 ; s1 = tmp ;
-            
-            tmp = t0  + q * t1 ;
-            t0 = t1 ; t1 = tmp ;
-            
-        } while ( n1 ) ;
-        d0 = -t0 ;
-        n0 = s0 ;
-        if(n*d0-d*n0 == -1) { // on inverse le signe
-            int q = n0/n+1 ;
-            n0 = -n0 + q*n;
-            d0 = -d0 + q*d ;
-        }
-    }
-    
-    //    int d0=4 , n0 = 1 ; // satisfait besout n x d0 - d * n0 = 1
+    FRACTRED fr1 = {PB073_N,PB073_D} ;
+    FRACTRED fr0 = IBesout(fr1) ;
+    d = fr1.d ; n = fr1.n ;
+    int d0 = fr0.d ;
+    int n0 = fr0.n ;
+    //  satisfait besout n x d0 - d * n0 = 1
     do {
-        int a = (N+d0)/d ; // on cherche d = a * d - d0 le plus grand possible
+        int a = (N+d0)/d ; // searcd d = a * d - d0 biggest
         int tmp = d ;
         d = a * d - d0 ;
         d0 = tmp ;
         tmp = n ;
         n = a * n - n0 ; // n = a * n - n0 ;
         n0 = tmp ;
+//        printf("%d/%d ",n,d) ;
         nb++ ;
-        // on garde le couple (n,d) comme (n0,d0) car
-        // besout  n x d0 - d * n0 = 1 est toujours satisfait
+        // besout  n x d0 - d * n0 = 1 is transmitted
         // (a *n - n0) *d - (a*d - d0) * n = n x d0 - d * n0 = 1;
-    } while(d != d_end && n != n_end ) ;
+    } while(d != d_end || n != n_end ) ;
     
     
     
-    pbR->nbClock = clock() ;
     
     sprintf(pbR->strRes,"%d",nb-1);
     pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+// version by Stern-Brocot Tree with stack
+int PB073a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    FRACTRED fr0 = {1,3} , fr1 = {1,2} ; ;
+    
+    SBTree *sbt = SBT_alloc() ;
+    int nb = 0 ;
+    SBT_init(sbt,fr0, fr1) ;
+    while(sbt->indS > 0 ) {
+        if(sbt->fr0.d + sbt->fr1.d <= PB073_MAXN) {
+            if(SBT_ValidNxt(sbt,1)==0) {
+                if(pbR->isVerbose) fprintf(stdout,"\tPB%s ERROR REALLOC SBT(%d)\n",pbR->ident,sbt->sizeStack) ;
+                SBT_free(sbt);
+                return 0 ;
+            }
+        } else {
+            nb++ ;
+            SBT_ValidNxt(sbt,0) ;
+        }
+    }
+    SBT_free(sbt);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nb-1) ;
+    return 1 ;
+}
+// version by Stern-Brocot Tree recursive
+static int nb_pb073b = 0 ;
+int PB073bCB(FRACTRED fr0, FRACTRED fr1) {
+    if(fr0.d+fr1.d<=PB073_MAXN) {
+        return 1 ;
+    }    else {
+        nb_pb073b++ ;
+        return 0 ;
+    }
+}
+
+int PB073b(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    FRACTRED fr0 = {1,3} , fr1 = {1,2} ; ;
+    STBrcv(fr0,fr1,PB073bCB) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nb_pb073b-1) ;
+    return 1 ;
+}
+// version by Stern-Brocot Tree recursive qith only denominators
+static int nb_pb073c = 0 ;
+int PB073cCB(int d0, int d1) {
+    if(d0+d1<=PB073_MAXN) {
+        return 1 ;
+    }    else {
+        nb_pb073c++ ;
+        return 0 ;
+    }
+}
+
+int PB073c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    STBrcvDen(3,2,PB073cCB) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nb_pb073b-1) ;
     return 1 ;
 }
 

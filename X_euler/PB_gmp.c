@@ -189,6 +189,124 @@ int PB104_gmp(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB192_MAXN  100000
+#define PB192_PREC    1000000000000LL
+int Dist192_gmp(int32_t N,int64_t p1,int64_t q1,int64_t p2,int64_t q2) {
+    static mpz_t DIFFH ;
+    static mpz_t Q2 ;
+    static mpz_t Q1 ;
+    static mpz_t PP ;
+    static mpz_t NQQ ;
+    static int isInit = 1 ;
+    if(isInit) {
+        isInit = 0;
+        mpz_init(DIFFH);
+        mpz_init(Q1);
+        mpz_init(Q2);
+        mpz_init(PP);
+        mpz_init(NQQ);
+    }
+    
+    int dist = -1 ;
+    int64_t diff1 = p1*p1 - N * q1 * q1 ;
+    int64_t diff2 = p2*p2 - N * q2 * q2 ;
+    int32_t sign1 = (diff1 > 0) ? 1 : -1 ;
+    int32_t sign2 = (diff2 > 0) ? 1 : -1 ;
+    if(sign1*sign2 > 0) {
+        // p1/q1 and p2/q2 are on the same side of sqrt(N)
+        // comparaison of p1/q1 and p2/q2 is sufficient
+        if(sign1 * (p1*q2-p2*q1) < 0) {
+            dist = 1 ;
+        }
+    } else {
+        // p1/q1 and p2/q2 are on opposite side
+        // The better is on the opposite side of the median value pm/qm = (p1/q1+p2/q2)/2
+        // so test pm*pm - N*qm*qm <=> diff1*q2*q2 + diff2*q1*q1 + 2*diff1_2 * q1*q2
+        // where diff1_2 = p1*p2-N*q1*q2
+        mpz_set_si(Q2,diff1) ; //Q2 = diff1
+        mpz_mul_si(Q2,Q2,q2) ; // Q2 = diff1*q2
+        mpz_mul_si(Q2,Q2,q2) ; // Q2 = diff1*q2*q2
+        
+        mpz_set_si(Q1,diff2) ; //Q1 = diff2
+        mpz_mul_si(Q1,Q1,q1) ; // Q1 = diff2*q1
+        mpz_mul_si(Q1,Q1,q1) ; // Q1 = diff2*q1*q1
+        
+        mpz_set(DIFFH,Q2) ;
+        mpz_add(DIFFH,DIFFH,Q1) ;
+        
+        mpz_set_si(PP,p1) ;
+        mpz_mul_si(PP,PP,p2) ;
+        mpz_set_si(NQQ,N) ;
+        mpz_mul_si(NQQ,NQQ,q1) ;
+        mpz_mul_si(NQQ,NQQ,q2) ;
+        mpz_sub(PP,PP,NQQ);
+        mpz_mul_si(PP,PP,2*q1) ;
+        mpz_mul_si(PP,PP,q2) ;
+        mpz_add(DIFFH,DIFFH,PP) ;
+        int64_t diffh = mpz_get_si(DIFFH);
+        //        long double diffh = q2*q2*diff1 + q1*q1*diff2 + 2*(q1*q2)* (p1*p2-N*q1*q2) ;
+        if(diffh * sign1 <0) {
+            dist = 1 ;
+        }
+    }
+    return dist ;
+}
+
+int PB192_gmp(PB_RESULT *pbR) {
+    int32_t N , a0, a2;
+    int64_t Sum = 0 ;
+    pbR->nbClock = clock()  ;
+    for(N=2,a0=1,a2=4;N<=PB192_MAXN;N++) {
+        int32_t d , n ;
+        int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
+        int32_t a ;
+        if(N == a2) { // a2 = (a0+1)*(a0+1)
+            a0++ ;
+            a2 += 2*a0 + 1 ; continue ;
+        }
+        // compute the convergent for sqrt(N)
+        // in place with 3 consecutives p0/q0 p1/q1 p2/q2
+        a = a0 ; d=1 ;  n = 0 ; // so k0 =(int) srqt(N)
+        p1=1 ; q1=0;
+        p2=a ; q2 = 1 ;
+        do {
+            n = d * a - n ;
+            d = (N - n*n) / d ;
+            a = (a0+n) / d ;
+            p0 = p1 ;  p1 = p2 ;  p2 = a*p1 + p0  ;
+            q0 = q1 ; q1 = q2 ;   q2 =a*q1 + q0 ;
+        } while( q2 <= PB192_PREC) ;
+        // p2/q2 exceed precision. p1/q1 is the last convergent OK
+        // must test if pk/qk = (p0+k*p1)/(q0+k*q1) is better
+        // with k max value not ot excced precision
+        int64_t k = (PB192_PREC - q0) / q1 ;
+        if(k == 0) {
+            pk = p1 ;
+            qk = q1 ;
+        } else {
+            pk = p0 + k * p1 ;
+            qk = q0 + k * q1 ;
+            if(2*k < a) { // p1/q1 is better if 2*k < a, worse if 2*k >a
+                pk = p1 ;
+                qk = q1 ;
+            } else if( 2*k==a){ // ambiguous
+                // a == 2*k;
+                int dist = Dist192_gmp(N,p1,q1,pk,qk) ;
+                if(dist > 0) {
+                    pk = p1 ;
+                    qk = q1 ;
+                }
+            }
+        }
+        Sum += qk ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum);
+    return 1 ;
+}
+
+
+
 
 
 #define PB597_LG    1800

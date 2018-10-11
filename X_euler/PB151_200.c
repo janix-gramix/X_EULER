@@ -24,156 +24,36 @@
 //#define PB192_PREC  100LL
 
 #define HIGH_PREC_192   0
-int Dist192(int32_t N,int64_t p1,int64_t q1,int64_t p2,int64_t q2) {
-    static mpz_t DIFFH ;
-    static mpz_t DIFF1 ;
-    static mpz_t DIFF2 ;
-    static mpz_t Q2 ;
-    static mpz_t Q1 ;
-    static mpz_t PP ;
-    static mpz_t NQQ ;
-    static int isInit = 1 ;
-    if(isInit) {
-        isInit = 0;
-        mpz_init(DIFFH);
-        mpz_init(DIFF1);
-        mpz_init(DIFF2);
-        mpz_init(Q1);
-        mpz_init(Q2);
-        mpz_init(PP);
-        mpz_init(NQQ);
-   }
-    
-    int dist = -1 ;
-#if HIGH_PREC_192
-    mpz_set_si(DIFF1,p1) ;
-    mpz_mul_si(DIFF1,DIFF1,p1) ;
-    mpz_set_si(NQQ,N) ;
-    mpz_mul_si(NQQ,NQQ,q1) ;
-    mpz_mul_si(NQQ,NQQ,q1) ;
-    mpz_sub(DIFF1,DIFF1,NQQ);
-    int64_t diff1 = mpz_get_si(DIFF1);
-    
-    mpz_set_si(DIFF2,p2) ;
-    mpz_mul_si(DIFF2,DIFF2,p2) ;
-    mpz_set_si(NQQ,N) ;
-    mpz_mul_si(NQQ,NQQ,q2) ;
-    mpz_mul_si(NQQ,NQQ,q2) ;
-    mpz_sub(DIFF2,DIFF2,NQQ);
-    int64_t diff2 = mpz_get_si(DIFF2);
 
-#else
-    int64_t diff1 = p1*p1 - N * q1 * q1 ;
-    int64_t diff2 = p2*p2 - N * q2 * q2 ;
-#endif
-    int32_t sign1 = (diff1 > 0) ? 1 : -1 ;
-    int32_t sign2 = (diff2 > 0) ? 1 : -1 ;
-    if(sign1*sign2 > 0) {
-        // meme cote
-        if(sign1 * (p1*q2-p2*q1) < 0) {
-            dist = 1 ;
-        }
-    } else {
-        
-        
-        mpz_set_si(Q2,diff1) ; //Q2 = diff1
-        mpz_mul_si(Q2,Q2,q2) ; // Q2 = diff1*q2
-        mpz_mul_si(Q2,Q2,q2) ; // Q2 = diff1*q2*q2
-
-        mpz_set_si(Q1,diff2) ; //Q1 = diff2
-        mpz_mul_si(Q1,Q1,q1) ; // Q1 = diff2*q1
-        mpz_mul_si(Q1,Q1,q1) ; // Q1 = diff2*q1*q1
-       
-        mpz_set(DIFFH,Q2) ;
-        mpz_add(DIFFH,DIFFH,Q1) ;
-        
-        mpz_set_si(PP,p1) ;
-        mpz_mul_si(PP,PP,p2) ;
-        mpz_set_si(NQQ,N) ;
-        mpz_mul_si(NQQ,NQQ,q1) ;
-        mpz_mul_si(NQQ,NQQ,q2) ;
-        mpz_sub(PP,PP,NQQ);
-        mpz_mul_si(PP,PP,2*q1) ;
-        mpz_mul_si(PP,PP,q2) ;
-        mpz_add(DIFFH,DIFFH,PP) ;
-        int64_t diffh = mpz_get_si(DIFFH);
-      
-//        long double diffh = q2*(long double)q2*diff1 + q1*(long double)q1*diff2 + 2*(long double)(q1*q2)* (p1*p2-N*q1*q2) ;
-        if(diffh * sign1 <0) {
-            dist = 1 ;
-        }
-        
-    }
-    return dist ;
-}
-int Dist192a(int32_t N,int64_t p0,int64_t q0,int64_t p1,int64_t q1,int k) {
-    int64_t pk = p0 + k * p1 ;
-    int64_t qk = q0 + k * q1 ;
-    
-    int64_t diffk = pk*pk - N * qk * qk ;
-    int64_t diff1 = p1*p1 - N * q1 * q1 ;
-    
-    int dist = - 1;
-    int32_t signk = (diffk > 0) ? 1 : -1 ;
-    int32_t sign1 = (diff1 > 0) ? 1 : -1 ;
-    if(signk*sign1 > 0) {
-        // meme cote
-        if(sign1 * (p1*qk-pk*q1) < 0) {
-            dist = 1 ;
-        }
-    } else {
-        int a = 2*k ;
-        
-        int64_t diff0 = p0*p0 - N * q0 * q0 ;
-        int64_t diff01 = p0*p1 - N*q0*q1 ;
-//        long double diffh = q2*(long double)q2*diff1 + q1*(long double)q1*diff2 + 2*(long double)(q1*q2)* (p1*p2-N*q1*q2) ;
-        
-        int64_t diffh = a*a*diff1+diff0+2*a*diff01 ;
-        if(diffh*sign1 < 0  ) {
-            dist = 1 ;
-        }
-    }
-    return dist ;
-}
 
 int PB192(PB_RESULT *pbR) {
     int32_t N , a0, a2;
-    int32_t n , d ;
-    int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
-    int32_t a ;
-    int64_t Sum = 0 ;
     pbR->nbClock = clock()  ;
+    int64_t Sum = 0 ;
     for(N=2,a0=1,a2=4;N<=PB192_MAXN;N++) {
-        int i,j ;
+        int32_t n , d ;
+        int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
+        int32_t a ;
         if(N == a2) { // a2 = (a0+1)*(a0+1)
             a0++ ;
             a2 += 2*a0 + 1 ; continue ;
         }
-        
-        a = a0 ; d=1 ;  n = 0 ; i = 0 ; // so k0 =(int) srqt(N)
-        p1 = a ; q1 = 1 ;
-        n = d * a - n ;
-        d = (N - n*n) / d ;
-        a = (a0+n) / d ;
-        p2 = 1+a0*a ;  q2 = a ;
+        // compute the convergent for sqrt(N)
+        // in place with 3 consecutives p0/q0 p1/q1 p2/q2
+        a = a0 ; d=1 ;  n = 0 ; // so k0 =(int) srqt(N)
+        p1=1 ; q1=0;
+        p2=a ; q2 = 1 ;
         do {
-            
-            p0 = p1 ;
-            q0 = q1 ;
             n = d * a - n ;
             d = (N - n*n) / d ;
             a = (a0+n) / d ;
-            
-            int64_t tmp = p1 ;
-            p1 = p2 ;
-            p2 = a*p2 + tmp ;
-            
-            tmp = q1 ;
-            q1 = q2 ;
-            q2 =a*q2 + tmp ;
-            i++ ;
-        } while( q2 <= PB192_PREC) ; // test loop on (n,d) = (k0,1)first couple
-        int64_t k = (PB192_PREC - q0) / q1 ;
+            p0 = p1 ;  p1 = p2 ;  p2 = a*p1 + p0  ;
+            q0 = q1 ; q1 = q2 ;   q2 =a*q1 + q0 ;
+        } while( q2 <= PB192_PREC) ;
+        // p2/q2 exceed precision. p1/q1 is the last convergent OK
+        // must test if pk/qk = (p0+k*p1)/(q0+k*q1) is better
+        // with k max value not ot excced precision
+       int64_t k = (PB192_PREC - q0) / q1 ;
         if(k == 0) {
             pk = p1 ;
             qk = q1 ;
@@ -184,106 +64,18 @@ int PB192(PB_RESULT *pbR) {
                 pk = p1 ;
                 qk = q1 ;
             } else if( 2*k==a){
-                // a == 2*k
-                int dist = Dist192(N,p1,q1,pk,qk) ;
-                if(dist > 0) {
-                    pk = p1 ;
-                    qk = q1 ;
-                }
-            }
-        }
-        Sum += qk ;
-    }
-    
-    pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
-    return 1 ;
-}
-
-
-int PB192a(PB_RESULT *pbR) {
-    int32_t N , a0, a2;
-    int32_t n , d ;
-    int64_t p0,q0,p1,q1,p2,q2,pk,qk ;
-    int32_t a ;
-    double x ;
-    int64_t Sum = 0 ;
-    int NbImpair = 0 ;
-    pbR->nbClock = clock()  ;
-    int32_t Fract[1000] ;
-    for(N=2,a0=1,a2=4;N<=PB192_MAXN;N++) {
-        int i,j ;
-        if(N == a2) { // a2 = (a0+1)*(a0+1)
-            a0++ ;
-            a2 += 2*a0 + 1 ; continue ;
-        }
-
-        a = a0 ; d=1 ;  n = 0 ; i = 0 ; // so k0 =(int) srqt(N)
-        Fract[i++] = a ;
-        p1 = a ; q1 = 1 ;
-        n = d * a - n ;
-        d = (N - n*n) / d ;
-        a = (a0+n) / d ;
-        p2 = 1+a0*a ;  q2 = a ;
-        Fract[i++] = a ;
-
- //       printf("%d->",N);
-        do {
-            
-            p0 = p1 ;
-            q0 = q1 ;
-            n = d * a - n ;
-            d = (N - n*n) / d ;
-            a = (a0+n) / d ;
-            Fract[i++] = a ;
-          
-            int64_t tmp = p1 ;
-            p1 = p2 ;
-            p2 = a*p2 + tmp ;
-            
-            tmp = q1 ;
-            q1 = q2 ;
-            q2 =a*q2 + tmp ;
-            i++ ;
-   //         printf("%d,",a);
-  //          printf("%lld/%lld ",p2,q2) ;
- //           i++ ;
-        } while( q2 <= PB192_PREC) ; // test loop on (n,d) = (k0,1)first couple
-        int64_t k = (PB192_PREC - q0) / q1 ;
-        if(k == 0) {
-            pk = p1 ;
-            qk = q1 ;
-        } else {
-            pk = p0 + k * p1 ;
-            qk = q0 + k * q1 ;
-            if(2*k < a) {
-                pk = p1 ;
-                qk = q1 ;
-            } else if( 2*k==a){
-                // a == 2*k
-//                int dist = Dist192(N,p1,q1,pk,qk) ;
-             
-                
-                int ar ;
+                // compute the remaining convergent np1/nq1 , np2/nq2
+                // and compare to q1/q0 ( q(n)/q(n-1) )
+                // comparaison depend on parity as convergents alternate.
                 n = d * a - n ;
                 d = (N - n*n) / d ;
                 a = (a0+n) / d ;
-
-                int64_t np1 = a ;
-                int64_t nq1 = 1 ;
-
-                n = d * a - n ;
-                d = (N - n*n) / d ;
-                a = (a0+n) / d ;
-
-                int64_t np2 =  a*np1+1 ;
-                int64_t nq2 = a*nq1 ;
-                
-                i = 0 ;
+                int64_t np1 = 1 , nq1 = 0 ;
+                int64_t np2 = a , nq2 = 1 ;
+                int is = 1 ;
                 do {
-                    
                     n = d * a - n ;
-                    d = (N - n*n) / d ;
+                    d = (N- n*n) / d ;
                     a = (a0+n) / d ;
                     
                     int64_t tmp = np1 ;
@@ -294,14 +86,9 @@ int PB192a(PB_RESULT *pbR) {
                     nq1 = nq2 ;
                     nq2 =a*nq2 + tmp ;
                     
-                    i++ ;
-                } while((np2*q0-nq2*q1) *(2*(i&1)-1) <= 0 ) ; // test loop on (n,d) = (k0,1)first couple
-               int dist2 = -1 ;
-                if((i&1)==0) {
-                    dist2 = 1 ;
-                }
-                
-                if(dist2 > 0) {
+                    is = -is ; // parity
+                } while((np2*q0-nq2*q1) * is < 0 ) ; // test loop on (n,d) = (k0,1)first couple
+                if(is < 0) {
                     pk = p1 ;
                     qk = q1 ;
                 }
@@ -309,7 +96,6 @@ int PB192a(PB_RESULT *pbR) {
         }
         Sum += qk ;
     }
-
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",Sum);
     return 1 ;

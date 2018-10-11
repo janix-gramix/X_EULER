@@ -14,6 +14,7 @@
 #include "PB001_050.h"
 #include "PB051_100.h"
 #include "PB101_150.h"
+#include "PB151_200.h"
 #include "PB_gmp.h"
 #include "PB_other.h"
 
@@ -144,6 +145,10 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(071,428570,'Ordered fractions')
     ,PROTO_CALL(072,303963552391,'Counting fractions')
     ,PROTO_CALL(073,7295372,'Counting fractions in a range')
+//    ,PROTO_CALL(073a,7295372,'Counting fractions in a range')
+//    ,PROTO_CALL(073b,7295372,'Counting fractions in a range')
+//    ,PROTO_CALL(073c,7295372,'Counting fractions in a range')
+
 //    ,PROTO_CALL(074,402,'Digit factorial chains')
     ,PROTO_CALL(074a,402,'Digit factorial chains')
     ,PROTO_CALL(075,161667,'Singular integer right triangles')
@@ -151,7 +156,7 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(076a,190569291,'Counting summations')
     ,PROTO_CALL(077,71,'Prime summations')
     ,PROTO_CALL(078,55374,'Counting summations')
-    ,PROTO_CALL(080_gmp,40886,'Square root digital expansion')
+    ,PROTO_CALL(080_gmp,40886,'Square root  <digital expansion')
     ,PROTO_CALL(081,427337,'Path sum: two ways')
     ,PROTO_CALL(082,260324,'Path sum: three ways')
     ,PROTO_CALL(083,425185,'Path sum: four ways')
@@ -227,11 +232,23 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(133a,453647705,'Repunit nonfactors')
 //    ,PROTO_CALL(134,18613426663617118,'Prime pair connection')
     ,PROTO_CALL(134a,18613426663617118,'Prime pair connection')
+//    ,PROTO_CALL(135,4989,'Same differences')
+    ,PROTO_CALL(135a,4989,'Same differences')
+    ,PROTO_CALL(136,2544559,'Singleton difference')
+
 //    ,PROTO_CALL(143,30758397,'Investigating the Torricelli point of a triangle')
     ,PROTO_CALL(143a,30758397,'Investigating the Torricelli point of a triangle')
     
     ,PROTO_CALL(147,846910284,'Rectangles in cross-hatched grids')
 
+//    ,PROTO_CALL(198,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198a,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198b,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198c,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198d,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198e,52374425,'Ambiguous Numbers')
+//    ,PROTO_CALL(198f,52374425,'Ambiguous Numbers')
+    ,PROTO_CALL(198g,52374425,'Ambiguous Numbers')
 
 
 
@@ -265,15 +282,12 @@ static PB_CALL CUR_calls[] = {
  //    { 051,121313,'Prime digit replacements'),
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
-      PROTO_CALL(135,4989,'Same differences')
-     ,PROTO_CALL(135a,4989,'Same differences')
+
+    PROTO_CALL(192,57060635927998347,'Best Approximations')
+    ,PROTO_CALL(192_gmp,57060635927998347,'Best Approximations')
 
 
 
-//    PROTO_CALL(122c,1582,'Efficient exponentiation')
-//    ,PROTO_CALL(122b,1582,'Efficient exponentiation')
-//    ,PROTO_CALL(122a,1582,'Efficient exponentiation')
-//    ,PROTO_CALL(122,1582,'Efficient exponentiation')
     
 //    PROTO_CALL(626,???,'Counting Binary Matrices')
 

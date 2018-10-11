@@ -272,7 +272,6 @@ int PB579(PB_RESULT *pbR) {
 #define PB620_MAX   500 //
 int Count620(int s, int p,int q) {
     int k ;
-    int nbSol =0 ;
     double a = -(double)(s+p) / (double) (s+q) ;
     double piInv = 1 / M_PI ;
     double factSin = ((double) (s+p)) / (s+q) ;
