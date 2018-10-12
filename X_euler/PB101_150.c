@@ -2721,31 +2721,50 @@ int PB143a(PB_RESULT *pbR) {
 int PB145(PB_RESULT *pbR) {
     int nbSol = 0 ;
     int digits[PB145_MAXD] ;
+    int nbDecomp[19] =  { 1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2,1} ;
+    int nbDecomp0[19] = { 0,0,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1} ;
     pbR->nbClock = clock() ;
-    int lg,s ;
+    int lg ;
     int i,c ;
     for(lg=2;lg<=PB145_MAXD;lg++) {
         if((lg % 4)==1) continue ;
-        digits[0]=digits[lg-1] = 1 ;
-        for(i=1;i<lg-1;i++) {
+        digits[0]=2 ;
+        int hlg = lg/ 2 ;
+        for(i=1;i<hlg;i++) {
             digits[i] = 0;
+        }
+        if(lg & 1) digits[i++] = 0 ;
+        for(;i<lg;i++) {
+            digits[i] = digits[lg-i-1] ;
         }
         int is =lg;
         while(is>= 0) {
             for(i=0,c=0;i<lg;i++) {
-                c += digits[i]+digits[lg-i-1] ;
+                c += digits[i] ;
                 if((c&1) == 0) break ;
                 c = (c>=10) ? 1 : 0 ;
             }
-            if(i==lg) { nbSol++ ;  }
-            for(is=lg-1;is>=0;is--) {
-                if(digits[is]<9) {
+            if(i==lg) {
+                int isup = nbDecomp0[digits[0]] ;
+                for(i=1;i<hlg;i++)  isup *= nbDecomp[digits[i]] ;
+                nbSol += isup ;
+            }
+            if(lg & 1) {
+                if(digits[hlg] < 9) {
+                    digits[hlg]++ ;
+                    continue ;
+                } else {
+                    digits[hlg] = 0 ;
+                }
+            }
+            for(is=hlg-1;is>=0;is--) {
+                if(digits[is]<18) {
                     digits[is]++ ;
+                    digits[lg-is-1] = digits[is] ;
                     break ;
                 } else {
                     if(is==0) { is=-1 ; break ; }
-                        
-                    digits[is] = (is == lg-1) ? 1 : 0 ;
+                    digits[lg-is-1] = digits[is] = 0 ;
                 }
             }
         }
