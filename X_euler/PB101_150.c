@@ -2717,6 +2717,46 @@ int PB143a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB145_MAXD  9
+int PB145(PB_RESULT *pbR) {
+    int nbSol = 0 ;
+    int digits[PB145_MAXD] ;
+    pbR->nbClock = clock() ;
+    int lg,s ;
+    int i,c ;
+    for(lg=2;lg<=PB145_MAXD;lg++) {
+        if((lg % 4)==1) continue ;
+        digits[0]=digits[lg-1] = 1 ;
+        for(i=1;i<lg-1;i++) {
+            digits[i] = 0;
+        }
+        int is =lg;
+        while(is>= 0) {
+            for(i=0,c=0;i<lg;i++) {
+                c += digits[i]+digits[lg-i-1] ;
+                if((c&1) == 0) break ;
+                c = (c>=10) ? 1 : 0 ;
+            }
+            if(i==lg) { nbSol++ ;  }
+            for(is=lg-1;is>=0;is--) {
+                if(digits[is]<9) {
+                    digits[is]++ ;
+                    break ;
+                } else {
+                    if(is==0) { is=-1 ; break ; }
+                        
+                    digits[is] = (is == lg-1) ? 1 : 0 ;
+                }
+            }
+        }
+        printf("NB[%d]=%d ",lg,nbSol) ;
+
+     }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbSol) ;
+    return 1 ;
+}
+
 
 
 
