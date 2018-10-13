@@ -10,10 +10,120 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
-#include <gmp.h>
 
+#include "euler_utils.h"
 #include "faray_utils.h"
 #include "PB151_200.h"
+
+#define PB187_MAX   1000000000
+//#define PB187_MAX   100000000
+int PB187(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB187_MAX/2)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int nbFind =0 ;
+    int i,j;
+    nbFind += nbPrime ; // 2 * pi
+    for(i=1;i<nbPrime;i++) {
+        int maxPj = PB187_MAX/ tbPrime[i] ;
+        for(j=i;tbPrime[j] <= maxPj;j++)  ;
+        nbFind += j-i ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbFind) ;
+    return 1 ;
+}
+int PB187a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB187_MAX/2)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int nbFind =0 ;
+    int i;
+    int maxPi = Sqrt32(PB187_MAX) ;
+    int pi ;
+    nbFind += nbPrime ; // 2 * pi
+ //   printf("%d ",nbPrime);
+
+    int j = nbPrime - 1 ;
+    for(i=1;(pi=tbPrime[i])<= maxPi ;i++) {
+        int maxPj = PB187_MAX/ tbPrime[i] ;
+        for(;tbPrime[j] > maxPj;j--)  ;
+ //       printf("%d ",j+1);
+        nbFind += j-i+1 ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbFind) ;
+    return 1 ;
+}
+int PB187b(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    int maxPi = Sqrt32(PB187_MAX)+1 ;
+    if((ctxP = Gen_tablePrime(maxPi)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int nbFind =0 ;
+    int i,j,k;
+     int Pi ;
+    printf("last p=%d p*p=%d\n",tbPrime[nbPrime-1],tbPrime[nbPrime-1]*tbPrime[nbPrime-1]);
+ //   nbFind += nbPrime ; // 2 * pi,
+    j = nbPrime - 1 ;
+    int nbM = nbPrime -1 ;
+    for(i=0;i<nbPrime ;i++) {
+        Pi=tbPrime[i] ;
+        int invPi = PB187_MAX/ Pi ;
+        // on veut calculer pi(invPi)
+        int PIinvPi = invPi ;
+        int sqInvPi = Sqrt32(invPi) ;
+        for(;tbPrime[nbM]>sqInvPi;nbM--) ;
+        int i1,i2,i3,i4,i5,i6,i7,i8 ;
+        int64_t p1,p2,p3,p4,p5,p6,p7,p8 ;
+        for(i1=0;i1<=nbM && (p1=tbPrime[i1])<=invPi;i1++) {
+            PIinvPi -= invPi / p1 ;
+            for(i2=i1+1;i2<=nbM &&(p2=p1*tbPrime[i2])<=invPi;i2++) {
+                PIinvPi += invPi / p2 ;
+                for(i3=i2+1;i3<=nbM &&(p3=p2*tbPrime[i3])<=invPi;i3++) {
+                    PIinvPi -= invPi / p3 ;
+                    for(i4=i3+1;i4<=nbM &&(p4=p3*tbPrime[i4])<=invPi;i4++) {
+                        PIinvPi += invPi / p4 ;
+                        for(i5=i4+1;i5<=nbM && (p5=p4*tbPrime[i5])<=invPi;i5++) {
+                            PIinvPi -= invPi / p5 ;
+                            for(i6=i5+1;i6<=nbM && (p6=p5*tbPrime[i6])<=invPi;i6++) {
+                                PIinvPi += invPi / p6 ;
+                                for(i7=i6+1;i7<=nbM && (p7=p6*tbPrime[i7])<=invPi;i7++) {
+                                    PIinvPi -= invPi / p7 ;
+                                    for(i8=i7+1;i8<=nbM && (p8=p7*tbPrime[i8])<=invPi;i8++) {
+                                        PIinvPi += invPi / p8 ;                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for(;tbPrime[j]*tbPrime[j]>invPi;j--) ;
+ //       printf("PI(%d)=%d\n",invPi,PIinvPi+nbM);
+        nbFind += PIinvPi+nbM - i  ; // -i +i PI(i)
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%d",nbFind) ;
+    return 1 ;
+}
+
+
 
 
 #define PB192_MAXN  100000
