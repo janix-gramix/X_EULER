@@ -27,9 +27,10 @@ int PB206(PB_RESULT *pbR) {
 
     for(i=0;i<PB206_NBD-1;i++) {
         digits[i] = 0 ;
-        nbDtoCheck[i] = i/2+1 ;
+        nbDtoCheck[i] = (i & 1) ? 0 : (i/2+1) ;
         maxDigit[i]= 9*pow10[i] ;
     }
+    
     maxDigit[PB206_NBD-2] = 3*pow10[PB206_NBD-2] ;
     digits[PB206_NBD-1] = pow10[PB206_NBD-1] ;
     nbDtoCheck[PB206_NBD-1] = PB206_NBD ;
@@ -38,13 +39,17 @@ int PB206(PB_RESULT *pbR) {
     int is=0;
     N=pow10[PB206_NBD-1] ;
     while(is < PB206_NBD) {
-        N2 = N*N ;
-        for(i=0;i<nbDtoCheck[is];i++){
-            if((N2 % 10)  != 9-i) break ;
-            N2 /= 100 ;
-        }
-        if(i==nbDtoCheck[is]) {
-            if(is==PB206_NBD-1) break ;
+        if(nbDtoCheck[is]) {
+            N2 = N*N ;
+            for(i=0;i<nbDtoCheck[is];i++){
+                if((N2 % 10) != 9-i) break ;
+                N2 /= 100 ;
+            }
+            if(i==nbDtoCheck[is]) {
+                if(is==PB206_NBD-1) break ;
+                is++ ; continue ;
+            }
+        } else {
             is++ ; continue ;
         }
         while(is>=0 && digits[is]==maxDigit[is]) {
@@ -65,6 +70,7 @@ int PB206(PB_RESULT *pbR) {
         return 1 ;
     }
 }
+
 
 #define U 10203040506070809LL
 #define A  1000000000000000LL
