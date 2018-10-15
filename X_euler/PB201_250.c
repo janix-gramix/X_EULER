@@ -14,6 +14,9 @@
 
 #include "PB201_250.h"
 #define PB206_NBD   9
+
+
+
 int PB206(PB_RESULT *pbR) {
     pbR->nbClock = clock();
     int64_t N,N2 ;
@@ -36,17 +39,42 @@ int PB206(PB_RESULT *pbR) {
     
     is=0;
     N=pow10[PB206_NBD-1] ;
-//    while(is < PB206_NBD)
     while(1){
         if(is & 1) {
             is++ ; continue ;
         } else {
             N2 = N*N ;
-            if(is<PB206_NBD-1) {
+             if(is<PB206_NBD-1) {
                 if( ( (N2/pow10[is] ) % 10) == 9-(is/2) ) {
-                    is++ ; continue ;
+                    if(is < 4) {
+                        is++ ; continue ;
+                    } else {
+                        int a,b,c;
+                        int64_t N11,N1,N11m;
+                        for(a=0;a<10;a++) {
+                            for(b=0;b<10;b++) {
+                                for(c=0;c<10;c++) {
+                                    N11m=10203040506070000LL+a*1000000000000000LL+b*10000000000000LL+c*100000000000LL;
+                                    N1=Sqrt64(N11m);
+                                    if((N1 % 10000) <= N-100000000) {
+                                        N1 += -(N1 % 10000)+N-100000000 ;
+                                        N11=(N1*N1);
+                                        if(N11 < N11m + 9090909899LL ) {
+                                            N11 /=10000 ;
+                                            if((N11 % 10)==7 && ((N11/100) % 10)== 6 && ((N11/10000) % 10)==5) {
+                                                N1 *= 10 ;
+                                                pbR->nbClock = clock() - pbR->nbClock ;
+                                                if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld **2 = %lld\n",pbR->ident,N1,N1*N1) ;
+                                                sprintf(pbR->strRes,"%lld",N1);
+                                                return 1 ;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                
             } else {
                 for(i=0;i<PB206_NBD;i++){
                     if((N2 % 10) != 9-i) break ;
@@ -55,7 +83,7 @@ int PB206(PB_RESULT *pbR) {
                 if(i==PB206_NBD) {
                     break ;
                 }
-                
+                is-- ;
             }
         }
 
@@ -78,12 +106,12 @@ int PB206(PB_RESULT *pbR) {
     }
 }
 
-
 #define U 10203040506070809LL
 #define A  1000000000000000LL
 #define B    10000000000000LL
 #define C      100000000000LL
 #define V        9090909090LL
+
 
 int PB206a(PB_RESULT *pbR) {
     pbR->nbClock = clock();
