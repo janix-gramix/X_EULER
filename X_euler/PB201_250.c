@@ -23,12 +23,15 @@ int PB206(PB_RESULT *pbR) {
     int i ;
     int is=0;
     int64_t digits[PB206_NBD] ;
-    int64_t pow10[PB206_NBD+1] ;
+    int64_t pow10[2*PB206_NBD] ;
     int64_t maxDigit[PB206_NBD] ;
     pow10[0]=1 ;
-    for(i=0;i<PB206_NBD;i++) pow10[i+1] = pow10[i]*10 ;
+    for(i=0;i<2*PB206_NBD-2;i++) pow10[i+1] = pow10[i]*10 ;
 
-    for(i=0;i<PB206_NBD-1;i++) {
+    int loop ;
+    for(loop=0;loop<1;loop++) {
+
+        for(i=0;i<PB206_NBD-1;i++) {
         digits[i] = 0 ;
          maxDigit[i]= 9*pow10[i] ;
     }
@@ -36,51 +39,22 @@ int PB206(PB_RESULT *pbR) {
     maxDigit[PB206_NBD-2] = 3*pow10[PB206_NBD-2] ;
     digits[PB206_NBD-1] = pow10[PB206_NBD-1] ;
      maxDigit[PB206_NBD-1] = pow10[PB206_NBD-1] ;
-    
-    is=0;
+     is=0;
     N=pow10[PB206_NBD-1] ;
     while(1){
         if(is & 1) {
             is++ ; continue ;
         } else {
             N2 = N*N ;
-             if(is<PB206_NBD-1) {
+             if(is<PB206_NBD-1) { // verification of added digit
                 if( ( (N2/pow10[is] ) % 10) == 9-(is/2) ) {
-                    if(is < 4) {
-                        is++ ; continue ;
-                    } else {
-                        int a,b,c;
-                        int64_t N11,N1,N11m;
-                        for(a=0;a<10;a++) {
-                            for(b=0;b<10;b++) {
-                                for(c=0;c<10;c++) {
-                                    N11m=10203040506070000LL+a*1000000000000000LL+b*10000000000000LL+c*100000000000LL;
-                                    N1=Sqrt64(N11m);
-                                    if((N1 % 10000) <= N-100000000) {
-                                        N1 += -(N1 % 10000)+N-100000000 ;
-                                        N11=(N1*N1);
-                                        if(N11 < N11m + 9090909899LL ) {
-                                            N11 /=10000 ;
-                                            if((N11 % 10)==7 && ((N11/100) % 10)== 6 && ((N11/10000) % 10)==5) {
-                                                N1 *= 10 ;
-                                                pbR->nbClock = clock() - pbR->nbClock ;
-                                                if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld **2 = %lld\n",pbR->ident,N1,N1*N1) ;
-                                                sprintf(pbR->strRes,"%lld",N1);
-                                                return 1 ;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    is++ ; continue ;
                 }
-            } else {
-                for(i=0;i<PB206_NBD;i++){
-                    if((N2 % 10) != 9-i) break ;
-                    N2 /= 100 ;
+            } else { // verification for high digits (low are OK by construction)
+                for(i=PB206_NBD-2;i>=PB206_NBD/2;i--){
+                    if(((N2/pow10[2*i]) % 10) != 9-i) break ;
                 }
-                if(i==PB206_NBD) {
+                if(i<PB206_NBD/2) {
                     break ;
                 }
                 is-- ;
@@ -94,6 +68,7 @@ int PB206(PB_RESULT *pbR) {
         if(is< 0) break ;
         else { digits[is] += pow10[is] ; N +=pow10[is] ;
         }
+    }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(is<PB206_NBD-1) {
