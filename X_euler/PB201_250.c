@@ -154,31 +154,7 @@ int PB357(PB_RESULT *pbR) {
     int factP[40] ;
     int nbFact = 0 ;
     factP[0] = 2 ;
-/*
- int i1,i2,i3,i4,i5 ;
- int n1,n2,n3,n4,n5 ;
 
-    for(i1=1;factP[1]=tbPrime[i1],(n1=2*factP[1])<PB357_MAXP;i1++) {
-        if(Chk357(2, factP, n1, tbPrime)) {
-            nb++; Sum += n1 ; // printf("%d ",n1);
-        }
-        for(i2=i1+1; factP[2]=tbPrime[i2],(n2=n1*factP[2])<PB357_MAXP;i2++) {
-            if(Chk357(3, factP, n2, tbPrime)) {
-               nb++; Sum += n2 ; // printf("%d ",n2);
-            }
-            for(i3=i2+1; factP[3]=tbPrime[i3],(n3=n2*factP[3])<PB357_MAXP;i3++) {
-                if(Chk357(4, factP, n3, tbPrime)) {
-                    nb++; Sum += n3 ; // printf("%d ",n2);
-                }
-                for(i4=i3+1; factP[4]=tbPrime[i4],(n4=n3*factP[4])<PB357_MAXP;i4++) {
-                    if(Chk357(5, factP, n4, tbPrime)) {
-                        nb++; Sum += n4 ; // printf("%d ",n2);
-                    }
-                }
-            }
-        }
-    }
-*/
     int i,j;
     for(i=1;i<nbPrime;i++) {
         int p = tbPrime[i] ;
@@ -231,11 +207,10 @@ int PB357a(PB_RESULT *pbR) {
     int p = tbPrime[ip] ;
     int imax = Sqrt32(PB357_MAXP);
         for(i=2;i<=imax;i++) {
-            while(p<i) { p=tbPrime[++ip] ; }
+            while(p<i*2) { p=tbPrime[++ip] ; }
             int kMax = PB357_MAXP/i ;
             int ip2 = ip ;
             int p2 = p ;
-            while(p2<2*i) { p2=tbPrime[++ip2] ; }
             k = i ;
             while(p2<=kMax+i) {
                 for(;k<p2-i;k++) {
