@@ -137,6 +137,7 @@ static int Chk357(int nbFact,int *factP,int n,const T_prime * tbPrime) {
 }
 
 #define PB357_MAXP  100000000
+// #define PB357_MAXP  1000
 int PB357(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
 
@@ -226,12 +227,26 @@ int PB357a(PB_RESULT *pbR) {
         for(i=0;i<nbPrime;i++) {
             isPG[tbPrime[i]-1] = 1 ;
         }
-        for(i=2;i<PB357_MAXP;i++) {
+    int ip = 0 ;
+    int p = tbPrime[ip] ;
+    int imax = Sqrt32(PB357_MAXP);
+        for(i=2;i<=imax;i++) {
+            while(p<i) { p=tbPrime[++ip] ; }
             int kMax = PB357_MAXP/i ;
-            for(k=i;k<=kMax;k++) {
-                if(isPG[k*i] && !Is_Prime(i+k,tbPrime)) isPG[k*i] = 0 ;
+            int ip2 = ip ;
+            int p2 = p ;
+            while(p2<2*i) { p2=tbPrime[++ip2] ; }
+            k = i ;
+            while(p2<=kMax+i) {
+                for(;k<p2-i;k++) {
+                    if(isPG[k*i]) isPG[k*i] = 0 ;
+                 }
+                p2 = tbPrime[++ip2] ; k++ ;
+           }
+            for(;k<=kMax;k++) {
+                isPG[k*i] = 0 ;
             }
-        }
+         }
         int64_t Sum = 0 ;
         int32_t nb = 0 ;
     for(i=1;i<PB357_MAXP;i++) {
