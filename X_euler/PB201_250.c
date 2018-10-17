@@ -117,13 +117,13 @@ int PB206a(PB_RESULT *pbR) {
     return 0 ;
 }
 
+// assume nbFact > 2
+// we know that 2 is a prime factor of n, so decompose n=d1*d2
+// with d1 odd and d2 even.
 static int Chk357(int nbFact,int *factP,int n,const T_prime * tbPrime) {
-    if(nbFact==2) {
-        return Is_Prime32(factP[1]+2,tbPrime) && Is_Prime32(n+1, tbPrime) ;
-    }
     int nbDiv2 = 1<< (nbFact -1) ;
     int mask ;
-    for(mask=0;mask<nbDiv2;mask++) {
+    for(mask=0;mask<nbDiv2;mask++) { // all partition of prime factors.
         int d1 = 1 ;
         int d2 = 2 ;
         int i ;
@@ -136,145 +136,93 @@ static int Chk357(int nbFact,int *factP,int n,const T_prime * tbPrime) {
     return 1 ;
 }
 
-#define PB357_MAXP  100000000
-// #define PB357_MAXP  1000
+ #define PB357_MAXP  100000000
+//#define PB357_MAXP  100000000
+
+
+
+// brut version
+// phase 1 : Sieve for primes (isP)
+// Is Prime generator by Sieve like
+// phase 2 : loop on divisor d and subloop on k by checking
+// if d+k is prime
 int PB357(PB_RESULT *pbR) {
-    CTX_PRIMETABLE * ctxP  ;
-
+    int64_t Sum = 0 ;
+    int32_t nb = 0 ;
     pbR->nbClock = clock();
-    if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
-        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
-        return 0 ;
-    }
-
-    int64_t Sum = 1 ;
-    int32_t nb = 1 ;
-    const T_prime * tbPrime = GetTbPrime(ctxP);
-    int nbPrime = GetNbPrime(ctxP) ;
-    int factP[40] ;
-    int nbFact = 0 ;
-    factP[0] = 2 ;
-
-    int i,j;
-    for(i=1;i<nbPrime;i++) {
-        int p = tbPrime[i] ;
-        int n  = p-1 ;
-        if((p & 3)==1) continue ;
-        if(!Is_Prime32((p+3)/2, tbPrime)) continue ;
-       int n1 = n ;
-        int nbFact = 0 ;
-        for(j=0;n>1 && j<i;j++){
-            int pj = tbPrime[j] ;
-             if((n % pj) == 0) {
-                n /= pj ;
-                if((n % pj)== 0 ) break ;
-                factP[nbFact++] = pj ;
+    u_int8_t  *isP = malloc((PB357_MAXP+1)*sizeof(isP[0]));
+    u_int8_t  *isPG = malloc((PB357_MAXP+1)*sizeof(isPG[0]));
+    memset(isP,1,(PB357_MAXP+1)*sizeof(isP[0])) ;
+    memset(isPG,1,(PB357_MAXP+1)*sizeof(isPG[0])) ;
+    isP[0] = isP[1] = 0;
+    int i, j ;
+    for ( i = 2; i <=PB357_MAXP; i++) { // Sieve for primes
+        if (isP[i]) {
+            for (j = 2*i; j <= PB357_MAXP; j += i) {
+                if(isP[j]) isP[j] = 0;
             }
         }
-        if(n > 1) continue ;
-        if(Chk357(nbFact, factP,n1,tbPrime)) {
-            nb++; Sum += n1 ;
-        }
-
-        
     }
-    Free_tablePrime(ctxP) ;
-
+    int d, k ; // Sieve for Prime generator
+    for (d = 1; d <= PB357_MAXP; d++) {
+        for (k = 1; k*d <= PB357_MAXP; k++) {
+            if ( !isP[d+k] && isPG[k*d]) { // not prime and candidate ?
+                isPG[k*d] = 0 ; // kill
+            }
+        }
+    }
+    for (i = 1; i <= PB357_MAXP; i++) { // sum the remaining candidates
+        if (isPG[i]) {
+            Sum += i;
+            nb++ ;
+        }
+    }
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-
     sprintf(pbR->strRes,"%lld",Sum);
     return 1 ;
-    
 }
+// Phase 0 : compute list of prime < N=100 000 000
+// Phase 1: add to Prime generator candidate n=p-1 with p prime
+// Phase 2 : for each divisor d < sqrt(N)
+//  for each d2*d, { d2*d<N and d2+d not prime } kill d2*d as candidate
+//  The test d2+d not prime is done by :
+//     search first prime p2 with p2>=2*d (for d2=2)
+//     and increment d2 and p2 in parallel
+//
 int PB357a(PB_RESULT *pbR) {
-        CTX_PRIMETABLE * ctxP  ;
-    int64_t Sum = 1 ;
-    int32_t nb = 1 ;
-    
-        pbR->nbClock = clock();
-        if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
-            fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
-            return 0 ;
-        }
-        
-        const T_prime * tbPrime = GetTbPrime(ctxP);
-        int nbPrime = GetNbPrime(ctxP) ;
-        u_int8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
-        u_int8_t *nbDiv = calloc(PB357_MAXP+1,sizeof(nbDiv[0]));
-       int i,j,d,k,n;
-        for(i=1;i<nbPrime;i++) isPG[tbPrime[i]-1] = 1 ;
-
-    
-        for(i=0;i<nbPrime;i++) {
-            int p = tbPrime[i] ;
-            for(k=2;(n=(p-k)*k)<PB357_MAXP && 2*k<=p;k++){
-                if(isPG[n])isPG[n]++ ;
-            }
-//            int kMax = PB357_MAXP / p ;
-            int kp ;
-            for (k=1,kp=p;kp<=PB357_MAXP;k++,kp+= p) {
-                if(k!=p) {
-                    if(isPG[kp]) nbDiv[kp]++ ;
-                } else {
-                    if(isPG[kp]) isPG[kp]=0 ;
-                    k = 0 ;
-                }
-            }
-        }
-    for(i=1;i<nbPrime;i++) {
-        int p = tbPrime[i] ;
-        int n  = p-1 ;
- //       printf("%d[%d,%d] ",n,nbDiv[n],isPG[n]) ;
-        if(isPG[n] && isPG[n]== ( 1<< (nbDiv[n]-1) ) ){
-            nb++; Sum += n ;
-        }
-    }
-
-    Free_tablePrime(ctxP) ;
-            
-    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-        
-        sprintf(pbR->strRes,"%lld",Sum);
-        return 1 ;
-
-}
-
-int PB357b(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
-    
     pbR->nbClock = clock();
     if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
         fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
-    
     const T_prime * tbPrime = GetTbPrime(ctxP);
     int nbPrime = GetNbPrime(ctxP) ;
     u_int8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
-    int i,d,k;
+    int i;
     for(i=0;i<nbPrime;i++) {
-        int n = tbPrime[i]-1 ;
+        int n = tbPrime[i]-1 ; // add p-1 as candidate
         isPG[n] = 1 ;
     }
     int ip = 0 ;
     int p = tbPrime[ip] ;
     int imax = Sqrt32(PB357_MAXP);
-    for(i=2;i<=imax;i++) {
-        while(p<i*2) { p=tbPrime[++ip] ; }
-        int kMax = PB357_MAXP/i ;
+    int d,d2 ;
+    for(d=2;d<=imax;d++) { // loop on divisor
+        while(p<2*d) { p=tbPrime[++ip] ; } // search p >=2*i
+        int d2Max = PB357_MAXP/d ;
         int ip2 = ip ;
         int p2 = p ;
-        k = i ;
-        while(p2<=kMax+i) {
-            for(;k<p2-i;k++) {
-                if(isPG[k*i]) isPG[k*i] = 0 ;
+        d2 = d ;
+        while(p2<=d2Max+d) { // p2 next prime
+            for(;d2+d<p2;d2++) { // kill all multiple < p2
+                if(isPG[d2*d]) isPG[d2*d] = 0 ;
             }
-            p2 = tbPrime[++ip2] ; k++ ;
+            p2 = tbPrime[++ip2] ; d2++ ; // skip p2, and next p2
         }
-        for(;k<=kMax;k++) {
-            isPG[k*i] = 0 ;
+        for(;d2<=d2Max;d2++) { // end loop
+            isPG[d2*d] = 0 ;
         }
     }
     int64_t Sum = 0 ;
@@ -283,12 +231,133 @@ int PB357b(PB_RESULT *pbR) {
         if(isPG[i]) { nb++ ; Sum += i ; }
     }
     Free_tablePrime(ctxP) ;
-    
+    free(isPG) ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    
+    sprintf(pbR->strRes,"%lld",Sum);
+    return 1 ;
+}
+
+
+// brut version 2
+// Phase 0 : compute list of prime < N=100 000 000
+// Phase 1 :
+//   for each prime p , p==3 % 4 and (p+3)/3 prime
+//    so d=1 and d=2 are OK and 2 is not a square factor
+//    decompose n in prime factor n=p-1 = p1 * p2 * p3 ... pk (check no square)
+//    then check for each divisor of d that d=p+n/d is prime.
+// The list of divisor d is build using n=p1 * p2 * ... * pk (2**k divisor <=> 2**(k-1) divisor pair)
+int PB357b(PB_RESULT *pbR) {
+    CTX_PRIMETABLE * ctxP  ;
+    pbR->nbClock = clock();
+    if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    int64_t Sum = 1 ;
+    int32_t nb = 1 ;
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int factP[40] ;
+    factP[0] = 2 ;
+    int i,j;
+    for(i=1;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        int n  = p-1 ; // so d=1 is OK
+        if((p & 3)==1) continue ; // 2 is square
+        if(!Is_Prime32((p+3)/2, tbPrime)) continue ; // so d=2 is OK
+        int n1 = n ; // save n
+        int nbFact = 0 ; // search prime factors of n
+        int pj;
+        for(j=0;pj=tbPrime[j],pj*pj<=n;j++){
+            if((n % pj) == 0) {
+                n /= pj ;
+                if((n % pj)== 0 ) { n=0 ; break ; } // square
+                factP[nbFact++] = pj ;
+            }
+        }
+        if(n==0) continue ;
+        factP[nbFact++] = n ; // the last factor is prime
+        if(nbFact == 2 || Chk357(nbFact, factP,n1,tbPrime)) {
+            nb++; Sum += n1 ;
+        }
+    }
+    Free_tablePrime(ctxP) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%lld",Sum);
     return 1 ;
     
 }
+
+// Phase 0 : compute list of prime < N=100 000 000
+// Phase 1 :
+//   for each prime p , p==3 % 4 and (p+3)/3 prime
+//    so d=1 and d=2 are OK and 2 is not a square factor
+//    mark for n=p-1 initialise divisor count nbPG(n) so d+n/d is prime (d=1 as 1+n/1 prime)
+//    use the fact that p==3 % 4 (to avoid 2 square divisor)  to store only N/2 values
+// Phase 2 :
+//  for each prime p > 2
+//      a) for each d=2 d<p/2 increment divisor count nbPG(n) for n=d*(p-d) so d+n/d is prime
+//      b) for each multiple kp = k*p increment the count of prime divisor nbDivP(kp)
+//          if k is a multipe of p (p square prime divisor) kill kp by setting nbPG(kp)=0
+// Phase 3 :
+//   Sum for n with nbPG(n) == 2**nbDivP(n)
+//   as if n=p1*p2*..pk with k==nbDivP(n) , n as 2**k divisor.
+typedef struct IS_PG {
+    u_int8_t nbPG ; //
+    u_int8_t nbDivP ;
+} IS_PG ;
+int PB357c(PB_RESULT *pbR) {
+    CTX_PRIMETABLE * ctxP  ;
+    int64_t Sum = 0 ;
+    int32_t nb = 0 ;
+    pbR->nbClock = clock();
+    if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    IS_PG  *pg = calloc(PB357_MAXP/2+1,sizeof(pg[0]));
+    int i,k,n;
+    for(i=0;i<nbPrime;i++) { // n = p-1 , 2 not square divisor of n
+        int n = tbPrime[i] -1 ;
+        if((n&3) == 2) pg[n/2].nbPG = 1 ;
+    }
+    for(i=1;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        int d ; // increment nbPG((p-d)*d)
+        for(d=2;(n=(p-d)*d)<PB357_MAXP && 2*d<=p;d++){
+            if( (n/2&1) && pg[n/2].nbPG) pg[n/2].nbPG++ ;
+        }
+        int kp ; // increment nbDivP for kp.
+        for (k=1,kp=p;kp<=PB357_MAXP/2;k++,kp+= p) {
+            if(k!=p) {
+                if((kp&1) && pg[kp].nbPG) pg[kp].nbDivP++ ;
+            } else { // kill kp as k multiple of p, so p square divisor.
+                
+                if((kp&1) && pg[kp].nbPG) pg[kp].nbPG=0 ;
+                k = 0 ;
+            }
+        }
+     }
+     for(i=1;i<nbPrime;i++) { // sum for nbPG == 2**nbDivP
+        int p = tbPrime[i] ;
+        int n  = (p-1)/2 ;
+        if(pg[n].nbPG && pg[n].nbPG == ( 1<< (pg[n].nbDivP) ) ){
+            nb++; Sum += n ;
+        }
+    }
+    Sum = 2*Sum + 1 ;
+    nb++ ;
+    Free_tablePrime(ctxP) ;
+    free(pg) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum);
+    return 1 ;
+}
+
+
 
