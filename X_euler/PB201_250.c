@@ -189,7 +189,9 @@ int PB357(PB_RESULT *pbR) {
 }
 int PB357a(PB_RESULT *pbR) {
         CTX_PRIMETABLE * ctxP  ;
-        
+    int64_t Sum = 1 ;
+    int32_t nb = 1 ;
+    
         pbR->nbClock = clock();
         if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
             fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
@@ -199,34 +201,36 @@ int PB357a(PB_RESULT *pbR) {
         const T_prime * tbPrime = GetTbPrime(ctxP);
         int nbPrime = GetNbPrime(ctxP) ;
         u_int8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
-        int i,d,k;
+        u_int8_t *nbDiv = calloc(PB357_MAXP+1,sizeof(nbDiv[0]));
+       int i,j,d,k,n;
+        for(i=1;i<nbPrime;i++) isPG[tbPrime[i]-1] = 1 ;
+
+    
         for(i=0;i<nbPrime;i++) {
-            isPG[tbPrime[i]-1] = 1 ;
-        }
-    int ip = 0 ;
-    int p = tbPrime[ip] ;
-    int imax = Sqrt32(PB357_MAXP);
-        for(i=2;i<=imax;i++) {
-            while(p<i*2) { p=tbPrime[++ip] ; }
-            int kMax = PB357_MAXP/i ;
-            int ip2 = ip ;
-            int p2 = p ;
-            k = i ;
-            while(p2<=kMax+i) {
-                for(;k<p2-i;k++) {
-                    if(isPG[k*i]) isPG[k*i] = 0 ;
-                 }
-                p2 = tbPrime[++ip2] ; k++ ;
-           }
-            for(;k<=kMax;k++) {
-                isPG[k*i] = 0 ;
+            int p = tbPrime[i] ;
+            for(k=2;(n=(p-k)*k)<PB357_MAXP && 2*k<=p;k++){
+                if(isPG[n])isPG[n]++ ;
             }
-         }
-        int64_t Sum = 0 ;
-        int32_t nb = 0 ;
-    for(i=1;i<PB357_MAXP;i++) {
-        if(isPG[i]) { nb++ ; Sum += i ; }
+//            int kMax = PB357_MAXP / p ;
+            int kp ;
+            for (k=1,kp=p;kp<=PB357_MAXP;k++,kp+= p) {
+                if(k!=p) {
+                    if(isPG[kp]) nbDiv[kp]++ ;
+                } else {
+                    if(isPG[kp]) isPG[kp]=0 ;
+                    k = 0 ;
+                }
+            }
+        }
+    for(i=1;i<nbPrime;i++) {
+        int p = tbPrime[i] ;
+        int n  = p-1 ;
+ //       printf("%d[%d,%d] ",n,nbDiv[n],isPG[n]) ;
+        if(isPG[n] && isPG[n]== ( 1<< (nbDiv[n]-1) ) ){
+            nb++; Sum += n ;
+        }
     }
+
     Free_tablePrime(ctxP) ;
             
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
@@ -236,3 +240,55 @@ int PB357a(PB_RESULT *pbR) {
         return 1 ;
 
 }
+
+int PB357b(PB_RESULT *pbR) {
+    CTX_PRIMETABLE * ctxP  ;
+    
+    pbR->nbClock = clock();
+    if((ctxP = Gen_tablePrime(PB357_MAXP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    u_int8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
+    int i,d,k;
+    for(i=0;i<nbPrime;i++) {
+        int n = tbPrime[i]-1 ;
+        isPG[n] = 1 ;
+    }
+    int ip = 0 ;
+    int p = tbPrime[ip] ;
+    int imax = Sqrt32(PB357_MAXP);
+    for(i=2;i<=imax;i++) {
+        while(p<i*2) { p=tbPrime[++ip] ; }
+        int kMax = PB357_MAXP/i ;
+        int ip2 = ip ;
+        int p2 = p ;
+        k = i ;
+        while(p2<=kMax+i) {
+            for(;k<p2-i;k++) {
+                if(isPG[k*i]) isPG[k*i] = 0 ;
+            }
+            p2 = tbPrime[++ip2] ; k++ ;
+        }
+        for(;k<=kMax;k++) {
+            isPG[k*i] = 0 ;
+        }
+    }
+    int64_t Sum = 0 ;
+    int32_t nb = 0 ;
+    for(i=1;i<PB357_MAXP;i++) {
+        if(isPG[i]) { nb++ ; Sum += i ; }
+    }
+    Free_tablePrime(ctxP) ;
+    
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    
+    sprintf(pbR->strRes,"%lld",Sum);
+    return 1 ;
+    
+}
+
