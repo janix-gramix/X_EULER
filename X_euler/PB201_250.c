@@ -295,7 +295,7 @@ int PB357b(PB_RESULT *pbR) {
 //   for each prime p , p==3 % 4 and (p+3)/3 prime
 //    so d=1 and d=2 are OK and 2 is not a square factor
 //    mark for n=p-1 initialise divisor count nbPG(n) so d+n/d is prime (d=1 as 1+n/1 prime)
-//    use the fact that p==3 % 4 (to avoid 2 square divisor)  to store only N/2 values
+//    use the fact that p==3 % 4 (to avoid 2 square divisor)  to store only N/4 values
 // Phase 2 :
 //  for each prime p > 2
 //      a) for each d=2 d<p/2 increment divisor count nbPG(n) for n=d*(p-d) so d+n/d is prime
@@ -319,37 +319,37 @@ int PB357c(PB_RESULT *pbR) {
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
     int nbPrime = GetNbPrime(ctxP) ;
-    IS_PG  *pg = calloc(PB357_MAXP/2+1,sizeof(pg[0]));
+    IS_PG  *pg = calloc(PB357_MAXP/4+1,sizeof(pg[0]));
     int i,k,n;
     for(i=0;i<nbPrime;i++) { // n = p-1 , 2 not square divisor of n
         int n = tbPrime[i] -1 ;
-        if((n&3) == 2) pg[n/2].nbPG = 1 ;
+        if((n&3) == 2) pg[n/4].nbPG = 1 ;
     }
     for(i=1;i<nbPrime;i++) {
         int p = tbPrime[i] ;
         int d ; // increment nbPG((p-d)*d)
         for(d=2;(n=(p-d)*d)<PB357_MAXP && 2*d<=p;d++){
-            if( (n/2&1) && pg[n/2].nbPG) pg[n/2].nbPG++ ;
+            if( (n/2&1) && pg[n/4].nbPG) pg[n/4].nbPG++ ;
         }
         int kp ; // increment nbDivP for kp.
         for (k=1,kp=p;kp<=PB357_MAXP/2;k++,kp+= p) {
             if(k!=p) {
-                if((kp&1) && pg[kp].nbPG) pg[kp].nbDivP++ ;
+                if((kp&1) && pg[kp/2].nbPG) pg[kp/2].nbDivP++ ;
             } else { // kill kp as k multiple of p, so p square divisor.
-                
-                if((kp&1) && pg[kp].nbPG) pg[kp].nbPG=0 ;
+                if((kp&1) && pg[kp/2].nbPG) pg[kp/2].nbPG=0 ;
                 k = 0 ;
             }
         }
      }
      for(i=1;i<nbPrime;i++) { // sum for nbPG == 2**nbDivP
         int p = tbPrime[i] ;
-        int n  = (p-1)/2 ;
+         if((p&3) != 3) continue ;
+        int n  = (p-1)/4 ;
         if(pg[n].nbPG && pg[n].nbPG == ( 1<< (pg[n].nbDivP) ) ){
             nb++; Sum += n ;
         }
     }
-    Sum = 2*Sum + 1 ;
+    Sum = 4*Sum+ 2*nb + 1 ; // correction 2*nb for ((4n1+2)/4)*4 = 4n1+2
     nb++ ;
     Free_tablePrime(ctxP) ;
     free(pg) ;
