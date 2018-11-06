@@ -10,6 +10,7 @@
 #define euler_utils_h
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define PB_MAX_STRLEN   100
 
