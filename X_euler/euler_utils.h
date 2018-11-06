@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 
 #define PB_MAX_STRLEN   100
 

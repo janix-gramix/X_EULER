@@ -10,6 +10,7 @@
 #define p122_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 #define P122_REFLG  100000
 const int32_t * P122_GetData(void) ;
 
