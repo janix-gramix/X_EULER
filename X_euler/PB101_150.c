@@ -198,30 +198,30 @@ static int CmpUint32(const void *el1, const void *el2) {
 int PB104(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int k ;
-     u_int32_t PanDigital[FACT9] ;
-    u_int8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
+     uint32_t PanDigital[FACT9] ;
+    uint8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
     int is=0 ;
     do {
         PanDigital[is++] = 10*(10*(10*(10*(10*(10*(10*(10*perm[0]+perm[1])+perm[2])+perm[3])+perm[4])+perm[5])+perm[6])+perm[7])+perm[8] ;
     } while (NextPermut(perm,9) >= 0) ;
-    u_int32_t F0=1 ;
-    u_int32_t F1=1 ;
+    uint32_t F0=1 ;
+    uint32_t F1=1 ;
     k = 2 ;
     while(1) {
         k++ ;
         F0=(F0+F1) % 1000000000 ;
         if((F0 % 9 ) == 0 ) {
-           if(bsearch(&F0, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+           if(bsearch(&F0, PanDigital, FACT9,sizeof(uint32_t), CmpUint32) != NULL) {
                 // approximation by PHY**k / sqrt(5)
                 double logFk = k * log10((1+sqrt(5))/2) - log10(sqrt(5)) ;
-                u_int32_t highDigits = (u_int32_t)pow(10,logFk - (u_int32_t)logFk +8 ) ;
-                if(bsearch(&highDigits, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+                uint32_t highDigits = (uint32_t)pow(10,logFk - (uint32_t)logFk +8 ) ;
+                if(bsearch(&highDigits, PanDigital, FACT9,sizeof(uint32_t), CmpUint32) != NULL) {
                     printf(" F(%d) is Double Pandigit\n",k) ;
                     break ;
                 }
             }
         }
-        u_int32_t tmp = F0 ;
+        uint32_t tmp = F0 ;
         F0=F1 ;
         F1=tmp ;
     }
@@ -234,14 +234,14 @@ int PB104(PB_RESULT *pbR) {
 
 
 typedef struct Edge {
-    u_int16_t   cost;
-    u_int16_t   Vbeg ;
-    u_int16_t   Vend ;
+    uint16_t   cost;
+    uint16_t   Vbeg ;
+    uint16_t   Vend ;
 } Edge ;
 
 typedef struct vertexTree { // tree for a vertex
-    u_int16_t numTree ; // tree number.
-    u_int16_t nxtVertex ; // link to nxt vertex in the tree
+    uint16_t numTree ; // tree number.
+    uint16_t nxtVertex ; // link to nxt vertex in the tree
     
 } nodeTree ;
 
@@ -252,12 +252,12 @@ int CmpEdge( const void *edg1, const void *edg2) {
 int PB107(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     Edge EDG[PB107_SIZE*PB107_SIZE] ;
-    u_int16_t treeLength[PB107_SIZE+1] ;
+    uint16_t treeLength[PB107_SIZE+1] ;
     nodeTree VtoT[PB107_SIZE] ; // association node -> tree
-    u_int16_t nbTree = 0 ;
+    uint16_t nbTree = 0 ;
     int i, j ;
-    const u_int16_t * cost = P107_GetData();
-    u_int16_t nbEdge = 0 ;
+    const uint16_t * cost = P107_GetData();
+    uint16_t nbEdge = 0 ;
     for(i=0;i<PB107_SIZE;i++) { // get the non null edge
         for(j=i+1;j<PB107_SIZE;j++) {
             if(cost[i*PB107_SIZE+j]){
@@ -276,11 +276,11 @@ int PB107(PB_RESULT *pbR) {
     heapsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ; // sort edges by cost
     int indSortEdg = 0 ;
     int maxLength = 0 ;
-    u_int32_t savingCost = 0 ;
+    uint32_t savingCost = 0 ;
     do {    // loop to build tree , adding the min cost edge
         Edge curEdg = EDG[indSortEdg++] ;
-        u_int16_t begT= VtoT[curEdg.Vbeg].numTree ;
-        u_int16_t endT =VtoT[curEdg.Vend].numTree ;
+        uint16_t begT= VtoT[curEdg.Vbeg].numTree ;
+        uint16_t endT =VtoT[curEdg.Vend].numTree ;
         if(begT && endT && begT == endT) {
             savingCost += curEdg.cost ; // the edge address the same tree => loop, forbiddeen
             continue ;
@@ -295,7 +295,7 @@ int PB107(PB_RESULT *pbR) {
                 continue;
         } else { // two trees, rattach the shortest to the longuest
             if(treeLength[begT] > treeLength[endT] ) { // permutation end <->beg
-                u_int16_t tmp = endT ;
+                uint16_t tmp = endT ;
                 endT = begT ;
                 begT= tmp ;
                 tmp = curEdg.Vbeg ;
@@ -303,10 +303,10 @@ int PB107(PB_RESULT *pbR) {
                 curEdg.Vend = tmp ;
             }
           // rattach beg tree to end tree
-            u_int16_t nxtEnd = VtoT[curEdg.Vend].nxtVertex ;
-            u_int16_t nxtBeg = curEdg.Vbeg ;
+            uint16_t nxtEnd = VtoT[curEdg.Vend].nxtVertex ;
+            uint16_t nxtBeg = curEdg.Vbeg ;
             VtoT[curEdg.Vend].nxtVertex = nxtBeg ;
-            u_int16_t antBeg ;
+            uint16_t antBeg ;
             do { // loop on the vertexes of beg tree
                 antBeg= nxtBeg ;
                 VtoT[nxtBeg].numTree = endT ;
@@ -389,16 +389,16 @@ int PB110(PB_RESULT *pbR) {
                                 ,233,239,241,251,257,263,269,271,277,281} ;
     int minS = (strcmp(pbR->ident,"110") == 0) ? PB110_MINS : PB108_MINS ;
     int sumA ;
-     u_int64_t nMin = 1L << PB108_ALPHAM ;
+     uint64_t nMin = 1L << PB108_ALPHAM ;
     for(sumA=2;(1L<<sumA) <= nMin ;sumA++) {
         //      printf("\nSum(alpha)=%d ",sumA) ;
         int nbA,nbAmax ;
-         u_int64_t n=1 ;
+         uint64_t n=1 ;
         for(nbAmax=0;nbAmax<=sumA;nbAmax++) {
             n *= primes[nbAmax] ;
             if(n> nMin) break ;
         }
-        u_int64_t nbS = 1 ;
+        uint64_t nbS = 1 ;
         for(nbA=1;nbA<nbAmax;nbA++) {
             alpha[nbA] = 1 ;
             nbS *= 3 ;
@@ -409,14 +409,14 @@ int PB110(PB_RESULT *pbR) {
         while(1) {
             int j ;
             int ia;
-            u_int64_t nbS = 1 ;
+            uint64_t nbS = 1 ;
             for(ia=0;ia<nbA;ia++) {
                 nbS *= 2*alpha[ia]+1 ;
             }
-            u_int64_t nbSol = (nbS+1)/2 ;
+            uint64_t nbSol = (nbS+1)/2 ;
 //            for(ia=0;ia<nbA;ia++) printf("%c%d",(ia==0)? '\n' : '.' ,alpha[ia]) ; printf(" nbS=%lld",nbSol) ;
            if(nbSol > minS ) {
-                u_int64_t n=1;
+                uint64_t n=1;
                 for(ia=nbA-1;ia>=0;ia--) {
                     for(j=alpha[ia];j>0;j--) {
                         n *= primes[ia] ;
@@ -507,34 +507,34 @@ int PB111(PB_RESULT *pbR) {
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
-    u_int32_t pow10[PB111_NBD+1] = { 1 } ;
+    uint32_t pow10[PB111_NBD+1] = { 1 } ;
     int nd,k,id;
     pow10[PB111_NBD] = pow10[0] ;
     for(k=1;k<PB111_NBD;k++) {
         pow10[k] = pow10[k-1] * 10 ;
         pow10[PB111_NBD] += pow10[k] ;
     }
-    u_int64_t S ;
+    uint64_t S ;
     int nbDOk = 0 ;
     S = 0 ;
     int nbD[10] = {0,0,0,0,0,0,0,0,0,0} ;
     for(nd=1;nbDOk < 10 ;nd++) {
-        u_int8_t noD[PB111_NBD] ;
-        u_int8_t valNoD[PB111_NBD] ;
+        uint8_t noD[PB111_NBD] ;
+        uint8_t valNoD[PB111_NBD] ;
         for(k=0;k<nd;k++) {noD[k]=k ; valNoD[k]= 0 ;}
         do {
-            u_int32_t Ndig = pow10[PB111_NBD] ;
+            uint32_t Ndig = pow10[PB111_NBD] ;
             for(k=0;k<nd;k++) {
                 Ndig -= pow10[noD[k]] ;
             }
             int is = nd-1 ;
             while (is >=0) {
-                u_int64_t NnoDig = 0 ;
-                for(k=0;k<nd;k++) NnoDig += (u_int64_t) pow10[noD[k]] * valNoD[k] ;
+                uint64_t NnoDig = 0 ;
+                for(k=0;k<nd;k++) NnoDig += (uint64_t) pow10[noD[k]] * valNoD[k] ;
                 {
                     for(id=0;id<10;id++) {
                         if(nbD[id] && nbD[id] < nd) continue ;
-                        u_int64_t N = (u_int64_t) Ndig * id + NnoDig ;
+                        uint64_t N = (uint64_t) Ndig * id + NnoDig ;
                         if(N>pow10[PB111_NBD-1] && Is_Prime(N,tbPrime)) {
                             if(nbD[id] == 0) {
                                 nbD[id] = nd ;
@@ -863,10 +863,10 @@ int PB113(PB_RESULT *pbR) {
 
 #define PB114_LEN   50
 typedef struct State114 {
-    u_int64_t B ;
-    u_int64_t R1 ;
-    u_int64_t R2 ;
-    u_int64_t R3 ;
+    uint64_t B ;
+    uint64_t R1 ;
+    uint64_t R2 ;
+    uint64_t R3 ;
 } State114;
 
 
@@ -884,7 +884,7 @@ int PB114(PB_RESULT *pbR) {
         St[nt].R1 = St[nt-1].B ;
     }
     nt-- ;
-    u_int64_t nbStates = St[nt].B+St[nt].R3 ;
+    uint64_t nbStates = St[nt].B+St[nt].R3 ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld=(%lld-B %lld %lld %lld-R3)\n",
                                pbR->ident, nbStates,St[nt].B,   St[nt].R1,St[nt].R2,St[nt].R3) ;
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -915,9 +915,9 @@ int PB114(PB_RESULT *pbR) {
 
 int PB114a(PB_RESULT *pbR) {
     int i,j,k,ip ;
-    u_int64_t M[PB114_SIZE*PB114_SIZE] ;
-    u_int64_t Mpow2[PB114_MAXPOW2*PB114_SIZE*PB114_SIZE] ;
-    u_int64_t V[PB114_SIZE] , antV[PB114_SIZE] ;
+    uint64_t M[PB114_SIZE*PB114_SIZE] ;
+    uint64_t Mpow2[PB114_MAXPOW2*PB114_SIZE*PB114_SIZE] ;
+    uint64_t V[PB114_SIZE] , antV[PB114_SIZE] ;
     memset(M,0,sizeof(M)) ;
     memset(V,0,sizeof(V)) ;
     V[0] = 1 ;
@@ -928,7 +928,7 @@ int PB114a(PB_RESULT *pbR) {
     for(ip=1;ip<PB114_MAXPOW2;ip++) {
         for(i=0;i<PB114_SIZE;i++) {
             for(j=0;j<PB114_SIZE;j++) {
-                u_int64_t S =0 ;
+                uint64_t S =0 ;
                 for(k=0;k<PB114_SIZE;k++) {
                     S += Mpow2[I3(ip-1,i,k)] * Mpow2[I3(ip-1,k,j)] ;
                 }
@@ -941,7 +941,7 @@ int PB114a(PB_RESULT *pbR) {
             // puissance presente, on mutliplie V par M**(1<<ip))
             memcpy(antV,V,sizeof(V)) ;
             for(i=0;i<PB114_SIZE;i++) {
-                u_int64_t S =0 ;
+                uint64_t S =0 ;
                 for(k=0;k<PB114_SIZE;k++) {
                     S += Mpow2[I3(ip,i,k)] * antV[k] ;
                 }
@@ -950,7 +950,7 @@ int PB114a(PB_RESULT *pbR) {
             
         }
     }
-    u_int64_t nbStates = V[0]+V[PB114_SIZE-1] ;
+    uint64_t nbStates = V[0]+V[PB114_SIZE-1] ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld=(%lld-B  %lld-R3)\n",
                                pbR->ident, nbStates,V[0],V[PB114_SIZE-1]) ;
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -965,8 +965,8 @@ int PB114a(PB_RESULT *pbR) {
 #define PB115_MAX   1000000
 int PB115(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int64_t St0[PB115_SIZE],St1[PB115_SIZE] ;
-    u_int64_t * antSt, *curSt ;
+    uint64_t St0[PB115_SIZE],St1[PB115_SIZE] ;
+    uint64_t * antSt, *curSt ;
     // init
     memset(St0,0,sizeof(St0)) ;
     St0[0] =  1 ;
@@ -980,9 +980,9 @@ int PB115(PB_RESULT *pbR) {
             curSt[i] = antSt[i-1] ;
         }
         curSt[PB115_SIZE-1] = antSt[PB115_SIZE-2] + antSt[PB115_SIZE-1] ;
-        u_int64_t nbStates = curSt[0] + curSt[PB115_SIZE-1] ;
+        uint64_t nbStates = curSt[0] + curSt[PB115_SIZE-1] ;
         if(nbStates > PB115_MAX) break ;
-        u_int64_t *tmp = antSt ;
+        uint64_t *tmp = antSt ;
         antSt = curSt ;
         curSt = tmp ;
      }
@@ -995,11 +995,11 @@ int PB115(PB_RESULT *pbR) {
 
 
 typedef struct State116 {
-    u_int64_t B ;
-    u_int64_t T1 ;
-    u_int64_t T2 ;
-    u_int64_t T3 ;
-    u_int64_t T4 ;
+    uint64_t B ;
+    uint64_t T1 ;
+    uint64_t T2 ;
+    uint64_t T3 ;
+    uint64_t T4 ;
 } State116;
 
 
@@ -1047,7 +1047,7 @@ int PB116(PB_RESULT *pbR) {
         ptBcur->T3 = ptBant->T2;
         ptBcur->T4 = ptBant->T3;
     }
-    u_int64_t nbStates = ptRcur->B  + ptRcur->T2 + ptGcur->B  + ptGcur->T3 + ptBcur->B  + ptBcur->T4 -3 ;
+    uint64_t nbStates = ptRcur->B  + ptRcur->T2 + ptGcur->B  + ptGcur->T3 + ptBcur->B  + ptBcur->T4 -3 ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld R=%lld G=%lld B=%lld\n",
                                pbR->ident, nbStates,ptRcur->B  + ptRcur->T2 -1 ,ptGcur->B  + ptGcur->T3 -1 , ptBcur->B  + ptBcur->T4 -1) ;
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -1057,16 +1057,16 @@ int PB116(PB_RESULT *pbR) {
 
 
 typedef struct State117 {
-    u_int64_t B ;
-    u_int64_t R1 ;
-    u_int64_t R2 ;
-    u_int64_t G1 ;
-    u_int64_t G2 ;
-    u_int64_t G3 ;
-    u_int64_t B1 ;
-    u_int64_t B2 ;
-    u_int64_t B3 ;
-    u_int64_t B4 ;
+    uint64_t B ;
+    uint64_t R1 ;
+    uint64_t R2 ;
+    uint64_t G1 ;
+    uint64_t G2 ;
+    uint64_t G3 ;
+    uint64_t B1 ;
+    uint64_t B2 ;
+    uint64_t B3 ;
+    uint64_t B4 ;
 } State117;
 
 
@@ -1094,7 +1094,7 @@ int PB117(PB_RESULT *pbR) {
         ptCur->B3 = ptAnt->B2;
         ptCur->B4 = ptAnt->B3;
     }
-    u_int64_t nbStates = ptCur->B  + ptCur->R2 + ptCur->G3 + ptCur->B4  ;
+    uint64_t nbStates = ptCur->B  + ptCur->R2 + ptCur->G3 + ptCur->B4  ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s NnState=%lld \n",
                                pbR->ident, nbStates) ;
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -1104,8 +1104,8 @@ int PB117(PB_RESULT *pbR) {
 #define PB118_MAXDPRIME 50000
 #define PB118_MAXP  100000000
 typedef struct DPrime {
-    u_int32_t P ;       // value
-    u_int32_t mask ;    // binary mask for used digits
+    uint32_t P ;       // value
+    uint32_t mask ;    // binary mask for used digits
 } DPrime ;
 
 int PB118(PB_RESULT *pbR) {
@@ -1138,7 +1138,7 @@ int PB118(PB_RESULT *pbR) {
     nbDPrime[id] = ip - indDPrime[id] ;
     for(id=2;id<8;id++) {
         // primes with (id+1) different digits
-        u_int8_t sub[9] ;
+        uint8_t sub[9] ;
         int k ;
         indDPrime[id] = ip ;
         for(k=0;k<9;k++) sub[k] = k ;
@@ -1156,7 +1156,7 @@ int PB118(PB_RESULT *pbR) {
         nbDPrime[id] = ip - indDPrime[id] ;
     }
     { // case 8 digits (id=7) : imposes to the excluded digit to be prime (so a solution)
-        u_int8_t sub[9] ;
+        uint8_t sub[9] ;
         int k ;
         indDPrime[id] = ip ;
         for(k=0;k<8;k++) sub[k] = k ;
@@ -1242,10 +1242,10 @@ int PB118(PB_RESULT *pbR) {
 int PB119(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int nd,nb = 0 ;
-    u_int64_t s ;
-    u_int64_t Pow[PB119_NBD_MAX*9];
-    u_int64_t Pow10 ;
-    u_int64_t Pfind[2*PB119_MAX] ;
+    uint64_t s ;
+    uint64_t Pow[PB119_NBD_MAX*9];
+    uint64_t Pow10 ;
+    uint64_t Pfind[2*PB119_MAX] ;
     for(s=2;s<PB119_NBD_MAX*9;s++){
         Pow[s] = s*s ;
     }
@@ -1253,9 +1253,9 @@ int PB119(PB_RESULT *pbR) {
     for(nd=3,Pow10=1000;nb<PB119_MAX;nd++ , Pow10 *= 10) {
         antNb = nb ;
         for(s=2;s<=9*PB119_NBD_MAX;s++){
-            u_int64_t pow  ;
+            uint64_t pow  ;
             for(pow=Pow[s];pow < Pow10 ; pow *= s){
-                u_int64_t p1 = pow  ;
+                uint64_t p1 = pow  ;
                 int s1 = 0 , np =0 ;
                 while(p1) {
                     s1 += p1 % 10 ;
@@ -1277,7 +1277,7 @@ int PB119(PB_RESULT *pbR) {
         antNb++ ;
         for(in=antNb+1; in<=nb;in++) {
             if(Pfind[antNb] > Pfind[in]) {
-                u_int64_t tmp = Pfind[antNb] ;
+                uint64_t tmp = Pfind[antNb] ;
                 Pfind[antNb] = Pfind[in] ;
                 Pfind[in] = tmp ;
             }
@@ -1316,24 +1316,24 @@ int PB120(PB_RESULT *pbR) {
 int PB121(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     
-    u_int64_t Cf[PB121_NBTURN+1] ;
-    u_int64_t fact = 2;
+    uint64_t Cf[PB121_NBTURN+1] ;
+    uint64_t fact = 2;
     Cf[0] = 1 ;
     Cf[1] = 1 ;
     int n,k ;
     // Pn(x) = Pn-1(x) * (x+n)
     for(n=2;n<=PB121_NBTURN;n++) {
         fact *= n+1 ;
-        u_int64_t ck = Cf[0] ;
+        uint64_t ck = Cf[0] ;
         Cf[0] = ck * n ;
         Cf[n]= 0 ;
         for(k=1;k<=n;k++) {
-            u_int64_t tmp = ck + n * Cf[k] ;
+            uint64_t tmp = ck + n * Cf[k] ;
             ck = Cf[k] ;
             Cf[k] = tmp ;
         }
     }
-    u_int64_t sumCkMin = 0 ;
+    uint64_t sumCkMin = 0 ;
     for(k=PB121_NBTURN;k>PB121_NBTURN/2;k--) {
         sumCkMin += Cf[k] ;
     }
@@ -1349,15 +1349,15 @@ int PB121(PB_RESULT *pbR) {
 #define PB122_CHK 1
 #define PB122_MAXLEVEL  64
 typedef struct Chain122 {
-    u_int32_t   n ;
-    u_int32_t   antCh ;
+    uint32_t   n ;
+    uint32_t   antCh ;
 } Chain122 ;
 int PB122(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int SumR = 0 ;
     
     Chain122 * tbCH = malloc(sizeof(tbCH[0])*PB122_NBCHAIN) ;
-    u_int8_t MinM[PB122_MAX+1] ;
+    uint8_t MinM[PB122_MAX+1] ;
     int nxtCH = 0 ;
     int antCH = 0 ;
     int nbMulMax = 1 ;
@@ -1434,7 +1434,7 @@ int PB122a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     Chain122 tbCH[30] ;
     int isDeltaOne[30] ;
-    u_int8_t MinM[PB122_MAX+1] ;
+    uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
     int iOut= 0 ;
@@ -1502,8 +1502,8 @@ int PB122a(PB_RESULT *pbR) {
 }
 
 typedef struct Chain122b {
-    u_int32_t   n ;
-//    u_int32_t   n2 ;
+    uint32_t   n ;
+//    uint32_t   n2 ;
     int32_t   antCh1 ;
     int32_t   antCh2 ;
 } Chain122b ;
@@ -1511,7 +1511,7 @@ typedef struct Chain122b {
 int PB122b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     Chain122b tbCH[30] ;
-    u_int8_t MinM[PB122_MAX+1] ;
+    uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
     int iOut= 0 ;
@@ -1662,7 +1662,7 @@ int PB122b(PB_RESULT *pbR) {
 int PB122c(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     Chain122b tbCH[30] ;
-    u_int8_t MinM[PB122_MAX+1] ;
+    uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
     int iOut= 0 ;
@@ -1912,6 +1912,58 @@ int PB124(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB125_MAXD  8
+int PB125(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int lg ;
+    int pow10[9]={1,10,100,1000,10000,100000,1000000,10000000,100000000} ;
+    int incr[4] ;
+    int i0,i1,i2,i3 ;
+    int nbSol  ;
+    int64_t Sum  ;
+    nbSol = 0 ;
+    Sum = 0 ;
+    for(lg=1;lg<=PB125_MAXD;lg++) {
+        int hlg = lg/2 ;
+        int i ;
+        for(i=0;i<hlg;i++) {
+            incr[i]=6*(pow10[i]+pow10[lg-i-1]) ;
+        }
+        if(lg&1) { incr[i] = 6*pow10[i] ; hlg++ ; }
+        for(i=hlg;i<4;i++) incr[i] = 0 ;
+        for(i0=1;i0<10;i0++) {
+            for(i1= 0 ; i1<10 ; i1++) {
+                for(i2= 0 ; i2<10 ; i2++) {
+                    for(i3= 0 ; i3<10 ; i3++) {
+                        int N6=incr[0]*i0+incr[1]*i1+incr[2]*i2+incr[3]*i3 ;
+                        int n,c ;
+                            for(n=2;c=(n+1)*(2*n+1),n*c<=N6 ;n++) {
+                            if(N6 % n) continue ;
+                            int nd = N6 / n ;
+                            int b = 6*(n+1) ;
+                            int delta = b*b - 4 * 6 * (c-nd) ;
+                            int sqDelta = Sqrt32(delta) ;
+                            if(sqDelta*sqDelta == delta) {
+//                                int k = (-b+sqDelta)/12 ;
+//                                printf("%d=[%d..%d] ",N6/6,k+1,k+n) ;
+                                Sum += N6/6 ;
+                                nbSol++ ;
+                                break ;
+                            }
+                        }
+                        if(hlg <4) break ;
+                    }
+                    if(hlg<3) break ;
+                }
+                if (hlg<2) break ;
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum) ;
+    return 1 ;
+}
+
 
 #define PB126_NB    1000
 #define PB126_MAXV 10000
@@ -2037,7 +2089,7 @@ int PB128(PB_RESULT *pbR) {
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
-    u_int8_t *PD = calloc(PB128_P,sizeof(PD[0])) ;
+    uint8_t *PD = calloc(PB128_P,sizeof(PD[0])) ;
     int k,nFound=2;
     int64_t n=0 ;
     for(k=2;nFound<PB128_ASK;k++) {
@@ -2532,7 +2584,7 @@ int PB135(PB_RESULT *pbR) {
 //
 int PB135a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int8_t *nbSol = calloc(PB135_MAX/2,sizeof(nbSol[0])) ;
+    uint8_t *nbSol = calloc(PB135_MAX/2,sizeof(nbSol[0])) ;
     int n ;
     int d1, d2 ;
     for(d1=1;d1<PB135_MAX;d1++) {
@@ -2585,6 +2637,141 @@ int PB136(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB137_RG    15
+int PB137(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int rg ;
+    int64_t x1 = 3 , y1 = 1 ;
+    int64_t xn=x1 , yn= y1 ;
+    int64_t N=((xn+yn)*y1)/2 ;
+    printf("%lld=((%lld+%lld)x%lld)/2\t\t %lld**2 - 5 x %lld**2 = %d\n",N,xn,yn,yn,xn,yn,(int)(xn*xn-5*yn*yn));
+   for(rg=2;rg<=PB137_RG;rg++) {
+        int64_t xn1 = (x1*xn+5*y1*yn)/2 ;
+        int64_t yn1= (x1*yn+xn*y1) /2 ;
+        N = ((xn1+yn1)*yn1)/2 ;
+        printf("%lld=((%lld+%lld)x%lld)/2\t\t %lld**2 - 5 x %lld**2 = %d\n",N,xn1,yn1,yn1,xn1,yn1,(int)(xn1*xn1-5*yn1*yn1));
+        xn=xn1 ;
+        yn = yn1 ;
+        
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",N) ;
+    return 1 ;
+}
+
+
+
+// donc on cherche a decomposer un triangle Pythagoricien primaire (m,n) m>n premiers m**m - n**2 , 2mn
+
+
+#define PB139_MAX 100000000
+//  brute force
+int PB139(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i,n,m,a,b,c,p ;
+    int32_t nbT = 0 ;
+    for(m=2;;m++) {
+        int nb = 0 ;
+        for(n=(m&1) + 1;n<m;n += 2) {
+            if(PGCD(m,n) != 1)  continue ;
+             a = m*m - n*n ; b = 2*m*n ; c = m*m + n*n ;
+            p = a+b+c ;
+            if(p> PB139_MAX) break ;
+            int dab = (a > b) ? (a-b) : (b-a) ;
+            if((c % dab)==0) {
+                nbT += PB139_MAX/p ;
+                if(pbR->isVerbose)printf("\t PB%s [(%d,%d)%d,%d,%d,%d]\n",pbR->ident, m,n,a+b+c,a,b,c) ;
+            }
+            nb++ ;
+            
+        }
+        if(nb==0) break ;
+  //      printf("\n");
+    }
+//    if(pbR->isVerbose)printf("\t PB%s Nb[%d]=%d => Nb[%d]=%d\n",pbR->ident,minM-1,histoM[minM-1],minM,histoM[minM]) ;
+    sprintf(pbR->strRes,"%d",nbT);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+//
+// on peut demonter (a-b) (ou (b-a)à divide c entraine a-b= +-1
+// les triangles pythagoriciens sont tels m**2-n**2 -2mn = +-1
+// <=> (m-n)**2 - 2n**2 = =-1 (equation de Pell
+// Donc on cherche x**2 - 2 y**2 = 1 et x**2 - 2 y**2 = -1
+// m = x+y ; n = y ;
+
+int PB139a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int xp1 = 3 , yp1 = 2 ;
+    int xm1 = 1 , ym1 = 1 ;
+    int32_t xp = 1 , yp = 0 ;
+    int32_t xm = 1 , ym = 0 ;
+    int32_t nbT = 0 ;
+    int nb  ;
+    do {
+        int32_t m,n,a,b,c;
+        uint32_t p ;
+        nb = 0 ;
+        xm = xp*xm1 + 2*yp*ym1 ;  ym = xp*ym1 + yp*xm1 ;
+        m = xm+ym ; n = ym ;
+        a = m*m -n*n ; b = 2*m*n ; c= m*m +n*n ;
+        p= a+b+c ;
+        if(p<= PB139_MAX) {
+            nb += PB139_MAX/p ;
+            if(pbR->isVerbose)printf("\t PB%s [(%d,%d(%d)->%d,%d)%d,%d,%d,%d]\n",pbR->ident,xm,ym,xm*xm-2*ym*ym,m,n,p,a,b,c) ;
+        }
+        int32_t tmp = xp ;
+        xp = xp*xp1 + 2*yp*yp1 ;    yp = tmp*yp1 + yp*xp1 ;
+        m = xp+yp ; n = yp ;
+        a = m*m -n*n ; b = 2*m*n ; c= m*m +n*n ;
+        p= a+b+c ;
+        if(p<= PB139_MAX) {
+            nb += PB139_MAX/p ;
+            if(pbR->isVerbose)printf("\t PB%s [(%d,%d(%d)->%d,%d)%d,%d,%d,%d]\n",pbR->ident,xp,yp,xp*xp-2*yp*yp,m,n,p,a,b,c) ;
+        }
+        nbT += nb ;
+    } while(nb > 0) ;
+    sprintf(pbR->strRes,"%d",nbT);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+
+#define PB140_RG    30
+int PB140(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int rg ;
+    int64_t Sum = 0 ;
+    int64_t x44e = 7 , y44e= 1 ;
+    int64_t x44o = 8 , y44o= 2 ;
+    int64_t x1 = 3 , y1 = 1 ;
+    int64_t xn=2 , yn= 0 ;
+    int64_t N ,xn44,yn44;
+    for(rg=1;rg<=PB140_RG;rg++) {
+        int64_t xn1 = (x1*xn+5*y1*yn)/2 ;
+        int64_t yn1= (x1*yn+xn*y1) /2 ;
+        xn = xn1 ;
+        yn = yn1 ;
+        
+        if(rg & 1) {
+            xn44 = (x44o*xn+5*y44o*yn)/2 ;
+            yn44 = (x44o*yn+y44o*xn)/2 ;
+            N=(-7+xn44)/5 ;
+            
+        }else {
+            xn44 = (x44e*xn+5*y44e*yn)/2 ;
+            yn44 = (x44e*yn+y44e*xn)/2 ;
+            N=(-7+xn44)/5 ;
+        }
+        Sum += N ;
+        printf("%lld=(%lld-7)/5\t\t %lld**2 - 5 x %lld**2 = %d\n",N,xn44,xn44,yn44,(int)(xn44*xn44-5*yn44*yn44));
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",Sum) ;
+    return 1 ;
+}
+
 
 
 #define PB143_MAX   120000
@@ -2596,8 +2783,8 @@ int PB143(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int32_t p,r ;
     int32_t M[1000] ;
-    u_int64_t Sum = 0 ;
-    u_int8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
+    uint64_t Sum = 0 ;
+    uint8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
     int totNb = 0 ;
     for(p=1;p<PB143_MAX;p++) {
         int nb =0 ;
@@ -2658,8 +2845,8 @@ int CmpDioph43(const void *e1, const void *e2) {
 // on trie puis idem
 int PB143a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int64_t Sum = 0 ;
-    u_int8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
+    uint64_t Sum = 0 ;
+    uint8_t *isFound = calloc(PB143_MAX,sizeof(isFound[0])) ;
     DIOPH143 *dioph = malloc(PB143_MAXDIOPH*sizeof(dioph[0]));
     int nbDioph = 0 ;
     int m,n ;
@@ -2718,9 +2905,32 @@ int PB143a(PB_RESULT *pbR) {
 }
 
 #define PB145_MAXD  9
+int PB145a(PB_RESULT *pbR) {
+    uint64_t nbSol = 0 ;
+    pbR->nbClock = clock() ;
+    uint64_t nbNivSol[4] ;
+    nbNivSol[2]=20 ;
+    nbNivSol[3]=5*20 ;
+    nbNivSol[0] = 20*30 ;
+    nbNivSol[1] = 0 ;
+
+    int lg ;
+    for(lg=2;lg<=PB145_MAXD;lg++) {
+        if(lg >= 6) {
+            if(lg & 1) nbNivSol[lg%4] *= 500 ;
+            else nbNivSol[lg%4] *= 900 ; ;
+        }
+        nbSol += nbNivSol[lg % 4] ;
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s for %d digits NB=%lld\n",pbR->ident,lg,nbSol) ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    sprintf(pbR->strRes,"%lld",nbSol) ;
+    return 1 ;
+}
+
 int PB145(PB_RESULT *pbR) {
-    int nbSol = 0 ;
-    int digits[PB145_MAXD] ;
+    int64_t nbSol = 0 ;
+    int digits[(PB145_MAXD+1)/2] ;
     int nbDecomp[19] =  { 1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2,1} ;
     int nbDecomp0[19] = { 0,0,1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1} ;
     pbR->nbClock = clock() ;
@@ -2730,49 +2940,35 @@ int PB145(PB_RESULT *pbR) {
         if((lg % 4)==1) continue ;
         digits[0]=2 ;
         int hlg = lg/ 2 ;
-        for(i=1;i<hlg;i++) {
-            digits[i] = 0;
-        }
+        for(i=1;i<hlg;i++) { digits[i] = 0; }
         if(lg & 1) digits[i++] = 0 ;
-        for(;i<lg;i++) {
-            digits[i] = digits[lg-i-1] ;
-        }
         int is =lg;
         while(is>= 0) {
-            for(i=0,c=0;i<lg;i++) {
-                c += digits[i] ;
-                if((c&1) == 0) break ;
-                c = (c>=10) ? 1 : 0 ;
-            }
-            if(i==lg) {
-                int isup = nbDecomp0[digits[0]] ;
-                for(i=1;i<hlg;i++)  isup *= nbDecomp[digits[i]] ;
-                nbSol += isup ;
-            }
-            if(lg & 1) {
-                if(digits[hlg] < 9) {
-                    digits[hlg]++ ;
-                    continue ;
-                } else {
-                    digits[hlg] = 0 ;
+            for(i=0,c=0;i<hlg;i++) {  c += digits[i] ; if((c&1) == 0) break ;  c = (c>=10) ? 1 : 0 ;  }
+            if(i== hlg) {
+                for(;i<lg;i++) { c += digits[lg-i-1] ; if((c&1) == 0) break ; c = (c>=10) ? 1 : 0 ; }
+                if(i==lg) {
+                    int64_t isup = nbDecomp0[digits[0]] ;
+                    for(i=1;i<hlg;i++)  isup *= nbDecomp[digits[i]] ;
+                    nbSol += isup ;
                 }
             }
+            if(lg & 1) {
+                if(digits[hlg] < 18) { digits[hlg] += 2 ; continue ;
+                } else {  digits[hlg] = 0 ;   }
+            }
             for(is=hlg-1;is>=0;is--) {
-                if(digits[is]<18) {
-                    digits[is]++ ;
-                    digits[lg-is-1] = digits[is] ;
-                    break ;
+                if(digits[is]<18) {  digits[is]++ ;  break ;
                 } else {
                     if(is==0) { is=-1 ; break ; }
-                    digits[lg-is-1] = digits[is] = 0 ;
+                    digits[is] = 0 ;
                 }
             }
         }
-        printf("NB[%d]=%d ",lg,nbSol) ;
-
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s for %d digits NB=%lld\n",pbR->ident,lg,nbSol) ;
      }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbSol) ;
+    sprintf(pbR->strRes,"%lld",nbSol) ;
     return 1 ;
 }
 

@@ -47,10 +47,10 @@ int PB002(PB_RESULT *pbR) {
 }
 
 int PB003(PB_RESULT *pbR) {
-    u_int64_t n = 600851475143 ;
-    u_int64_t d = 2 ;
-    u_int64_t d2 = 2*2 ;
-    u_int64_t bp = 1 ;
+    uint64_t n = 600851475143 ;
+    uint64_t d = 2 ;
+    uint64_t d2 = 2*2 ;
+    uint64_t bp = 1 ;
     pbR->nbClock = clock() ;
     while ( d2 < n) {
         while ( (n % d) == 0) {
@@ -155,9 +155,9 @@ int PB006(PB_RESULT *pbR) {
 
 
 typedef struct CTX_PB007 {
-    u_int32_t nbPrime ;
+    uint32_t nbPrime ;
     T_prime lastPrime ;
-    u_int32_t nbAsk ;
+    uint32_t nbAsk ;
 #if PB007_GENTABLE
     T_prime *tbPrime ;
 #endif
@@ -251,14 +251,14 @@ int PB008(PB_RESULT *pbR) {
     "05886116467109405077541002256983155200055935729725"
     "71636269561882670428252483600823257530420752963450" ;
     int lg = (int) strlen(strDig) ;
-    u_int64_t bestProd = 0 ;
+    uint64_t bestProd = 0 ;
     int32_t bestIndex = 0  ;
     int32_t indNxt ;
     pbR->nbClock = clock() ;
     
     for(indNxt=PB008_NB;indNxt<lg;indNxt++) {
         int i ;
-        u_int64_t prod = 1 ;
+        uint64_t prod = 1 ;
         for(i=0;i<PB008_NB;i++) {
             prod *= ( strDig[indNxt -PB008_NB+i] - '0' ) ;
             if(prod == 0) {
@@ -296,7 +296,7 @@ int PB009(PB_RESULT *pbR) {
 }
 
 typedef struct CTX_PB010 {
-    u_int64_t sum ;
+    uint64_t sum ;
 } CTX_PB010 ;
 
 #define PB010_NB_MAX    2000000
@@ -528,8 +528,8 @@ int PB013(PB_RESULT *pbR) {
     "72107838435069186155435662884062257473692284509516"
     "20849603980134001723930671666823555245252804609722"
     "53503534226472524250874054075591789781264330331690";
-    u_int8_t digitNumber[PB013_NBNUM*PB013_LENNUM] ;
-    u_int32_t sum[PB013_LENNUM] ;
+    uint8_t digitNumber[PB013_NBNUM*PB013_LENNUM] ;
+    uint32_t sum[PB013_LENNUM] ;
     int i ;
     pbR->nbClock = clock()  ;
     for(i=0;i<PB013_NBNUM*PB013_LENNUM;i++) {
@@ -562,7 +562,7 @@ int PB013(PB_RESULT *pbR) {
     return 1 ;
 }
 
-typedef u_int32_t TY_SYR   ;
+typedef uint32_t TY_SYR   ;
 
 
 void SyracuseVal(TY_SYR *valCur) {
@@ -583,8 +583,8 @@ void SyracuseVal(TY_SYR *valCur) {
 #define SYRACUSE_MEM    1
 #if SYRACUSE_MEM
 #define SYRACUSE_MEM_SIZE (1<<19)
-static u_int16_t lgS[SYRACUSE_MEM_SIZE] ;
-static u_int16_t privSyracuseLgMem(u_int16_t lg,TY_SYR valInit,TY_SYR val) {
+static uint16_t lgS[SYRACUSE_MEM_SIZE] ;
+static uint16_t privSyracuseLgMem(uint16_t lg,TY_SYR valInit,TY_SYR val) {
     if(val < SYRACUSE_MEM_SIZE ) {
         if(lgS[val]) {
             if(valInit < SYRACUSE_MEM_SIZE) lgS[valInit] = lg+lgS[val] ;
@@ -608,7 +608,7 @@ static u_int16_t privSyracuseLgMem(u_int16_t lg,TY_SYR valInit,TY_SYR val) {
     }
 }
 #else
-static u_int16_t privSyracuseLg(u_int16_t lg,TY_SYR val) {
+static uint16_t privSyracuseLg(uint16_t lg,TY_SYR val) {
     if(val == 1) {
         return lg+1;
     } else {
@@ -622,7 +622,7 @@ static u_int16_t privSyracuseLg(u_int16_t lg,TY_SYR val) {
 }
 #endif
 
-static u_int16_t SyracuseLg(TY_SYR val) {
+static uint16_t SyracuseLg(TY_SYR val) {
 #if SYRACUSE_MEM
     return privSyracuseLgMem(0,val,val) ;
 #else
@@ -638,7 +638,7 @@ int PB014(PB_RESULT *pbR) {
     int bestLg = 0 ;
     pbR->nbClock = clock() ;
     for(k=1;k<PB014_MAX_VALUE;k++) {
-        u_int16_t lg = SyracuseLg(k) ;
+        uint16_t lg = SyracuseLg(k) ;
         if(lg > bestLg ) {
             bestLg = lg ;
             kBest = k ;
@@ -675,7 +675,7 @@ int PB015(PB_RESULT *pbR) {
     //    = 21x23x25x27x...x39x 2**10 / 1x2x3x4...x10
     // On fait les simplifications 25x2 = 5x10  ; 27=3x9 ; 21x2 = 6x7 ; 2**6=2x4x8 ;
     // Il reste en haut 23x29x31x33x35x37x39x2**2
-    sprintf(pbR->strRes,"%lld", ((u_int64_t) 23) * 29 * 31 * 33 * 35 *37 * 39 * 4 );
+    sprintf(pbR->strRes,"%lld", ((uint64_t) 23) * 29 * 31 * 33 * 35 *37 * 39 * 4 );
     return 1 ;
 }
 
@@ -684,9 +684,9 @@ int PB015(PB_RESULT *pbR) {
 #define PB016_MAXL  1000/3
 #define PB016_EXP   1000
 int PB016(PB_RESULT *pbR) {
-    u_int8_t digLarge[PB016_MAXL] ;
+    uint8_t digLarge[PB016_MAXL] ;
     int i,ie ,len = 0 ;
-    u_int32_t S = 0 ;
+    uint32_t S = 0 ;
     pbR->nbClock = clock() ;
     for(i=0;i<PB016_MAXL;i++) {digLarge[i] = 0 ; }
     digLarge[0] = 1 ; len = 1 ;
@@ -804,9 +804,9 @@ int PB019(PB_RESULT *pbR) {
 #define PB020_MAXL  (100*2)
 #define PB020_FACT   100
 int PB020(PB_RESULT *pbR) {
-    u_int32_t digLarge[PB020_MAXL] ;
+    uint32_t digLarge[PB020_MAXL] ;
     int i,ie ,len = 0 ;
-    u_int32_t S = 0 ;
+    uint32_t S = 0 ;
     pbR->nbClock = clock() ;
     for(i=0;i<PB020_MAXL;i++) {digLarge[i] = 0 ; }
     digLarge[0] = 1 ; len = 1 ;
@@ -843,7 +843,7 @@ int PB020(PB_RESULT *pbR) {
 int PB021(PB_RESULT *pbR) {
     int SumDiv[PB021_MAXM+1] ;
     int i ;
-    u_int32_t S = 0 ;
+    uint32_t S = 0 ;
     pbR->nbClock = clock() ;
     for(i=1;i<=PB021_MAXM;i++) {
         SumDiv[i] = 0 ;
@@ -912,7 +912,7 @@ int PB023(PB_RESULT *pbR) {
     int abundant[PB023_MAXM] ;
     int nbAbund =0 ;
     int i ;
-    u_int32_t SumNo2a = 0 ;
+    uint32_t SumNo2a = 0 ;
     int nbNoSum2a = 0 ;
     pbR->nbClock = clock()  ;
     for(i=1;i<=PB023_MAXM;i++) {
@@ -960,8 +960,8 @@ int PB023(PB_RESULT *pbR) {
 #define PB024_RANG   1000000
 int PB024(PB_RESULT *pbR) {
     int i  ;
-    u_int64_t factoriels[PB024_SIZE] ;
-    u_int8_t digits[PB024_SIZE] ;
+    uint64_t factoriels[PB024_SIZE] ;
+    uint8_t digits[PB024_SIZE] ;
     int rang = PB024_RANG - 1 ;
     pbR->nbClock = clock() ;
     factoriels[0] = 1 ;
@@ -974,7 +974,7 @@ int PB024(PB_RESULT *pbR) {
         rang -= rgUnused * factoriels[PB024_SIZE-1-i] ;
         if(rgUnused>0){
             int j ;
-            u_int8_t saveDig = digits[i+rgUnused] ;
+            uint8_t saveDig = digits[i+rgUnused] ;
             for(j=rgUnused+i; j > i ; j--) {
                 digits[j] = digits[j-1] ;
             }
@@ -990,8 +990,8 @@ int PB024(PB_RESULT *pbR) {
 
 #define PB025_MAXDIGIT 1000
 int PB025(PB_RESULT *pbR) {
-    u_int8_t FA[PB025_MAXDIGIT+1] ;
-    u_int8_t FB[PB025_MAXDIGIT+1] ;
+    uint8_t FA[PB025_MAXDIGIT+1] ;
+    uint8_t FB[PB025_MAXDIGIT+1] ;
     int i,n,len ;
     pbR->nbClock = clock() ;
     for(i=0;i<PB025_MAXDIGIT+1;i++) {
@@ -1001,7 +1001,7 @@ int PB025(PB_RESULT *pbR) {
     len = 1 ;
     n=2 ;
     do {
-        u_int8_t *FD = FA ;
+        uint8_t *FD = FA ;
         if(++n & 1) FD =FB ;
         for(i=0;i<len;i++) {
             if(FA[i]+FB[i]< 10) {
@@ -1024,7 +1024,7 @@ int PB026(PB_RESULT *pbR) {
     int maxCycle = 0 ;
     int dmax = 0 ;
     int d ;
-    u_int16_t isReste[PB026_MAX] ;
+    uint16_t isReste[PB026_MAX] ;
     pbR->nbClock = clock() ;
     for(d=2;d<PB026_MAX;d++) {
         int r = 1;
@@ -1170,7 +1170,7 @@ int PB029(PB_RESULT *pbR) {
         }
         {
             int i, exp ;
-            u_int8_t *isOccupied = calloc(expM*101,sizeof(isOccupied[0])) ;
+            uint8_t *isOccupied = calloc(expM*101,sizeof(isOccupied[0])) ;
             for(i=2;i<=100;i++) { isOccupied[i] = 1 ; }
             for(exp=2;exp <= expM; exp++) {
                 for(i=2;i<=100;i++) {
@@ -1252,7 +1252,7 @@ int PB031(PB_RESULT *pbR) {
 
 
 int PB032(PB_RESULT *pbR) {
-    u_int8_t dg[9] ;
+    uint8_t dg[9] ;
     int Sum = 0 ;
     pbR->nbClock = clock() ;
     { int i ; for(i=0;i<9;i++) {  dg[i] = i+1 ; } }
@@ -1367,14 +1367,14 @@ int PB034(PB_RESULT *pbR) {
 int PB035(PB_RESULT *pbR) {
     int i , puis10 ;
     int nbFind = 0 ;
-    u_int8_t    *isPrimeUsed = NULL ;
+    uint8_t    *isPrimeUsed = NULL ;
     CTX_PRIMETABLE * ctxP  ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(PB035_MAXN)) == NULL) {
         fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
-    u_int32_t nbPrime = GetNbPrime(ctxP) ;
+    uint32_t nbPrime = GetNbPrime(ctxP) ;
     const T_prime * tbPrime = GetTbPrime(ctxP);
     isPrimeUsed = calloc(nbPrime,sizeof(isPrimeUsed[0])) ;
     
@@ -1414,12 +1414,12 @@ int PB035(PB_RESULT *pbR) {
     return 1 ;
 }
 
-static int IsPal2(u_int32_t n) {
-    u_int32_t B=1, H = 1 << 31 ;
+static int IsPal2(uint32_t n) {
+    uint32_t B=1, H = 1 << 31 ;
     if(n<=1) return 1 ;
     while(H>n) { H >>= 1 ; }
     while(H>B) {
-        u_int32_t cmp = (H+B) & n ;
+        uint32_t cmp = (H+B) & n ;
         if(cmp == H || cmp == B) return 0  ;
         H >>= 1;
         B <<= 1 ;
@@ -1555,7 +1555,7 @@ int PB037(PB_RESULT *pbR) {
         }
         for(i=indrm1;i<indrm;i++) {
             // on va le completer avec des 1, 3, 7, 9
-            u_int32_t p = 10*truncRight[i]+1 ;
+            uint32_t p = 10*truncRight[i]+1 ;
             if(Search_TablePrime(ctxP,p)) { truncRight[nbRight++] = p ; }
             p += 3-1 ;
             if(Search_TablePrime(ctxP,p)) { truncRight[nbRight++] = p ; }
@@ -1567,12 +1567,12 @@ int PB037(PB_RESULT *pbR) {
         for(k=1;k<=9;k++) {
             for(i=indlm1;i<indlm;i++) {
                 // on va le completer avec de 1 a 9
-                u_int32_t p = truncLeft[i] + k * puis10  ;
+                uint32_t p = truncLeft[i] + k * puis10  ;
                 if(Search_TablePrime(ctxP,p)) { truncLeft[nbLeft++] = p ; }
             }
         }
         for(i=indrm;i<nbRight;i++) {
-            u_int32_t p = truncRight[i] ;
+            uint32_t p = truncRight[i] ;
             if(bsearch(&p,truncLeft+indlm,nbLeft-indlm,sizeof(p),CmpPrime037)) {
                 truncPrime[nbFind++] = truncRight[i] ;
                 Sum += truncRight[i]  ;
@@ -1641,7 +1641,7 @@ int PB037r(PB_RESULT *pbR) {
         }
         for(i=indrm1;i<indrm;i++) {
             // on va le completer avec des 1, 3, 7, 9
-            u_int32_t p = 10*truncRight[i]+1 ;
+            uint32_t p = 10*truncRight[i]+1 ;
             if(Search_TablePrime(ctxP,p)) { truncRight[nbRight++] = p ; }
             p += 3-1 ;
             if(Search_TablePrime(ctxP,p)) { truncRight[nbRight++] = p ; }
@@ -1651,8 +1651,8 @@ int PB037r(PB_RESULT *pbR) {
             if(Search_TablePrime(ctxP,p)) { truncRight[nbRight++] = p ; }
         }
         for(i=indrm;i<nbRight;i++) {
-            u_int32_t k = puis10 ;
-            u_int32_t p = truncRight[i] ;
+            uint32_t k = puis10 ;
+            uint32_t p = truncRight[i] ;
             while( k >= 10) {
                 p = p % k ;
                 if(!Search_TablePrime(ctxP,p))  break ;
@@ -1681,7 +1681,7 @@ int PB037r(PB_RESULT *pbR) {
 // max value = 9! x 7 ;
 
 int PB038(PB_RESULT *pbR) {
-    u_int8_t dig[10] ;
+    uint8_t dig[10] ;
     int i , k ;
     int maxP = 0 ;
     pbR->nbClock = clock()  ;
@@ -1814,8 +1814,8 @@ int PB039(PB_RESULT *pbR) {
 #define PB040_IND_MAX   1000000
 int PB040(PB_RESULT *pbR) {
     int i,nb,P=1,ind;
-    u_int32_t maxByDig[PB040_MAXN+1] ;
-    u_int32_t offsByDig[PB040_MAXN+1] ;
+    uint32_t maxByDig[PB040_MAXN+1] ;
+    uint32_t offsByDig[PB040_MAXN+1] ;
     pbR->nbClock = clock()  ;
     maxByDig[0] = 1 ; nb = 9 ; offsByDig[0] = -1 ;
     for(i=1;i<=PB040_MAXN;i++) {
@@ -1849,7 +1849,7 @@ int PB040(PB_RESULT *pbR) {
 #define PB041_MAXN  7654321
 int PB041(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
-    u_int8_t permut[7] = {7,6,5,4,3,2,1} ;
+    uint8_t permut[7] = {7,6,5,4,3,2,1} ;
     T_prime pBest = 0 ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(PB041_MAXN)) == NULL) {
@@ -1885,7 +1885,7 @@ int PB042(PB_RESULT *pbR) {
     while((word = *P042_W++) != NULL ) {
         int32_t val=0 ;
         int32_t n ;
-        u_int8_t c ;
+        uint8_t c ;
         while((c=*word++)) {
             val += c - 'A' + 1 ;
         }
@@ -1907,10 +1907,10 @@ int PB042(PB_RESULT *pbR) {
 
 int PB043(PB_RESULT *pbR) {
     // attention 0 est le digit de poids faible, 9 celui de poids fort
-    u_int8_t dig[10] = {0,1,2,3,4,5,6,7,8,9} ;
+    uint8_t dig[10] = {0,1,2,3,4,5,6,7,8,9} ;
     int rg  ;
     int nbL = 0 ;
-    u_int64_t Sum = 0 ;
+    uint64_t Sum = 0 ;
     pbR->nbClock = clock()  ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s ",pbR->ident);
     do  {
@@ -1932,7 +1932,7 @@ int PB043(PB_RESULT *pbR) {
         } else if ( ( (dig[5]+dig[6]+dig[7]) % 3 ) != 0 ) {
             rg = 7 ;
         } else {
-            u_int64_t N = dig[0]+10*(dig[1]+10*(dig[2]+10*(dig[3]+10*(dig[4]+10*(dig[5]+10*(dig[6]+10*(dig[7]+10*(dig[8]+10LL*dig[9])))))))) ;
+            uint64_t N = dig[0]+10*(dig[1]+10*(dig[2]+10*(dig[3]+10*(dig[4]+10*(dig[5]+10*(dig[6]+10*(dig[7]+10*(dig[8]+10LL*dig[9])))))))) ;
             if(pbR->isVerbose) fprintf(stdout,"%lld ",N);
             rg = 8 ;
             Sum += N ;
@@ -1946,9 +1946,9 @@ int PB043(PB_RESULT *pbR) {
     return 1 ;
 }
 
-u_int32_t IsPentagonal ( u_int64_t P) {
-    u_int32_t n = (u_int32_t) Sqrt64((2*P)/3) + 1 ;
-    if(P*2 == ((u_int64_t)n )*(3*n -1)) {
+uint32_t IsPentagonal ( uint64_t P) {
+    uint32_t n = (uint32_t) Sqrt64((2*P)/3) + 1 ;
+    if(P*2 == ((uint64_t)n )*(3*n -1)) {
         return n ;
     } else {
         return 0 ;
@@ -2018,7 +2018,7 @@ int PB045(PB_RESULT *pbR) {
 #define PB046_MAXN  100000
 int PB046(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
-    u_int8_t * oddDec = calloc(PB046_MAXN/2, sizeof(oddDec[0])) ;
+    uint8_t * oddDec = calloc(PB046_MAXN/2, sizeof(oddDec[0])) ;
     pbR->nbClock = clock()  ;
     if((ctxP = Gen_tablePrime(PB046_MAXN)) == NULL) {
         fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
@@ -2027,7 +2027,7 @@ int PB046(PB_RESULT *pbR) {
     {
         int i ;
         int curOdd = 1;
-        u_int32_t nbPrime = GetNbPrime(ctxP);
+        uint32_t nbPrime = GetNbPrime(ctxP);
         const T_prime * tbPrime= GetTbPrime(ctxP);
         for(i=1;i<nbPrime;i++) {
             int n ;
@@ -2095,21 +2095,21 @@ int PB047(PB_RESULT *pbR) {
 #define PB048_MAXN  1000
 #define PB048_MOD   10000000000LL // dix derniet digits
 #define PB048_MODHALF   100000
-u_int64_t mult10d(u_int64_t a, u_int64_t b) {
-    u_int64_t al = a % PB048_MODHALF ;
-    u_int64_t ah = ( a / PB048_MODHALF ) % PB048_MODHALF ;
-    u_int64_t bl = b % PB048_MODHALF ;
-    u_int64_t bh = ( b / PB048_MODHALF ) % PB048_MODHALF ;
+uint64_t mult10d(uint64_t a, uint64_t b) {
+    uint64_t al = a % PB048_MODHALF ;
+    uint64_t ah = ( a / PB048_MODHALF ) % PB048_MODHALF ;
+    uint64_t bl = b % PB048_MODHALF ;
+    uint64_t bh = ( b / PB048_MODHALF ) % PB048_MODHALF ;
     return (al * bl + (al * bh + ah * bl) * PB048_MODHALF) % PB048_MOD ;
 }
 int PB048(PB_RESULT *pbR) {
-    u_int64_t Sum = 0 ;
+    uint64_t Sum = 0 ;
     int n;
     pbR->nbClock = clock()  ;
     for(n=1;n<=PB048_MAXN;n++) {
         int exp ;
-        u_int64_t pow = n ;
-        u_int64_t Npow= 1 ;
+        uint64_t pow = n ;
+        uint64_t Npow= 1 ;
         for(exp=n ;exp != 0; exp >>=1) {
             if(exp & 1) Npow = mult10d(Npow,pow)  ;
             pow = mult10d(pow,pow)  ;
@@ -2122,8 +2122,8 @@ int PB048(PB_RESULT *pbR) {
 }
 
 typedef struct perm4d {
-    u_int16_t nb ;
-    u_int16_t  perm[24] ;
+    uint16_t nb ;
+    uint16_t  perm[24] ;
 } perm4d;
 
 #define PB049_MAXN  10000
@@ -2138,13 +2138,13 @@ int PB049(PB_RESULT *pbR) {
         return 0 ;
     }
     Permut = calloc(PB049_MAXN,sizeof(Permut[0]));
-    u_int32_t nbPrime = GetNbPrime(ctxP);
+    uint32_t nbPrime = GetNbPrime(ctxP);
     const T_prime * tbPrime= GetTbPrime(ctxP);
     
     for(i=0;tbPrime[i]<1000;i++) ;
     for(;i<nbPrime;i++) {
         int num ;
-        u_int8_t dig[4];
+        uint8_t dig[4];
         int p = (int) tbPrime[i] ;
         dig[0] = p / 1000 ;
         dig[1] = (p/100) % 10 ;
@@ -2184,12 +2184,12 @@ int PB050(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
     int32_t indP0,indP1 ;
     int32_t S ;
-    u_int32_t bestIndP0 = 0 ;
-    u_int32_t bestLg = 0 ;
-    u_int32_t bestP = 0 ;
+    uint32_t bestIndP0 = 0 ;
+    uint32_t bestLg = 0 ;
+    uint32_t bestP = 0 ;
     pbR->nbClock = clock()  ;
     // we precompute N = sqrt(Max) * log2(Max)  primes
-    u_int32_t sizeP = (u_int32_t)Sqrt64(PB050_MAXN) ;
+    uint32_t sizeP = (uint32_t)Sqrt64(PB050_MAXN) ;
     {   int i=1, nb = 1;
         while((i *= 2) < PB050_MAXN ) { nb++ ; }
         sizeP *= nb ;

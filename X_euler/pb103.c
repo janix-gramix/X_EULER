@@ -28,7 +28,7 @@ int CheckEquality(sum103_t *v,int lg) {
     int k ;
     for(k=2;2*k<=lg;k++) {
         int j ;
-        u_int8_t perm2[PB103_MAXNB] ;
+        uint8_t perm2[PB103_MAXNB] ;
         for(j=0;j<2*k;j++)perm2[j] = j ;
         do {
             sum103_t S = 0 ;
@@ -37,7 +37,7 @@ int CheckEquality(sum103_t *v,int lg) {
             }
             if (S & 1) continue ; // pas divisible par 2
             S  /= 2 ;
-            u_int8_t perm[PB103_MAXNB] ;
+            uint8_t perm[PB103_MAXNB] ;
             for(j=0;j<k;j++)perm[j] = j ;
             do {
                 int D = S ;
@@ -95,13 +95,13 @@ AlterPaths * GetAlterPath(int maxk) {
         AltP->begK[k] = AltP->begK[k-1]+k*AltP->nbK[k-1] ; //AltP->nbK[k-1] de longueur k
         int j;
         int k1= k+1 ; // pour tenir compte du decalage d'indice
-        u_int64_t N = k1-1;
+        uint64_t N = k1-1;
         for(j=k1+2;j<=2*k1;j++) { N *= j ;} ; // on par de k1+2 car 1/(k1+1)
         for(j=2;j<=k1;j++) N /= j ;
         AltP->nbK[k] = (int) N/2 ;
     }
     AltP->path = malloc((AltP->begK[maxk-1]+ maxk * AltP->nbK[maxk-1]) * sizeof(AltP->path[0])) ;
-    u_int8_t ind[PB103_MAXNB] ;
+    uint8_t ind[PB103_MAXNB] ;
     for(k=1;k<maxk;k++) { // on va generer les path
         int k1= k+1 ; // pour tenir compte du decalage d'indice
         int is = AltP->begK[k] ;
@@ -165,14 +165,14 @@ CheckPaths * GetCheckPath(int N, AlterPaths * altP,int isSup) {
         int j ;
         int k1= k+1 ; // pour tenir compte du decalage d'indice
         chkP->begK[k] = chkP->begK[k-1]+k*chkP->nsumK[k-1]*chkP->npermK[k-1] ; //chkP->nbK[k-1] de longueur k
-        u_int64_t CN2k = 1;
+        uint64_t CN2k = 1;
         for(j=0;j<2*k1-dN1;j++) { CN2k *= N-dN1-j ; }
         for(j=2;j<=2*k1-dN1;j++) { CN2k /= j ; }
         chkP->npermK[k] = (int) CN2k ;
         chkP->nsumK[k] = (altP->nbK[k] + 1)  ;
     }
     chkP->indSum = malloc((chkP->begK[maxk-1]+ maxk * chkP->nsumK[maxk-1])* chkP->npermK[maxk-1] * sizeof(chkP->indSum[0])) ;
-    u_int8_t perm2[PB103_MAXNB] ;
+    uint8_t perm2[PB103_MAXNB] ;
     for(k=1;k<maxk;k++) { // on va generer les index
         int k1= k+1 ; // pour tenir compte du decalage d'indice
         int is = chkP->begK[k] ;
@@ -229,13 +229,13 @@ HalfPaths * GetHalfPath(int N) {
     hlfP->maxN = N ;
     {
         int j ;
-        u_int64_t CNk = 1;
+        uint64_t CNk = 1;
         for(j=0;j<k;j++) { CNk *= N-j ; }
         for(j=2;j<=k;j++) { CNk /= j ; }
         hlfP->npermk = (int) CNk ;
     }
     hlfP->indSum = malloc(k * hlfP->npermk * sizeof(hlfP->indSum[0])) ;
-    u_int8_t perm2[PB103_MAXNB] ;
+    uint8_t perm2[PB103_MAXNB] ;
     int is = 0 ;
     int j ;
     for(j=0;j<k;j++)perm2[j] = j ;
@@ -272,16 +272,16 @@ GlobalPaths * GetGlobalPath(int N) {
     glbP->maxN = N ;
     {
         int j ;
-        u_int64_t CNk1 = 1;
+        uint64_t CNk1 = 1;
         for(j=0;j<k1;j++) { CNk1 *= N-1-j ; }
         for(j=2;j<=k1;j++) { CNk1 /= j ; }
         glbP->npermk1 = (int) CNk1 ;
-        u_int64_t CNk = (CNk1 * (N-k)) /k ;
+        uint64_t CNk = (CNk1 * (N-k)) /k ;
         glbP->npermk = (int) CNk ;
     }
     glbP->indSumk = malloc(k * glbP->npermk * sizeof(glbP->indSumk[0])) ;
     glbP->indSumk1 = malloc((k-1) * glbP->npermk1 * sizeof(glbP->indSumk1[0])) ;
-    u_int8_t perm2[PB103_MAXNB] ;
+    uint8_t perm2[PB103_MAXNB] ;
     int is = 0 ;
     int j ;
     for(j=0;j<k;j++)perm2[j] = j ;
@@ -308,7 +308,7 @@ static int CheckEqualityAlt(sum103_t *v,int N,AlterPaths * AltP,int isSup) {
     int dN = (isSup) ? 1 : 0 ;
     for(k=2;2*k<=N;k++) {
         int j ;
-        u_int8_t perm2[PB103_MAXNB] ;
+        uint8_t perm2[PB103_MAXNB] ;
         for(j=0;j<2*k-dN;j++)perm2[j] = j ;
         if(dN) perm2[2*k-1] = N-1 ;
         do {
@@ -371,7 +371,7 @@ static int CheckEqualityPreN(sum103_t *v,int N,CheckPaths * chkP) {
 }
 
 
-static u_int8_t isSum[20000] ;
+static uint8_t isSum[20000] ;
 
 static int CheckEqualityHalf(sum103_t *v,int N) {
     int k = N/2 ;
@@ -381,7 +381,7 @@ static int CheckEqualityHalf(sum103_t *v,int N) {
     for(j=2;j<=k;j++) ST += v[N-j] ;
     memset(isSum,0,ST+1) ;
     
-    u_int8_t perm2[PB103_MAXNB] ;
+    uint8_t perm2[PB103_MAXNB] ;
     for(j=0;j<k;j++)perm2[j] = j ;
     int il=0  ;
     sum103_t S=0 ;
@@ -419,14 +419,14 @@ static int CheckEqualityPreH(sum103_t *v,HalfPaths * hlfP) {
     return 1;
 }
 
-static u_int8_t isSumk[20000] ;
-static u_int8_t isSumk1[20000] ;
+static uint8_t isSumk[20000] ;
+static uint8_t isSumk1[20000] ;
 
-// static u_int8_t isDelta[1000] ;
+// static uint8_t isDelta[1000] ;
 
 // static isPrintDebug = 0 ;
 
-static u_int16_t valSumk1[20000] ;
+static uint16_t valSumk1[20000] ;
 
 static int FindMinDeltaPreG(sum103_t *v,GlobalPaths * glbP) {
     int N = glbP->maxN ;
@@ -1620,7 +1620,7 @@ int PB105(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     int32_t * * tbSub = P105_GetData() ;
     int nt ;
-    u_int32_t S =0 ;
+    uint32_t S =0 ;
     for(nt=0;tbSub[nt] != 0; nt++){
         int32_t * sub = tbSub[nt] ;
         int lg ;

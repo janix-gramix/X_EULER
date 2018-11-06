@@ -72,15 +72,15 @@ int PB051(PB_RESULT *pbR) {
     
     int incP ;
     for(p=5,incP=2;p<PB051_MAXP;p+=incP , incP = 6 - incP) {
-        u_int8_t occurDig[10] ;
+        uint8_t occurDig[10] ;
         int k ;
         if(!Is_Prime(p,tbPrime)) continue ;
         memset(occurDig,0,10 - minSuit) ;
         {
             int p1 ;
-            u_int8_t bit = 1; // on extrait les digits en sautant le premier (poids faible)
+            uint8_t bit = 1; // on extrait les digits en sautant le premier (poids faible)
             for(p1=(int) (p/10);p1 != 0; p1 /= 10 , bit <<= 1 ) {
-                u_int8_t dg = p1 % 10 ;
+                uint8_t dg = p1 % 10 ;
                 if(dg < 10 - minSuit) { // on construi le pattern pour de digit
                     occurDig[dg] |= bit ;
                 }
@@ -140,11 +140,11 @@ int PB052(PB_RESULT *pbR) {
     int i;
     pbR->nbClock = clock()  ;
     int nbDig = 6 ;
-    u_int8_t digX[PB052_MAXD+1] = { 6,5,4,3,2,1,0,0,0,0,0} ;
+    uint8_t digX[PB052_MAXD+1] = { 6,5,4,3,2,1,0,0,0,0,0} ;
     while(nbDig < PB052_MAXD) {
         int k ;
-        u_int8_t digXsort[PB052_MAXD] ;
-        u_int8_t digXxk[PB052_MAXD+1] ;
+        uint8_t digXsort[PB052_MAXD] ;
+        uint8_t digXxk[PB052_MAXD+1] ;
         memcpy(digXsort,digX,nbDig);
         HeapSortUint8(digXsort,nbDig) ;
         for(k=6;k>1;k--) {
@@ -167,7 +167,7 @@ int PB052(PB_RESULT *pbR) {
         }
         if(k==1) {
             int i ;
-            u_int32_t n =0 ;
+            uint32_t n =0 ;
             for(i=1;i<=nbDig;i++) { n = n*10 + digX[nbDig-i] ; }
             if(pbR->isVerbose)  fprintf(stdout,"\t PB%s %d,%d,%d,%d,%d,%d \n",pbR->ident,n,2*n,3*n,4*n,5*n,6*n) ;
             sprintf(pbR->strRes,"%d",n);
@@ -197,12 +197,12 @@ int PB052(PB_RESULT *pbR) {
 int PB052a(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     int nbDig = 6 ;
-    u_int32_t n = 123456 ;
+    uint32_t n = 123456 ;
     while(nbDig < PB052_MAXD) {
         int i,k ;
-        u_int32_t N1 ;
-        u_int8_t digXsort[PB052_MAXD] ;
-        u_int8_t digXxk[PB052_MAXD+1] ;
+        uint32_t N1 ;
+        uint8_t digXsort[PB052_MAXD] ;
+        uint8_t digXxk[PB052_MAXD+1] ;
         for(i=0,N1=n;N1 != 0; i++) {
             digXsort[i] = N1 % 10 ; N1 /= 10 ;
         }
@@ -507,10 +507,10 @@ int PB055(PB_RESULT *pbR) {
     int32_t n  ;
     int32_t nbLychrel = 0;
     for(n=1;n<PB055_MAXN;n++) {
-        u_int8_t Dig0[PB055_MAXDIGIT] ;
-        u_int8_t Dig1[PB055_MAXDIGIT] ;
-        u_int8_t *pDigCur ;
-        u_int8_t *pDigAnt ;
+        uint8_t Dig0[PB055_MAXDIGIT] ;
+        uint8_t Dig1[PB055_MAXDIGIT] ;
+        uint8_t *pDigCur ;
+        uint8_t *pDigAnt ;
         
         int nbDig,k,n1  ;
         for(nbDig=0,n1=n;n1 != 0;) {
@@ -521,9 +521,9 @@ int PB055(PB_RESULT *pbR) {
         pDigAnt = Dig1 ;
         for(k=0;k<PB055_MAXITER;k++) {
             int i ;
-            u_int8_t carry = 0 ;
+            uint8_t carry = 0 ;
             {
-                u_int8_t *tmp = pDigCur;
+                uint8_t *tmp = pDigCur;
                 pDigCur = pDigAnt ;
                 pDigAnt = tmp ;
             }
@@ -556,18 +556,18 @@ int PB055(PB_RESULT *pbR) {
 #define PB057_MAXDIGIT  PB057_N+5
 
 typedef struct FractCont {
-    u_int8_t *pt1 ;
-    u_int8_t *pt ;
+    uint8_t *pt1 ;
+    uint8_t *pt ;
     int nbDig ;
 }  FractCont ;
 int PB057(PB_RESULT *pbR) {
     int n ;
     int nbNsupD = 0 ;
     pbR->nbClock = clock()  ;
-    u_int8_t DigN1[PB057_MAXDIGIT] ;
-    u_int8_t DigN0[PB057_MAXDIGIT] ;
-    u_int8_t DigD1[PB057_MAXDIGIT] ;
-    u_int8_t DigD0[PB057_MAXDIGIT] ;
+    uint8_t DigN1[PB057_MAXDIGIT] ;
+    uint8_t DigN0[PB057_MAXDIGIT] ;
+    uint8_t DigD1[PB057_MAXDIGIT] ;
+    uint8_t DigD0[PB057_MAXDIGIT] ;
     FractCont FC[2] ; // numerateur indice 0, denominateur indice 1
     FC[0].nbDig = 1 ;
     FC[0].pt = DigN0 ;
@@ -584,7 +584,7 @@ int PB057(PB_RESULT *pbR) {
         int i ;
         int k ;
         for(k=0;k<2;k++) {
-            u_int8_t *tmp = FC[k].pt1 ;
+            uint8_t *tmp = FC[k].pt1 ;
             FC[k].pt1  = FC[k].pt ; FC[k].pt = tmp ;
             // N(n+1) = 2*N(n) + N(n-1)
             int carry = 0 ;
@@ -656,7 +656,7 @@ int PB058(PB_RESULT *pbR) {
     }
 }
 
-static u_int8_t PB59_encrypted[] = {
+static uint8_t PB59_encrypted[] = {
     79,59,12,2,79,35,8,28,20,2,3,68,8,9,68,45,0,12,9,67,68,4,7,5,23,27,1,21,79,85,78,79,85,71,38,10,71,27,12,2,79,6,2,8,13,9,1,13,9,8,68,
     19,7,1,71,56,11,21,11,68,6,3,22,2,14,0,30,79,1,31,6,23,19,10,0,73,79,44,2,79,19,6,28,68,16,6,16,15,79,35,8,11,72,71,14,10,3,79,12,2,79,
     19,6,28,68,32,0,0,73,79,86,71,39,1,71,24,5,20,79,13,9,79,16,15,10,68,5,10,3,14,1,10,14,1,3,71,24,13,19,7,68,32,0,0,73,79,87,71,39,1,71,
@@ -686,7 +686,7 @@ static u_int8_t PB59_encrypted[] = {
 
 #define PB059_MAXASCII  128
 int PB059(PB_RESULT *pbR) {
-    u_int16_t HIST[PB059_MAXASCII*3] ;
+    uint16_t HIST[PB059_MAXASCII*3] ;
     int i;
     int Sum = 0 ;
     pbR->nbClock = clock()  ;
@@ -722,7 +722,7 @@ int PB059(PB_RESULT *pbR) {
 
 
 int PB060(PB_RESULT *pbR) {
-    static u_int8_t *isP1P2 ;
+    static uint8_t *isP1P2 ;
     
     static int NPMAX,NP ;
     CTX_PRIMETABLE * ctxP  ;
@@ -734,15 +734,15 @@ int PB060(PB_RESULT *pbR) {
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
-    u_int32_t nbPrime = GetNbPrime(ctxP) ;
+    uint32_t nbPrime = GetNbPrime(ctxP) ;
     NPMAX = GetNbPrime(ctxP)-1 ;
     int32_t maxP = (int32_t)tbPrime[nbPrime-1] ;
     {   // on limite la valeur max des nb premiers a tester pour que la concat de 2 d'entre eux
         // soit testable avec la table calculee
         int32_t pow10 = 10 ;
         while(pow10 < PB060_MAXP) pow10 *= 10 ;
-        u_int64_t maxP2 = maxP * (u_int64_t) maxP ;
-        while(tbPrime[NP] * (u_int64_t) (pow10 + 1) >= maxP2 ) NPMAX-- ;
+        uint64_t maxP2 = maxP * (uint64_t) maxP ;
+        while(tbPrime[NP] * (uint64_t) (pow10 + 1) >= maxP2 ) NPMAX-- ;
     }
     
     NP = NPMAX ;
@@ -762,7 +762,7 @@ int PB060(PB_RESULT *pbR) {
         isP1P2 = calloc(NP*NP,sizeof(isP1P2[0])) ;
         // parcours arborescent jusqu'a atteindre la profondeur 5
         int index[5],i ;
-        u_int64_t P[5],SP ;
+        uint64_t P[5],SP ;
         if(minS==0) maxS = (int32_t) tbPrime[NP-1] ;
         
         for(i=0,index[i]=0,SP=0;i>=0;) {
@@ -834,7 +834,7 @@ int PB060(PB_RESULT *pbR) {
 // de ce fait on adresse directement la tete de liste par la macro IND(pref,s)
 #define IND(pref,s) (PB061_MAXPX0+ ((pref)*PB061_NS+(s)) * PB061_MAXBYPREF)
 
-typedef u_int16_t  T_Polygonal;
+typedef uint16_t  T_Polygonal;
 int PB061(PB_RESULT *pbR) {
     int n,s ;
     int nbSol = 0 ;
@@ -847,7 +847,7 @@ int PB061(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     
     {
-        u_int32_t T0 = 0, Ts ;
+        uint32_t T0 = 0, Ts ;
         T_values = calloc(PB061_MAXPX0+(PB061_NS*PB061_MAXBYPREF*PB061_NBPREF),sizeof(T_values[0])) ;
         for(n=0;T0 < 10000 ;n++ , T0 += n) {
             for(s=0,Ts=T0;s<PB061_NS;s++ ,Ts += (n*(n-1))/2) {
@@ -872,7 +872,7 @@ int PB061(PB_RESULT *pbR) {
     Smin = 9999 * PB061_NS;
     {
         int inds[PB061_NS] ;
-        u_int8_t permTyp[PB061_NS] ;
+        uint8_t permTyp[PB061_NS] ;
         T_Polygonal T[PB061_NS] ;
         T_Polygonal  pref0 = 0 ;
         permTyp[0] = PB061_NS-1 ;
@@ -895,7 +895,7 @@ int PB061(PB_RESULT *pbR) {
                     continue ;
                 } else { // fin de boucle on verifie le rebouclage
                     int indf ;
-                    u_int8_t typf = permTyp[PB061_NS-1] ;
+                    uint8_t typf = permTyp[PB061_NS-1] ;
                     for(indf=IND(T[s],typf);T_values[indf] ; indf++) {
                         if(T_values[indf] == pref0) {
                             T[PB061_NS-1] = pref0 ;
@@ -931,7 +931,7 @@ int PB061(PB_RESULT *pbR) {
                     break ;
                 }
                 int i ;
-                u_int8_t tmp ;
+                uint8_t tmp ;
                 for(i=s+1;i<PB061_NS;i++) {
                     if(permTyp[i] > permTyp[s]) {
                         tmp = permTyp[s] ;
@@ -962,12 +962,12 @@ int PB061(PB_RESULT *pbR) {
     return (nbSol > 0) ;
 }
 
-static u_int8_t * digCube = NULL ;
+static uint8_t * digCube = NULL ;
 
 int CmpIndexPB62(const void *pt1,const void *pt2) {
     int cmp ;
-    const u_int8_t * st1 = digCube + ((int32_t *)pt1)[0] ;
-    const u_int8_t * st2 = digCube + ((int32_t *)pt2)[0] ;
+    const uint8_t * st1 = digCube + ((int32_t *)pt1)[0] ;
+    const uint8_t * st2 = digCube + ((int32_t *)pt2)[0] ;
     cmp = strcmp((char *)st1,(char *)st2) ;
     if(cmp != 0) { // pou les garder dans l'ordre initial en cas d'egalite
         return cmp ;
@@ -987,11 +987,11 @@ int CmpIndexPB62(const void *pt1,const void *pt2) {
 
 int PB062(PB_RESULT *pbR) {
     
-    u_int64_t n , cube , bestCub=0 ;
+    uint64_t n , cube , bestCub=0 ;
     int i,pow, nbDig, nbEqualMax = 1 ;
     int32_t * index = NULL ;
     pbR->nbClock = clock() ;
-    u_int32_t seuil[] = {
+    uint32_t seuil[] = {
         0   , 3     ,  5
         , 10    , 22    , 47
         ,100    ,216    ,465
@@ -1009,7 +1009,7 @@ int PB062(PB_RESULT *pbR) {
         if(i == seuil[nbDig]) nbDig++ ;
     }
     for(n=seuil[PB062_SMIN], cube=1000000 ;n<seuil[PB062_SMAX];n++) {
-        u_int8_t * ptDig ;
+        uint8_t * ptDig ;
         if(n==seuil[nbDig]) {
             nbDig++ ;
             digCube = malloc((nbDig+1)* (seuil[nbDig]-seuil[nbDig-1])) ;
@@ -1020,7 +1020,7 @@ int PB062(PB_RESULT *pbR) {
         sprintf((char *)ptDig,"%lld",cube);
         HeapSortUint8(ptDig,nbDig);
         if(n+1==seuil[nbDig]) {
-            u_int8_t *ant,*cur ;
+            uint8_t *ant,*cur ;
             int nbSim = 1;
             qsort(index,seuil[nbDig]-seuil[nbDig-1],sizeof(index[0]),CmpIndexPB62);
             for(i=1,cur=digCube+index[0];i<seuil[nbDig]-seuil[nbDig-1];i++) {
@@ -1062,7 +1062,7 @@ int PB062(PB_RESULT *pbR) {
 // en divisant par n : 1-1/n <= log10(a) < 1
 // donc : a < 10 et 1 -log10(a) <= 1/n <=> 1 / (1 - log10(a)) >= n
 int PB063(PB_RESULT *pbR) {
-    u_int16_t nb = 0 ;
+    uint16_t nb = 0 ;
     int a;
     pbR->nbClock = clock()  ;
     for(a=1;a<10; a++) {
@@ -1107,17 +1107,17 @@ int PB064(PB_RESULT *pbR) {
 #define PB065_D1    1
 
 typedef struct FractCont16 {
-    u_int16_t *pt1 ;
-    u_int16_t *pt ;
+    uint16_t *pt1 ;
+    uint16_t *pt ;
     int nbDig ;
 }  FractCont16 ;
 int PB065(PB_RESULT *pbR) {
     int n ;
     pbR->nbClock = clock()  ;
-    u_int16_t DigN1[PB065_MAXDIGIT] ;
-    u_int16_t DigN0[PB065_MAXDIGIT] ;
-    u_int16_t DigD1[PB065_MAXDIGIT] ;
-    u_int16_t DigD0[PB065_MAXDIGIT] ;
+    uint16_t DigN1[PB065_MAXDIGIT] ;
+    uint16_t DigN0[PB065_MAXDIGIT] ;
+    uint16_t DigD1[PB065_MAXDIGIT] ;
+    uint16_t DigD0[PB065_MAXDIGIT] ;
     FractCont16 FC[2] ; // numerateur indice 0, denominateur indice 1
     FC[0].nbDig = 1 ;
     FC[0].pt = DigN0 ;
@@ -1135,7 +1135,7 @@ int PB065(PB_RESULT *pbR) {
         int k ;
         int a = (n % 3) ? 1 : 2*(n/3) ;
         for(k=0;k<2;k++) { // numerateur et denominateur
-            u_int16_t *tmp = FC[k].pt1 ;
+            uint16_t *tmp = FC[k].pt1 ;
             // pt->N(n) pt1->N(n->1)
             FC[k].pt1  = FC[k].pt ; FC[k].pt = tmp ;
             // pt1->N(n) pt->N(n-1) => N(n+1)
@@ -1176,7 +1176,7 @@ int PB067(PB_RESULT *pbR) {
     
     int ic,ir ;
     pbR->nbClock = clock() ;
-    const u_int8_t * p067_data = P067_GetData() ;
+    const uint8_t * p067_data = P067_GetData() ;
     int vals[PB067_TSIZE] ;
     /* on recopie le tableau */
     {
@@ -1235,7 +1235,7 @@ int PB069a(PB_RESULT *pbR) {
                 phi[np] = phi[np]/i * (i-1) ;
             }
         }
-        if(i*(u_int64_t)phi[nBest] > phi[i]*(u_int64_t)nBest) {
+        if(i*(uint64_t)phi[nBest] > phi[i]*(uint64_t)nBest) {
             if(pbR->isVerbose)fprintf(stdout,"(%d,%d)",i,phi[i]);
             nBest = i ;
         }
@@ -1296,7 +1296,7 @@ int PB070(PB_RESULT *pbR) {
                 phi[np] = phi[np]/i * (i-1) ;
             }
         }
-        if(i*(u_int64_t)phi[nBest] < phi[i]*(u_int64_t)nBest) {
+        if(i*(uint64_t)phi[nBest] < phi[i]*(uint64_t)nBest) {
             unsigned char str_i[10], str_phi[10] ;
             int lg = sprintf((char *)str_i,"%d",i) ;
             HeapSortUint8(str_i,lg);
@@ -1331,7 +1331,7 @@ int PB070a(PB_RESULT *pbR) {
     }
     int i,j,jmax, nBest = 2 , phiBest = 1 ;
     pbR->nbClock = clock() ;
-    u_int32_t nbPrime = GetNbPrime(ctxP) ;
+    uint32_t nbPrime = GetNbPrime(ctxP) ;
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     for(i=0;i<nbPrime && (tbPrime[i] < nSqrt) ;i++) ;
     // on continue la boucle sur les Pi (croissants) et jmax est la valeur maxi pour que Pi*Pj < N)
@@ -1341,7 +1341,7 @@ int PB070a(PB_RESULT *pbR) {
         int n,phi ;
         for(j=jmax;j>=0; j--) {
             if( (n=Pi*(Pj=(int)tbPrime[j])) >= N) { jmax-- ; continue ; }
-            if(n*(u_int64_t) phiBest < (phi=(Pi-1)*(Pj-1)) * (u_int64_t) nBest) {
+            if(n*(uint64_t) phiBest < (phi=(Pi-1)*(Pj-1)) * (uint64_t) nBest) {
                 unsigned char str_n[10], str_phi[10] ;
                 int lg = sprintf((char *)str_n,"%d",Pi*Pj) ;
                 HeapSortUint8(str_n,lg);
@@ -1392,7 +1392,7 @@ int PB071(PB_RESULT *pbR) {
 int PB072(PB_RESULT *pbR) {
     int32_t N = PB072_MAXN ;
     int32_t *phi = malloc((N +1)* sizeof(phi[0])) ;
-    u_int64_t S = 0 ;
+    uint64_t S = 0 ;
     int i ;
     pbR->nbClock = clock() ;
     for(i=0;i<=N;i++) phi[i]=i ;
@@ -1522,7 +1522,7 @@ int PB073c(PB_RESULT *pbR) {
 
 
 
-typedef u_int32_t TY_FACT   ;
+typedef uint32_t TY_FACT   ;
 
 
 static TY_FACT FactDig[10] = { 1,1,2,6,24,120,720,5040,40320,362880 } ;
@@ -1555,8 +1555,8 @@ void FactVal(TY_FACT *valCur) {
 #define FACT_MEM    1
 #if FACT_MEM
 #define FACT_MEM_SIZE (1<<19)
-static u_int16_t lgF[FACT_MEM_SIZE] ;
-static u_int16_t privFactLgMem(u_int16_t lg,TY_FACT valInit,TY_FACT val) {
+static uint16_t lgF[FACT_MEM_SIZE] ;
+static uint16_t privFactLgMem(uint16_t lg,TY_FACT valInit,TY_FACT val) {
     if(val < FACT_MEM_SIZE ) {
         if(lgF[val]) {
             if(valInit < FACT_MEM_SIZE) lgF[valInit] = lg+lgF[val] ;
@@ -1589,7 +1589,7 @@ static u_int16_t privFactLgMem(u_int16_t lg,TY_FACT valInit,TY_FACT val) {
 }
 #else
 
-static u_int16_t privFactLgH3(u_int16_t lg,TY_FACT val2,TY_FACT val1,TY_FACT val) {
+static uint16_t privFactLgH3(uint16_t lg,TY_FACT val2,TY_FACT val1,TY_FACT val) {
     TY_FACT q;
     TY_FACT newVal, valcur = val ;
     for(newVal=0 ;valcur > 9 ;valcur = q ){
@@ -1603,7 +1603,7 @@ static u_int16_t privFactLgH3(u_int16_t lg,TY_FACT val2,TY_FACT val1,TY_FACT val
     return privFactLgH3(lg+1,val1,val,newVal);
 }
 
-static u_int16_t privFactLgH2(u_int16_t lg,TY_FACT val1,TY_FACT val) {
+static uint16_t privFactLgH2(uint16_t lg,TY_FACT val1,TY_FACT val) {
     TY_FACT q;
     TY_FACT newVal, valcur = val ;
     if(val == 169) {
@@ -1621,7 +1621,7 @@ static u_int16_t privFactLgH2(u_int16_t lg,TY_FACT val1,TY_FACT val) {
 }
 
 #endif
-static u_int16_t privFactLg(u_int16_t lg,TY_FACT val) {
+static uint16_t privFactLg(uint16_t lg,TY_FACT val) {
     if(val == 169 ) {
         return lg + 3 ;
     } else if ( val == 871 || val == 872) {
@@ -1642,7 +1642,7 @@ static u_int16_t privFactLg(u_int16_t lg,TY_FACT val) {
 }
 
 
-static u_int16_t FactLg(u_int32_t val) {
+static uint16_t FactLg(uint32_t val) {
 #if FACT_MEM
     return privFactLgMem(0,val,val) ;
 #else
@@ -1662,7 +1662,7 @@ int PB074(PB_RESULT *pbR) {
     int nbCount = 0 ;
     pbR->nbClock = clock() ;
     for(k=1;k<PB074_MAX_VALUE;k++) {
-        u_int16_t lg = FactLg(k) ;
+        uint16_t lg = FactLg(k) ;
         if(lg > bestLg ) {
             bestLg = lg ;
             kBest = k ;
@@ -1776,7 +1776,7 @@ int PB075(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int32_t m,mSqrt = (int32_t) Sqrt64(N);
     int32_t * nbPyth = calloc(N+1 ,sizeof(nbPyth[0])) ;
-    u_int32_t nb = 0 ;
+    uint32_t nb = 0 ;
     
     for(m=2;m<mSqrt;m++) {
         int32_t n ;
@@ -1877,7 +1877,7 @@ int PB077(PB_RESULT *pbR) {
         fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
         return 0 ;
     }
-    u_int32_t nbPrime = GetNbPrime(ctxP) ;
+    uint32_t nbPrime = GetNbPrime(ctxP) ;
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     
     int32_t *Epn = calloc(nbPrime*PB077_MAXN,sizeof(Epn[0])) ;
@@ -1959,11 +1959,11 @@ int PB078(PB_RESULT *pbR) {
 #define MATDYN_PC  1000000000
 #define MATDYN_PD  1000000000
 
-int ProgDyn_Mat(int sizeM,const u_int16_t * cout,const int *startCase, const int *endCase,const int *Neighbour ) {
-    u_int32_t   *antDist = malloc((sizeM+2)*(sizeM+2)*sizeof(antDist[0])) ;
-    u_int32_t   *newDist = malloc((sizeM+2)*(sizeM+2)*sizeof(newDist[0])) ;
+int ProgDyn_Mat(int sizeM,const uint16_t * cout,const int *startCase, const int *endCase,const int *Neighbour ) {
+    uint32_t   *antDist = malloc((sizeM+2)*(sizeM+2)*sizeof(antDist[0])) ;
+    uint32_t   *newDist = malloc((sizeM+2)*(sizeM+2)*sizeof(newDist[0])) ;
     
-    u_int32_t   *Cout = malloc((sizeM+2)*(sizeM+2)*sizeof(Cout[0])) ; ;
+    uint32_t   *Cout = malloc((sizeM+2)*(sizeM+2)*sizeof(Cout[0])) ; ;
     
     int i,j ;
     for(j=0;j<=sizeM+1;j++) {
@@ -1988,14 +1988,14 @@ int ProgDyn_Mat(int sizeM,const u_int16_t * cout,const int *startCase, const int
     int isMod = 0;
     do {
         isMod = 0 ;
-        u_int32_t   * tmp = antDist ;
+        uint32_t   * tmp = antDist ;
         antDist = newDist ;
         newDist = tmp ;
         for(i=1;i<=sizeM;i++) {
             int ic = MATDYN(i,1) ;
             for(j=1;j<=sizeM;j++) {
                 int k ;
-                u_int32_t bestD ;
+                uint32_t bestD ;
                 int cout_ic = Cout[ic] ;
                 bestD = antDist[ic] - cout_ic ;
                 for(k=0;Neighbour[k];k++) {
@@ -2005,7 +2005,7 @@ int ProgDyn_Mat(int sizeM,const u_int16_t * cout,const int *startCase, const int
             }
         }
     } while(isMod) ;
-    u_int32_t minD = newDist[*endCase];
+    uint32_t minD = newDist[*endCase];
     
     while(*++endCase){
         if(newDist[*endCase] < minD) {
@@ -2024,7 +2024,7 @@ int PB081(PB_RESULT *pbR) {
     int neigh[] = { -1 , -P081_SIZE-2 , 0  } ;
     int start[] = { P081_SIZE+3 , 0 } ;
     int end[] = { (P081_SIZE+2)*P081_SIZE+ P081_SIZE  , 0 } ;
-    const u_int16_t * p81_data = P081_GetData() ;
+    const uint16_t * p81_data = P081_GetData() ;
     int best = ProgDyn_Mat(P081_SIZE,p81_data,start,end,neigh) ;
     sprintf(pbR->strRes,"%d",best);
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -2037,7 +2037,7 @@ int PB082(PB_RESULT *pbR) {
     int i ;
     int start[P081_SIZE+1] ;
     int end[P081_SIZE+1] ;
-    const u_int16_t * p81_data = P081_GetData() ;
+    const uint16_t * p81_data = P081_GetData() ;
     for(i=1;i<=P081_SIZE;i++){
         start[i-1] = i*(P081_SIZE+2) + 1 ;
         end[i-1] = i*(P081_SIZE+2) + P081_SIZE ;
@@ -2054,7 +2054,7 @@ int PB083(PB_RESULT *pbR) {
     int neigh[] = { 1, -1 , -P081_SIZE-2 , +P081_SIZE+2, 0  } ;
     int start[] = { P081_SIZE+3 , 0 } ;
     int end[] = { (P081_SIZE+2)*P081_SIZE+ P081_SIZE  , 0 } ;
-    const u_int16_t * p81_data = P081_GetData() ;
+    const uint16_t * p81_data = P081_GetData() ;
     int best = ProgDyn_Mat(P081_SIZE,p81_data,start,end,neigh) ;
     sprintf(pbR->strRes,"%d",best);
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -2315,7 +2315,7 @@ int PB084b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int MatTr[PB084_NBCASE_3*PB084_NBCASE_3] ;
     int DoubleDice[2*PB084_NBFACE] ;
-    u_int32_t oldProb[PB084_NBCASE_3] , CaseProb[PB084_NBCASE_3] ;
+    uint32_t oldProb[PB084_NBCASE_3] , CaseProb[PB084_NBCASE_3] ;
     int i,d,dj,j,n ;
     DoubleDice[0] = 0 ;
     for(i=1;i<=PB084_NBFACE;i++) {
@@ -2486,7 +2486,7 @@ int PB085(PB_RESULT *pbR) {
 // en mettant le parallepipede a <= b <= c a plat deplie on voir rapidement
 // que la plus coure distance au carre est (a+b)**2 + c**2
 // donc a+b,c sont les petites valeurs d'un triangle pythagoricien
-// donc on cherche a decomposer un triangle Pyth primaire (m,n) m<n premiers m**m - n**2 , 2mn
+// donc on cherche a decomposer un triangle Pyth primaire (m,n) m>n premiers m**m - n**2 , 2mn
 // on compte les cas : a+b = m**2 - n**2 , c =2mn et a<=b<=c et c<=M
 // et les cas a+b =2mn c = m**2-n**2 et c <=M
 // puis on mutliplie par k tant que l'on ne depasse pas M
@@ -2499,7 +2499,7 @@ int PB086(PB_RESULT *pbR) {
     int i,n,m,c,k ;
     int M = PB086_MAX ;
     int minM = 1 ;
-    u_int32_t *histoM = calloc(PB086_MAX,sizeof(histoM[0])) ;
+    uint32_t *histoM = calloc(PB086_MAX,sizeof(histoM[0])) ;
     for(m=2;;m++) {
         // c >= 1/3 (a+b+c) as c>=b>=a
         // (a+b=c) = m**2 - n**2 + 2*m*n has a minima for n in [0,m] when n=0 => m**2
@@ -2547,11 +2547,11 @@ int PB086(PB_RESULT *pbR) {
 int PB087(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE *ctxP ;
-    u_int32_t n_sqr2 = (u_int32_t)Sqrt64(50000000) ;
-    u_int32_t n_sqr4 = (u_int32_t)Sqrt64(n_sqr2+1) ;
-    u_int32_t n_sqr3 = 800 ;
+    uint32_t n_sqr2 = (uint32_t)Sqrt64(50000000) ;
+    uint32_t n_sqr4 = (uint32_t)Sqrt64(n_sqr2+1) ;
+    uint32_t n_sqr3 = 800 ;
     while(n_sqr3*n_sqr3*n_sqr3 > PB087_MAXN) n_sqr3-- ;
-    u_int32_t  * pow2 , * pow3 ,*pow4 ;
+    uint32_t  * pow2 , * pow3 ,*pow4 ;
     pow2 = malloc(n_sqr2*sizeof(pow2[0])) ;
     pow3 = malloc(n_sqr3*sizeof(pow3[0])) ;
     pow4 = malloc(n_sqr4*sizeof(pow4[0])) ;
@@ -2561,12 +2561,12 @@ int PB087(PB_RESULT *pbR) {
     }
     
     int i,i2,i3,i4 ;
-    u_int32_t nbPrime = GetNbPrime(ctxP) ;
+    uint32_t nbPrime = GetNbPrime(ctxP) ;
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     
     for(i=i2=i3=i4=0;i<nbPrime;i++) {
-        u_int32_t p,p2 ;
-        p = (u_int32_t)tbPrime[i] ;
+        uint32_t p,p2 ;
+        p = (uint32_t)tbPrime[i] ;
         pow2[i2++] = p2 = p*p ;
         if(p< n_sqr3) {
             pow3[i3++] = p*p2 ;
@@ -2581,7 +2581,7 @@ int PB087(PB_RESULT *pbR) {
     int nbLoop = 4;
     int nb = 0 ;
     int sizeLoop = (((PB087_MAXN/16+1) / nbLoop) +1) * 16 ;
-    u_int16_t * isDec = calloc(sizeLoop/16,sizeof(isDec[0])) ;
+    uint16_t * isDec = calloc(sizeLoop/16,sizeof(isDec[0])) ;
     int nl ;
     for(nl=0;nl<nbLoop;nl++) {
         int infLoop = sizeLoop * nl ;
@@ -2614,23 +2614,23 @@ int PB087(PB_RESULT *pbR) {
 #define PB088_MAXK  12000
 
 static int CmpKminN(const void *el1,const void *el2) {
-    return ((u_int32_t *)el1)[0] - ((u_int32_t *)el2)[0] ;
+    return ((uint32_t *)el1)[0] - ((uint32_t *)el2)[0] ;
 }
 int PB088(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int32_t *kminN = calloc(PB088_MAXK+1,sizeof(kminN[0])) ;
+    uint32_t *kminN = calloc(PB088_MAXK+1,sizeof(kminN[0])) ;
     int nv ;
-    u_int32_t V[32] /* values */ ,P[32] /* product */, S[32] /* sum */ ;
+    uint32_t V[32] /* values */ ,P[32] /* product */, S[32] /* sum */ ;
     int Pmax = 2 * PB088_MAXK ;
     int isNotAll2 = 1;
     for(nv=2;isNotAll2;nv++) {
         int iP , iPbad ;
-        u_int32_t k = 1 ;
+        uint32_t k = 1 ;
         V[nv] = 1;
         P[nv] = 1 ;
         S[nv] = - nv ;
         for(iPbad = 0, iP=nv-1, V[iP]=1 ; iP<nv ; iP++) {
-            u_int32_t newV = V[iP] + 1;
+            uint32_t newV = V[iP] + 1;
             for(; iP>=0 ; iP--) {
                 V[iP] = newV ;
                 P[iP] = P[iP+1]*newV ;
@@ -2658,9 +2658,9 @@ int PB088(PB_RESULT *pbR) {
         }
     }
     {   // compute the Sum
-        int k ; u_int64_t S=0;
+        int k ; uint64_t S=0;
         qsort(kminN+1,PB088_MAXK,sizeof(kminN[0]),CmpKminN) ;
-        u_int32_t ant = kminN[2] ;
+        uint32_t ant = kminN[2] ;
         S += kminN[2] ;
         for(k=3;k<=PB088_MAXK;k++) {
             if(kminN[k] == ant) continue ;
@@ -2734,7 +2734,7 @@ int PB090(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int nb = 0 ;
     // as number of 6 bits between 10
-    u_int16_t diffPosition[210] ;
+    uint16_t diffPosition[210] ;
     // by complementary place 4 zero's in ten position
     {
         int i = 0 ;
@@ -2743,7 +2743,7 @@ int PB090(PB_RESULT *pbR) {
             for(i2=i1-1;i2>1;i2--) {
                 for(i3=i2-1;i3>0;i3--) {
                     for(i4=i3-1;i4>=0;i4--) {
-                        u_int16_t v = (1<<i1) + (1<<i2) + (1<<i3) + (1<<i4)  ;
+                        uint16_t v = (1<<i1) + (1<<i2) + (1<<i3) + (1<<i4)  ;
                         diffPosition[i++] = 1023 ^ v ;
                     }
                 }
@@ -2752,9 +2752,9 @@ int PB090(PB_RESULT *pbR) {
     }
     int i1,i2 ;
     for(i1=0;i1<210;i1++) {
-        u_int16_t D1 = diffPosition[i1] ;
+        uint16_t D1 = diffPosition[i1] ;
         for(i2=i1;i2<210;i2++) {
-            u_int16_t D2 = diffPosition[i2] ;
+            uint16_t D2 = diffPosition[i2] ;
             if(!isPresent(0,1)) continue ;
             if(!isPresent(0,4)) continue ;
             if(!isPresent6(0)) continue ; // 09
@@ -2812,14 +2812,14 @@ int PB091(PB_RESULT *pbR) {
 
 int PB092(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int8_t dig[PB092_NBDIG] ;
+    uint8_t dig[PB092_NBDIG] ;
     int16_t sum[PB092_NBDIG] ;
     int maxValue = 81*PB092_NBDIG ;
     int nbT[PB092_T89+1] ;
     nbT[1] = 0 ;
     nbT[PB092_T89] = 0 ;
     int i,n,lgBack  ;
-    u_int8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+    uint8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
     int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
     terminal[1] = 1 ; nbT[1]++ ;
     terminal[89] = PB092_T89 ; nbT[PB092_T89]++ ;
@@ -2876,11 +2876,11 @@ int PB092(PB_RESULT *pbR) {
 int PB092a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int maxValue = 81*PB092_NBDIG ;
-    u_int64_t nbT[PB092_T89+1] ;
+    uint64_t nbT[PB092_T89+1] ;
     nbT[1] = 0 ;
     nbT[PB092_T89] = 0 ;
     int i,k, n,lgBack  ;
-    u_int8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+    uint8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
     int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
     terminal[1] = 1 ;
     terminal[89] = PB092_T89 ;
@@ -2897,12 +2897,12 @@ int PB092a(PB_RESULT *pbR) {
         for(k=0;k<lgBack;k++) {  terminal[backTrace[k]] = terminal[n] ;  }
     }
     {
-        u_int64_t * histoSum[PB092_NBDIG] ;
+        uint64_t * histoSum[PB092_NBDIG] ;
         int i,nb,is ;
         for(nb=0;nb<PB092_NBDIG;nb++) histoSum[nb] = calloc((81+1)*(nb+1),sizeof(histoSum[nb][0])) ;
         for(i=0;i<10;i++) histoSum[0][i*i]++  ; // first digit
         for(nb=1;nb<PB092_NBDIG;nb++) {
-            u_int64_t sum =0;
+            uint64_t sum =0;
             for(is=0;is<=81*nb;is++) { // add a digit
                 for(i=0;i<10;i++) {
                     if(histoSum[nb-1][is]) histoSum[nb][is+i*i] += histoSum[nb-1][is] ;
@@ -2945,7 +2945,7 @@ Fract_093 Oper(int nop, Fract_093 d0, Fract_093 d1) {
 }
 
 
-Fract_093 FractDig(u_int8_t dig) {
+Fract_093 FractDig(uint8_t dig) {
     Fract_093 fr ;
     fr.D = 1 ; fr.N = dig ;
     return fr ;
@@ -2957,7 +2957,7 @@ Fract_093 FractDig(u_int8_t dig) {
 
 // EXPMAX 1000 pour 5 digits ou  6 digits
 
-void AddVal(u_int8_t *isValFind, Fract_093 res) {
+void AddVal(uint8_t *isValFind, Fract_093 res) {
     if(res.D != 1 || res.N == 0 || res.N > PB095_EXPMAX ) return ;
     isValFind[res.N-1] = 1 ;
 }
@@ -2971,7 +2971,7 @@ typedef struct niv_093 {
 // version avec parcours recursif
 int PB093a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int8_t isValFind[PB095_EXPMAX] ;
+    uint8_t isValFind[PB095_EXPMAX] ;
     int maxCons =0 ;
     char maxABCD[PB095_NBD+1] ;
     maxABCD[PB095_NBD] = 0 ;
@@ -3064,11 +3064,11 @@ int PB093(PB_RESULT *pbR) {
     // 2 parenthesage possible ((a@b)@c)@d) et (a@b)@(c@d)
     // ou @ designe un operateur commutatif (+,x) ou un operateur non commutatif a un seul sens.
     // Pour le premeir choix a,b puis c, et 3 operations. Pour le second choix a,b et " operateurs
-    u_int8_t isValFind[PB095_EXPMAX] ;
+    uint8_t isValFind[PB095_EXPMAX] ;
     //   int tbValues[3000] ;
     int maxCons =0 ;
     int maxABCD = 0 ;
-    u_int8_t dig[4] ;
+    uint8_t dig[4] ;
     for(a=1;a<7;a++) {
         dig[0] = a ;
         for(b=a+1;b<8;b++) {
@@ -3137,15 +3137,15 @@ int PB093(PB_RESULT *pbR) {
 }
 
 typedef struct FractCont64 {
-    u_int64_t N0 ;
-    u_int64_t D0 ;
-    u_int64_t N1 ;
-    u_int64_t D1 ;
+    uint64_t N0 ;
+    uint64_t D0 ;
+    uint64_t N1 ;
+    uint64_t D1 ;
    
 } FractCont64 ;
 
 void NextFract(FractCont64 * F, int a) {
-    u_int64_t tmp = F->N0 ;
+    uint64_t tmp = F->N0 ;
     F->N0 = F->N1 ;
     F->N1 = a * F->N0 + tmp ;
     tmp = F->D0 ;
@@ -3175,7 +3175,7 @@ int PB094(PB_RESULT *pbR) {
     FractCont64 Fsqrt3 = {0,1,1,0} ;
     NextFract(&Fsqrt3,0);
     NextFract(&Fsqrt3,1);
-    u_int64_t sumP = 0;
+    uint64_t sumP = 0;
     while(1) {
         NextFract(&Fsqrt3,1);
         int64_t d = Fsqrt3.D1 ;
@@ -3234,9 +3234,9 @@ int PB095(PB_RESULT *pbR) {
     }
     // compute Sum of divisor with prime P < sqrt(PB095_MAXLG)
     for(np=0;np<nbP; np++) {
-        u_int32_t P = (u_int32_t) tbPrime[np] ;
+        uint32_t P = (uint32_t) tbPrime[np] ;
         if(P> sqrtMax) break ;
-        u_int32_t m_powP , m  ,powP , mulP , mGtP;
+        uint32_t m_powP , m  ,powP , mulP , mGtP;
         for(mGtP=1,powP=P,mulP= (P+1);mGtP;powP *= P , mulP = mulP*P+1) {
             for(m=1,mGtP=0,m_powP = powP ; m_powP < PB095_MAX ; m++, m_powP+=powP ) {
                 if(m==P) { m= 0; mGtP = 1 ; continue ; }
@@ -3247,8 +3247,8 @@ int PB095(PB_RESULT *pbR) {
     
     // only m x P**1 can occurs
     for(;np < nbP ; np++) {
-        u_int32_t P = (u_int32_t)tbPrime[np] ;
-        u_int32_t m_P ;
+        uint32_t P = (uint32_t)tbPrime[np] ;
+        uint32_t m_P ;
         for(m_P = P ; m_P < PB095_MAX ; m_P += P ) {
             SumDiv[m_P] *= P+1 ;
         }
@@ -3315,14 +3315,14 @@ int PB095(PB_RESULT *pbR) {
 #define PB097_M0D   10000000000LL
 #define PB097_POW2  7830457
 
-u_int64_t mult097(u_int64_t m1, u_int64_t m2) {
-    u_int64_t hm1 = m1 >> 30 ;
-    u_int64_t lm1 = m1 & 0x3fffffff ;
-    u_int64_t hm2 = m2 >> 30 ;
-    u_int64_t lm2 = m2 & 0x3fffffff ;
-    u_int64_t ll = (lm1 *lm2 ) % PB097_M0D ;
-    u_int64_t lh = (((lm1 * hm2 + hm1 * lm2 ) % PB097_M0D) << 30) % PB097_M0D  ;
-    u_int64_t hh = ((((hm1 * hm2) << 30 ) % PB097_M0D) << 30) % PB097_M0D  ;
+uint64_t mult097(uint64_t m1, uint64_t m2) {
+    uint64_t hm1 = m1 >> 30 ;
+    uint64_t lm1 = m1 & 0x3fffffff ;
+    uint64_t hm2 = m2 >> 30 ;
+    uint64_t lm2 = m2 & 0x3fffffff ;
+    uint64_t ll = (lm1 *lm2 ) % PB097_M0D ;
+    uint64_t lh = (((lm1 * hm2 + hm1 * lm2 ) % PB097_M0D) << 30) % PB097_M0D  ;
+    uint64_t hh = ((((hm1 * hm2) << 30 ) % PB097_M0D) << 30) % PB097_M0D  ;
     return (ll +lh + hh) % PB097_M0D ;
 }
 
@@ -3330,8 +3330,8 @@ int PB097(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int exp = 0 ;
     int exp2 = 1 ;
-    u_int64_t pow2 =  2;
-    u_int64_t pow2Exp = 1 ;
+    uint64_t pow2 =  2;
+    uint64_t pow2Exp = 1 ;
     do {
         if(exp2 & PB097_POW2) {
             exp += exp2 ;
@@ -3340,7 +3340,7 @@ int PB097(PB_RESULT *pbR) {
         exp2 <<= 1 ;
         pow2 = mult097(pow2,pow2) ;
     } while(exp < PB097_POW2) ;
-    u_int64_t result = mult097(28433,pow2Exp) +1 ;
+    uint64_t result = mult097(28433,pow2Exp) +1 ;
     sprintf(pbR->strRes,"%lld",result);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;

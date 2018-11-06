@@ -12,6 +12,6 @@
 
 #include <stdio.h>
 
-const u_int16_t * P081_GetData(void) ;
+const uint16_t * P081_GetData(void) ;
 
 #endif /* p081_data_h */

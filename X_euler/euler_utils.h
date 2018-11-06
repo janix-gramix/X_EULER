@@ -34,34 +34,34 @@ typedef struct PB_CALL {
 #define PROTO_PB(NUM)   int PB##NUM(PB_RESULT *pbR)
 
 // PGCD en 32 ou 64 bits
-u_int32_t PGCD(u_int32_t n1,u_int32_t n2 ) ;
-u_int64_t PGCD64(u_int64_t n1,u_int64_t n2 ) ;
-u_int64_t Sqrt64(u_int64_t val) ;
-u_int32_t Sqrt32(u_int32_t val) ;
-u_int16_t Sqrt16(u_int16_t val) ;
+uint32_t PGCD(uint32_t n1,uint32_t n2 ) ;
+uint64_t PGCD64(uint64_t n1,uint64_t n2 ) ;
+uint64_t Sqrt64(uint64_t val) ;
+uint32_t Sqrt32(uint32_t val) ;
+uint16_t Sqrt16(uint16_t val) ;
 
 
-void HeapSortUint8(u_int8_t *H,int n) ;
-void HeapSortUint8Rev(u_int8_t *H,int n) ;
+void HeapSortUint8(uint8_t *H,int n) ;
+void HeapSortUint8Rev(uint8_t *H,int n) ;
 
-int NextArrangement(u_int8_t *arr,int k, int n) ;
-int NextSub(u_int8_t *sub,int k, int n) ;
-int NextSub16(u_int16_t *sub,int k, int n) ;
-int NextSub32(u_int32_t *sub,int k, int n) ;
+int NextArrangement(uint8_t *arr,int k, int n) ;
+int NextSub(uint8_t *sub,int k, int n) ;
+int NextSub16(uint16_t *sub,int k, int n) ;
+int NextSub32(uint32_t *sub,int k, int n) ;
 
-int NextPermut(u_int8_t *perm,int lg) ;
-int NextPermutRg(u_int8_t *perm,int lg,int rg) ;
-int ChkPermutRg(u_int8_t *perm,int lg,int rg) ;
-int NextPermutRev(u_int8_t *perm,int lg) ;
-int NextPermutRgRev(u_int8_t *perm,int lg,int rg) ;
+int NextPermut(uint8_t *perm,int lg) ;
+int NextPermutRg(uint8_t *perm,int lg,int rg) ;
+int ChkPermutRg(uint8_t *perm,int lg,int rg) ;
+int NextPermutRev(uint8_t *perm,int lg) ;
+int NextPermutRgRev(uint8_t *perm,int lg,int rg) ;
 
 typedef struct Decomp {
-    u_int16_t  Sum ;
-    u_int16_t * val ;
-    u_int16_t nbVal ;
+    uint16_t  Sum ;
+    uint16_t * val ;
+    uint16_t nbVal ;
 } Decomp ;
 
-Decomp  * DecompAlloc(u_int16_t Sum) ;
+Decomp  * DecompAlloc(uint16_t Sum) ;
 int DecompNext(Decomp  * DeC );
 void DecompRewind(Decomp  * DeC );
 Decomp * DecompFree(Decomp  * DeC );
@@ -91,13 +91,13 @@ Ex ; Sum = 9
  ...
  */
 
-typedef  u_int32_t T_prime ;
+typedef  uint32_t T_prime ;
 
 // calcul de nombre premier recursif (sans stockage)
 // routine de completion
 // doir retourner 0 pour arreter
 typedef int(*TY_CPL_nxtPrime)(void *ctx,T_prime nxtPrime);
-u_int32_t FindPrime(T_prime maxValue,void *ctx,TY_CPL_nxtPrime nxtPrime) ;
+uint32_t FindPrime(T_prime maxValue,void *ctx,TY_CPL_nxtPrime nxtPrime) ;
 
 // generation d'une table de nombre premiers
 typedef struct CTX_PRIMETABLE CTX_PRIMETABLE;
@@ -108,7 +108,7 @@ CTX_PRIMETABLE * Gen_tablePrimeNb(T_prime maxNb) ;
 // recupere la table
 const T_prime * GetTbPrime(CTX_PRIMETABLE * ctx) ;
 //
-u_int32_t GetNbPrime(CTX_PRIMETABLE * ctx) ;
+uint32_t GetNbPrime(CTX_PRIMETABLE * ctx) ;
 CTX_PRIMETABLE * Free_tablePrime(CTX_PRIMETABLE * ctx) ;
 // cherche n dans la table, return true if n is prime
 int Search_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
@@ -117,14 +117,14 @@ int Search_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 
 
-u_int32_t FindNbDiv(u_int64_t N, const T_prime *tbPrime) ;
-u_int32_t FindNbDivPrime(u_int64_t N, const T_prime *tbPrime) ;
-int Is_Prime(u_int64_t N, const T_prime *tbPrime) ;
+uint32_t FindNbDiv(uint64_t N, const T_prime *tbPrime) ;
+uint32_t FindNbDivPrime(uint64_t N, const T_prime *tbPrime) ;
+int Is_Prime(uint64_t N, const T_prime *tbPrime) ;
 
-int Is_Prime32(u_int32_t N, const T_prime *tbPrime) ;
+int Is_Prime32(uint32_t N, const T_prime *tbPrime) ;
 
 // return true if P1 and P2 are prime
-int Is_Prime2(u_int64_t N1,u_int64_t N2,const T_prime *tbPrime) ;
+int Is_Prime2(uint64_t N1,uint64_t N2,const T_prime *tbPrime) ;
 
 
 

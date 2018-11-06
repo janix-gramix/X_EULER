@@ -11,8 +11,8 @@
 
 #include <stdio.h>
 typedef struct Card {
-    u_int8_t h ;    // high
-    u_int8_t c ;    // color
+    uint8_t h ;    // high
+    uint8_t c ;    // color
     
 } Card ;
 

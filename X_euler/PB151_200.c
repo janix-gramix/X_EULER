@@ -15,8 +15,8 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
-#define PB187_MAX   1000000000
-//#define PB187_MAX   100000000
+//#define PB187_MAX   2000000000
+#define PB187_MAX   100000000
 int PB187(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE * ctxP  ;
@@ -34,6 +34,7 @@ int PB187(PB_RESULT *pbR) {
         for(j=i;tbPrime[j] <= maxPj;j++)  ;
         nbFind += j-i ;
     }
+    Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%d",nbFind) ;
     return 1 ;
@@ -61,10 +62,15 @@ int PB187a(PB_RESULT *pbR) {
  //       printf("%d ",j+1);
         nbFind += j-i+1 ;
     }
+    Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%d",nbFind) ;
     return 1 ;
 }
+//
+// implantation de l'algo d'euler pour caluler PI(x)  S(x)= x - Sigma(X/pi) +  Sigma(X/pi pj) ...
+// S(x) = PI(x) - PI(sqrt(x))+ 1 ; les pi <= sqrt(x)
+// n'est rentable qua partir de 10**9
 int PB187b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     CTX_PRIMETABLE * ctxP  ;
@@ -76,11 +82,9 @@ int PB187b(PB_RESULT *pbR) {
     const T_prime * tbPrime = GetTbPrime(ctxP);
     int nbPrime = GetNbPrime(ctxP) ;
     int nbFind =0 ;
-    int i,j,k;
-     int Pi ;
-    printf("last p=%d p*p=%d\n",tbPrime[nbPrime-1],tbPrime[nbPrime-1]*tbPrime[nbPrime-1]);
+    int i;
+    int Pi ;
  //   nbFind += nbPrime ; // 2 * pi,
-    j = nbPrime - 1 ;
     int nbM = nbPrime -1 ;
     for(i=0;i<nbPrime ;i++) {
         Pi=tbPrime[i] ;
@@ -89,24 +93,26 @@ int PB187b(PB_RESULT *pbR) {
         int PIinvPi = invPi ;
         int sqInvPi = Sqrt32(invPi) ;
         for(;tbPrime[nbM]>sqInvPi;nbM--) ;
-        int i1,i2,i3,i4,i5,i6,i7,i8 ;
-        int64_t p1,p2,p3,p4,p5,p6,p7,p8 ;
-        for(i1=0;i1<=nbM && (p1=tbPrime[i1])<=invPi;i1++) {
-            PIinvPi -= invPi / p1 ;
-            for(i2=i1+1;i2<=nbM &&(p2=p1*tbPrime[i2])<=invPi;i2++) {
-                PIinvPi += invPi / p2 ;
-                for(i3=i2+1;i3<=nbM &&(p3=p2*tbPrime[i3])<=invPi;i3++) {
-                    PIinvPi -= invPi / p3 ;
-                    for(i4=i3+1;i4<=nbM &&(p4=p3*tbPrime[i4])<=invPi;i4++) {
-                        PIinvPi += invPi / p4 ;
-                        for(i5=i4+1;i5<=nbM && (p5=p4*tbPrime[i5])<=invPi;i5++) {
-                            PIinvPi -= invPi / p5 ;
-                            for(i6=i5+1;i6<=nbM && (p6=p5*tbPrime[i6])<=invPi;i6++) {
-                                PIinvPi += invPi / p6 ;
-                                for(i7=i6+1;i7<=nbM && (p7=p6*tbPrime[i7])<=invPi;i7++) {
-                                    PIinvPi -= invPi / p7 ;
-                                    for(i8=i7+1;i8<=nbM && (p8=p7*tbPrime[i8])<=invPi;i8++) {
-                                        PIinvPi += invPi / p8 ;                                     }
+        const T_prime *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8 ;
+        const T_prime *ptnbM = tbPrime+nbM ;
+        int32_t p1,p2,p3,p4,p5,p6,p7 ;
+        
+        for(pt1=tbPrime;pt1<=ptnbM && (p1=  invPi / *pt1);pt1++) {
+            PIinvPi -= p1 ;
+            for(pt2=pt1+1;pt2<=ptnbM &&(p1 >= *pt2);pt2++) {
+                PIinvPi += (p2 = p1 / *pt2 )  ;
+                for(pt3=pt2+1;pt3<=ptnbM &&(p2 >= *pt3);pt3++) {
+                    PIinvPi -=  (p3  = p2 / *pt3)  ;
+                    for(pt4=pt3+1;pt4<=ptnbM &&(p3 >= *pt4);pt4++) {
+                        PIinvPi +=  (p4 = p3 / *pt4) ;
+                        for(pt5=pt4+1;pt5<=ptnbM && (p4 >= *pt5);pt5++) {
+                            PIinvPi -=  (p5 = p4 / *pt5 ) ;
+                            for(pt6=pt5+1;pt6<=ptnbM && (p5 >= *pt6);pt6++) {
+                                PIinvPi += (p6 = p5 / *pt6 )  ;
+                                for(pt7=pt6+1;pt7<=ptnbM && (p6 >= *pt7);pt7++) {
+                                    PIinvPi -=  (p7 = p6 / *pt7 ) ;
+                                    for(pt8=pt7+1;pt7<=ptnbM && (p7 >= *pt8);pt8++) {
+                                        PIinvPi +=  p7 / *pt8 ;                                     }
                                 }
                             }
                         }
@@ -114,10 +120,10 @@ int PB187b(PB_RESULT *pbR) {
                 }
             }
         }
-        for(;tbPrime[j]*tbPrime[j]>invPi;j--) ;
  //       printf("PI(%d)=%d\n",invPi,PIinvPi+nbM);
         nbFind += PIinvPi+nbM - i  ; // -i +i PI(i)
     }
+    Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     sprintf(pbR->strRes,"%d",nbFind) ;
     return 1 ;

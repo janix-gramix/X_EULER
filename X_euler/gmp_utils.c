@@ -30,14 +30,14 @@ FractContG * FCG_free(FractContG * FCG){
     free(FCG);
     return NULL ;
 }
-void FCG_init(FractContG * FCG,u_int32_t a0) {
+void FCG_init(FractContG * FCG,uint32_t a0) {
     mpz_set_ui (FCG->d0, 0) ;
     mpz_set_ui (FCG->d1, 1) ;
     mpz_set_ui (FCG->n0, 1) ;
     mpz_set_ui (FCG->n1, a0) ;
 }
 
-void FCG_NextCoef(FractContG * FCG,u_int32_t a) {
+void FCG_NextCoef(FractContG * FCG,uint32_t a) {
     mpz_addmul_ui(FCG->d0,FCG->d1,a) ;
     mpz_swap (FCG->d0,FCG->d1) ;
     mpz_addmul_ui(FCG->n0,FCG->n1,a) ;

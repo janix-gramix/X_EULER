@@ -15,8 +15,8 @@
 typedef struct FractContG FractContG ;
 FractContG * FCG_alloc(void) ;
 FractContG * FCG_free(FractContG * FCG);
-void FCG_init(FractContG * FCG,u_int32_t a0) ;
-void FCG_NextCoef(FractContG * FCG,u_int32_t a) ;
+void FCG_init(FractContG * FCG,uint32_t a0) ;
+void FCG_NextCoef(FractContG * FCG,uint32_t a) ;
 
 void FCG_GetNum(const FractContG * FCG,mpz_t op) ;
 

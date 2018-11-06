@@ -15,6 +15,7 @@
 #include "PB051_100.h"
 #include "PB101_150.h"
 #include "PB151_200.h"
+#include "PB201_250.h"
 #include "PB_gmp.h"
 #include "PB_other.h"
 
@@ -199,8 +200,8 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(104,329468,'Pandigital Fibonacci ends')
     ,PROTO_CALL(105,73702,'Special subset sums: testing')
     ,PROTO_CALL(106,21384,'Special subset sums: meta-testing')
-    ,{"108a",PB110,"180180","Diophantine reciprocals I"}                // cas special poure executer par PB110
-//    ,PROTO_CALL(108,180180,'Diophantine reciprocals I')
+    ,PROTO_CALL(107,259679,'Minimal network')
+     ,{"108a",PB110,"180180","Diophantine reciprocals I"}                // cas /    ,PROTO_CALL(108,180180,'Diophantine reciprocals I')
     ,PROTO_CALL(109,38182,'Darts')
     ,PROTO_CALL(110,9350130049860600,'Diophantine reciprocals II')
     ,PROTO_CALL(111,612407567715,'Primes with runs')
@@ -217,7 +218,7 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(121,2269,'Disc game prize fund')
     ,PROTO_CALL(123,21035,'Prime square remainders')
     ,PROTO_CALL(124,21417,'Ordered radicals')
-
+    ,PROTO_CALL(125,2906969179,'Palindromic sums')
     ,PROTO_CALL(126,18522,'Cuboid layers')
 //    ,PROTO_CALL(127,18407904,'abc-hits')
     ,PROTO_CALL(127a,18407904,'abc-hits')
@@ -235,11 +236,23 @@ static PB_CALL ALL_calls[] = {
 //    ,PROTO_CALL(135,4989,'Same differences')
     ,PROTO_CALL(135a,4989,'Same differences')
     ,PROTO_CALL(136,2544559,'Singleton difference')
+//  ,PROTO_CALL(139,10057761,'Pythagorean tiles')
+    ,PROTO_CALL(139a,10057761,'Pythagorean tiles')
 
 //    ,PROTO_CALL(143,30758397,'Investigating the Torricelli point of a triangle')
     ,PROTO_CALL(143a,30758397,'Investigating the Torricelli point of a triangle')
-    
+
+    ,PROTO_CALL(145a,608720,'How many reversible numbers are there below one-billion?')
+ // ,PROTO_CALL(145,608720,'How many reversible numbers are there below one-billion?')
+
     ,PROTO_CALL(147,846910284,'Rectangles in cross-hatched grids')
+//    ,PROTO_CALL(187,17427258,'Semiprimes')
+    ,PROTO_CALL(187a,17427258,'Semiprimes')
+//    ,PROTO_CALL(187b,17427258,'Semiprimes')
+    
+    ,PROTO_CALL(192,57060635927998347,'Best Approximations')
+//    ,PROTO_CALL(192_gmp,57060635927998347,'Best Approximations')
+
 
 //    ,PROTO_CALL(198,52374425,'Ambiguous Numbers')
 //    ,PROTO_CALL(198a,52374425,'Ambiguous Numbers')
@@ -252,6 +265,8 @@ static PB_CALL ALL_calls[] = {
 
 
 
+    ,PROTO_CALL(206,1389019170,'Concealed Square')
+    ,PROTO_CALL(206a,1389019170,'Concealed Square')
 
 
     // a revoir beaucoup trop lent
@@ -261,7 +276,7 @@ static PB_CALL ALL_calls[] = {
     //    ,PROTO_CALL(597_gmpa,50018178282,'Torpids')
     // version rapide mais calculs complets (pour debug)
     //    ,PROTO_CALL(597_gmp,50018178282',Torpids')
-    // version la plus rapide avec calcul FACT en u_int64_t et optimisation last loop
+    // version la plus rapide avec calcul FACT en uint64_t et optimisation last loop
     //    ,PROTO_CALL(597_gmpx,50018178282,'Torpids')
     // version beaucoup plus rapide en O(n**2)
     ,PROTO_CALL(579,3805524,'Lattice points in lattice cubes')
@@ -283,8 +298,13 @@ static PB_CALL CUR_calls[] = {
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
 
-    PROTO_CALL(192,57060635927998347,'Best Approximations')
-    ,PROTO_CALL(192_gmp,57060635927998347,'Best Approximations')
+//    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
+//    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
+     PROTO_CALL(357c,1739023853137,'Prime generating integers')
+    ,PROTO_CALL(357b,1739023853137,'Prime generating integers')
+    ,PROTO_CALL(357a,1739023853137,'Prime generating integers')
+    ,PROTO_CALL(357,1739023853137,'Prime generating integers')
+ 
 
 
 

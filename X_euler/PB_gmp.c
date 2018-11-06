@@ -19,7 +19,7 @@
 
 int PB016_gmp(PB_RESULT *pbR) {
     char  digLarge[PB016_MAXL] ;
-    u_int32_t S = 0 ;
+    uint32_t S = 0 ;
     int i ;
     pbR->nbClock = clock() ;
     mpz_t pow2 ;
@@ -41,7 +41,7 @@ int PB016_gmp(PB_RESULT *pbR) {
 #define PB056_MAXL  201
 int PB056_gmp(PB_RESULT *pbR) {
     char  digLarge[PB056_MAXL] ;
-    u_int32_t Max = 0 ;
+    uint32_t Max = 0 ;
     int a,b ;
     int aBest =0, bBest = 0 ;
     pbR->nbClock = clock() ;
@@ -160,8 +160,8 @@ int PB104_gmp(PB_RESULT *pbR) {
     mpz_init_set_ui(F0,1);
     mpz_init_set_ui(F1,1);
     int k = 2 ;
-    u_int32_t PanDigital[FACT9] ;
-    u_int8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
+    uint32_t PanDigital[FACT9] ;
+    uint8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
     int is=0 ;
     do {
         PanDigital[is++] = 10*(10*(10*(10*(10*(10*(10*(10*perm[0]+perm[1])+perm[2])+perm[3])+perm[4])+perm[5])+perm[6])+perm[7])+perm[8] ;
@@ -170,15 +170,15 @@ int PB104_gmp(PB_RESULT *pbR) {
         k++ ;
         mpz_add(F0,F0,F1);
         mpz_fdiv_q (Fmod10,F0, Pow10);
-        u_int32_t mod10 =  (u_int32_t) mpz_get_ui (Fmod10) ;
+        uint32_t mod10 =  (uint32_t) mpz_get_ui (Fmod10) ;
         if(mod10 >= 1000000000) {
             mpz_mul_ui(Pow10,Pow10,10) ;
             mod10 /= 10 ;
         }
-        if(bsearch(&mod10, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+        if(bsearch(&mod10, PanDigital, FACT9,sizeof(uint32_t), CmpUint32) != NULL) {
             mpz_mod_ui (Fmod10,F0, 1000000000) ;
-            mod10 = (u_int32_t) mpz_get_ui (Fmod10) ;
-            if(bsearch(&mod10, PanDigital, FACT9,sizeof(u_int32_t), CmpUint32) != NULL) {
+            mod10 = (uint32_t) mpz_get_ui (Fmod10) ;
+            if(bsearch(&mod10, PanDigital, FACT9,sizeof(uint32_t), CmpUint32) != NULL) {
                 printf(" F(%d) is Double Pandigit\n",k) ; break ;
             }
         }
@@ -316,8 +316,8 @@ int PB192_gmp(PB_RESULT *pbR) {
 
 typedef struct devTorpids_a {
     mpq_t   P ;                   // proba
-    u_int32_t   bitEnv ;
-    u_int16_t   isEven ;
+    uint32_t   bitEnv ;
+    uint16_t   isEven ;
     
 } devTorpids_a ;
 
@@ -336,19 +336,19 @@ static void PB597_printTorpids_a(FILE *fout,devTorpids_a * dT) {
 int PB597_gmpa(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int i ;
-    u_int32_t nb, curBoat  ;
-    u_int32_t curLg, sizeB ;
-    u_int32_t Lg[PB597_NB] ;
-    u_int32_t sumLg[PB597_NB] ;
+    uint32_t nb, curBoat  ;
+    uint32_t curLg, sizeB ;
+    uint32_t Lg[PB597_NB] ;
+    uint32_t sumLg[PB597_NB] ;
     // calcul factoriel n!
     for(i=1,nb=1;i<=PB597_NB;i++) nb *= i ;
     devTorpids_a * antDT = malloc(nb*sizeof(antDT[0])) ;
     devTorpids_a * curDT = malloc(nb*sizeof(curDT[0])) ;
-    u_int32_t antNb, curNb ;
+    uint32_t antNb, curNb ;
     curLg = PB597_LG - (PB597_NB -1) * PB597_SIZEB ;
     sizeB = PB597_SIZEB ;
     {
-        u_int64_t pg = PGCD64(curLg,sizeB);
+        uint64_t pg = PGCD64(curLg,sizeB);
         curLg /= pg ;
         sizeB /= pg ;
     }
@@ -391,7 +391,7 @@ int PB597_gmpa(PB_RESULT *pbR) {
 #endif
             curNb++ ;
             int place ;
-            u_int16_t nboat ;
+            uint16_t nboat ;
             // on va maintenant rajouter les bumps
             for(place=0,nboat=0;(1<< nboat) <= ptAntDT->bitEnv ;place++) {
                 while(((1<< nboat) & ptAntDT->bitEnv) == 0) {   nboat++ ; }
@@ -437,13 +437,13 @@ int PB597_gmpa(PB_RESULT *pbR) {
 
 
 typedef struct devTorpids {
-    u_int16_t   isUsed ;
+    uint16_t   isUsed ;
     mpq_t   E_P ;                   // proba for even permutations
     mpq_t   O_P ;                   // proba for odd permutations
 } devTorpids ;
 
 #if PB597_DEBUG
-static void PB597_printTorpids(FILE *fout,devTorpids * dT,u_int32_t index) {
+static void PB597_printTorpids(FILE *fout,devTorpids * dT,uint32_t index) {
     gmp_fprintf(fout,"[%d]E:%Qd O:%Qd",index,dT->E_P,dT->O_P) ;
     int bitTest,kboat ;
     for(bitTest=1,kboat=0;bitTest<=index;bitTest <<=1 , kboat++) { if(bitTest & index) fprintf(fout,"%c%c", (bitTest==1) ? '{' : ',','A' + kboat) ; }
@@ -467,10 +467,10 @@ static void PB597_printTorpids(FILE *fout,devTorpids * dT,u_int32_t index) {
 int PB597_gmp(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int i ;
-    u_int32_t  curBoat  ;
-    u_int32_t curLg, sizeB ;
-    u_int32_t Lg[PB597_NB] ;
-    u_int32_t sumLg[PB597_NB] ;
+    uint32_t  curBoat  ;
+    uint32_t curLg, sizeB ;
+    uint32_t Lg[PB597_NB] ;
+    uint32_t sumLg[PB597_NB] ;
     mpq_t tmpz , ND ,ONE ;
     devTorpids * DT = calloc(1 << (PB597_NB+1),sizeof(DT[0])) ;
     curLg = PB597_LG - (PB597_NB -1) * PB597_SIZEB ;
@@ -480,19 +480,19 @@ int PB597_gmp(PB_RESULT *pbR) {
     mpq_init(ONE) ;  mpq_set_ui(ONE,1,1);
     mpq_init(newDT.E_P) ; mpq_init(newDT.O_P) ;
     {
-        u_int64_t pg = PGCD64(curLg,sizeB);
+        uint64_t pg = PGCD64(curLg,sizeB);
         curLg /= pg ;
         sizeB /= pg ;
     }
     {
-        u_int32_t indNb= 1 ; // 1 <<0
+        uint32_t indNb= 1 ; // 1 <<0
         DT[indNb].isUsed = 1 ;
         mpq_init(DT[indNb].E_P);   mpq_set_ui(DT[indNb].E_P,1,1);
         mpq_init(DT[indNb].O_P);   mpq_set_ui(DT[indNb].O_P,0,1);
     }
     sumLg[0] = Lg[0] = curLg ;
     for(curBoat=1;curBoat<PB597_NB;curBoat++) {
-        u_int32_t indAnt ;
+        uint32_t indAnt ;
         curLg += sizeB ;
         Lg[curBoat] = curLg ;
         sumLg[curBoat] = sumLg[curBoat-1] + curLg ;
@@ -516,7 +516,7 @@ int PB597_gmp(PB_RESULT *pbR) {
             PB597_printTorpids(stdout,ptCurDT,1 << curBoat);
 #endif
             int isFirst ;
-            u_int16_t nboat ;
+            uint16_t nboat ;
             //
             for(isFirst=1,nboat=0;(1<< nboat) <= indAnt ;) {
                 while(((1<< nboat) & indAnt) == 0) {   nboat++ ; }
@@ -566,10 +566,10 @@ int PB597_gmp(PB_RESULT *pbR) {
 
 int PB597_gmpx(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int32_t  nbBoat  ;
-    u_int32_t curLg, sizeB ;
-    u_int32_t Lg[PB597_NB] ;
-    u_int32_t sumLg[PB597_NB] ;
+    uint32_t  nbBoat  ;
+    uint32_t curLg, sizeB ;
+    uint32_t Lg[PB597_NB] ;
+    uint32_t sumLg[PB597_NB] ;
     mpq_t tmpz , ND ,ONE, EVEN , FACT ;
     devTorpids * DT = calloc(1 << (PB597_NB),sizeof(DT[0])) ;
     curLg = PB597_LG - (PB597_NB -1) * PB597_SIZEB ;
@@ -579,14 +579,14 @@ int PB597_gmpx(PB_RESULT *pbR) {
     mpq_init(ONE) ;    mpq_set_ui(ONE,1,1);
     mpq_init(EVEN);    mpq_set_ui(EVEN,0,1) ;
     mpq_init(tmpDT.E_P) ; mpq_init(tmpDT.O_P) ;
-    u_int64_t pg = PGCD64(curLg,sizeB);
+    uint64_t pg = PGCD64(curLg,sizeB);
     curLg /= pg ;  sizeB /= pg ; // to avoid big numbers
     DT[1].isUsed = 1 ; // init for race with one boat
     mpq_init(DT[1].E_P);   mpq_set_ui(DT[1].E_P,1,1);
     mpq_init(DT[1].O_P);   mpq_set_ui(DT[1].O_P,0,1);
     sumLg[0] = Lg[0] = curLg ;
     for(nbBoat=1;nbBoat<PB597_NB;nbBoat++) { // add boat by boat
-        u_int32_t indAnt ;
+        uint32_t indAnt ;
         curLg += sizeB ;
         Lg[nbBoat] = curLg ; // length to run for new boat
         sumLg[nbBoat] = sumLg[nbBoat-1] + curLg ; // sigma length (usefull for coefficients)
@@ -618,16 +618,16 @@ int PB597_gmpx(PB_RESULT *pbR) {
 #endif
             int nplace ;
             int indDT ;
-            u_int64_t  nFACT, dFACT, pg ;
+            uint64_t  nFACT, dFACT, pg ;
             nFACT = sumLg[nbBoat] - curLg ;
             dFACT = sumLg[nbBoat] ;
-            u_int16_t kboat ;
+            uint16_t kboat ;
             // loop on kboat for the precedent state
             // newboat takes his place
             for(nplace=0,kboat=0; ;nplace++) {
                 while(((1<< kboat) & indAnt) == 0) {   kboat++ ; }
-                u_int32_t N=(nbBoat - kboat) * sizeB ;
-                u_int32_t D= sumLg[nbBoat]-sumLg[kboat] - (nbBoat - kboat) * Lg[kboat] ;
+                uint32_t N=(nbBoat - kboat) * sizeB ;
+                uint32_t D= sumLg[nbBoat]-sumLg[kboat] - (nbBoat - kboat) * Lg[kboat] ;
                 kboat++ ;
                 indDT =  (indAnt & ((1 << kboat) -1)) |  (1 << nbBoat) ;
                 nFACT *= N ;
@@ -721,11 +721,11 @@ void computePeven(CTX_597 * ctx,int n,int lg) {
 
 int PB597_gmpy(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int32_t n, L, sizeB ;
+    uint32_t n, L, sizeB ;
     CTX_597 ctx ;
     L = PB597_LG ;
     sizeB = PB597_SIZEB ;
-    u_int64_t pg = PGCD64(L,sizeB);
+    uint64_t pg = PGCD64(L,sizeB);
     L /= pg ;  sizeB /= pg ; // GCD to avoid big numbers
     // Back : NB+1 for even(k,k) k=0..NB ; Front : NB+1 for even(n,L-NB+n) n=0..NB
     ctx.backEven = malloc((PB597_NB+1)*sizeof(ctx.backEven[0]));

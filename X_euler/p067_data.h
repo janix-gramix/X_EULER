@@ -12,5 +12,5 @@
 #include <stdio.h>
 
 
-const u_int8_t * P067_GetData(void) ;
+const uint8_t * P067_GetData(void) ;
 #endif /* p067_data_h */

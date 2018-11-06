@@ -117,41 +117,23 @@ int PB206a(PB_RESULT *pbR) {
     return 0 ;
 }
 
-// assume nbFact > 2
-// we know that 2 is a prime factor of n, so decompose n=d1*d2
-// with d1 odd and d2 even.
-static int Chk357(int nbFact,int *factP,int n,const T_prime * tbPrime) {
-    int nbDiv2 = 1<< (nbFact -1) ;
-    int mask ;
-    for(mask=0;mask<nbDiv2;mask++) { // all partition of prime factors.
-        int d1 = 1 ;
-        int d2 = 2 ;
-        int i ;
-        for(i=0;i<nbFact-1;i++ ) {
-            if((1<<i) & mask) d1 *= factP[i+1] ;
-            else d2 *= factP[i+1] ;
-        }
-     if(!Is_Prime32(d1+d2,tbPrime)) return 0 ;
-    }
-    return 1 ;
-}
 
  #define PB357_MAXP  100000000
 //#define PB357_MAXP  100000000
 
 
 
-// brut version
+// brut force version
 // phase 1 : Sieve for primes (isP)
 // Is Prime generator by Sieve like
-// phase 2 : loop on divisor d and subloop on k by checking
-// if d+k is prime
+// phase 2 : loop on divisor d to eliminate all k*d with k+d not prime
+// phase 3 : sum for remianing n from phase 2.
 int PB357(PB_RESULT *pbR) {
     int64_t Sum = 0 ;
     int32_t nb = 0 ;
     pbR->nbClock = clock();
-    u_int8_t  *isP = malloc((PB357_MAXP+1)*sizeof(isP[0]));
-    u_int8_t  *isPG = malloc((PB357_MAXP+1)*sizeof(isPG[0]));
+    uint8_t  *isP = malloc((PB357_MAXP+1)*sizeof(isP[0]));
+    uint8_t  *isPG = malloc((PB357_MAXP+1)*sizeof(isPG[0]));
     memset(isP,1,(PB357_MAXP+1)*sizeof(isP[0])) ;
     memset(isPG,1,(PB357_MAXP+1)*sizeof(isPG[0])) ;
     isP[0] = isP[1] = 0;
@@ -182,9 +164,9 @@ int PB357(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",Sum);
     return 1 ;
 }
-// Phase 0 : compute list of prime < N=100 000 000
-// Phase 1: add to Prime generator candidate n=p-1 with p prime
-// Phase 2 : for each divisor d < sqrt(N)
+// Phase 1 : compute list of prime < N=100 000 000
+// Phase 2: add to Prime generator candidate n=p-1 with p prime
+// Phase 3 : for each divisor d < sqrt(N)
 //  for each d2*d, { d2*d<N and d2+d not prime } kill d2*d as candidate
 //  The test d2+d not prime is done by :
 //     search first prime p2 with p2>=2*d (for d2=2)
@@ -199,7 +181,7 @@ int PB357a(PB_RESULT *pbR) {
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
     int nbPrime = GetNbPrime(ctxP) ;
-    u_int8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
+    uint8_t *isPG = calloc(PB357_MAXP+1,sizeof(isPG[0]));
     int i;
     for(i=0;i<nbPrime;i++) {
         int n = tbPrime[i]-1 ; // add p-1 as candidate
@@ -238,15 +220,35 @@ int PB357a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// assume nbFact > 2
+// we know that 2 is a prime factor of n, so decompose n=d1*d2
+// with d1 odd and d2 even.
+static int Chk357(int nbFact,int *factP,int n,const T_prime * tbPrime) {
+    int nbDiv2 = 1<< (nbFact -1) ;
+    int mask ;
+    for(mask=0;mask<nbDiv2;mask++) { // all partition of prime factors.
+        int d1 = 1 ;
+        int d2 = 2 ;
+        int i ;
+        for(i=0;i<nbFact-1;i++ ) {
+            if((1<<i) & mask) d1 *= factP[i+1] ;
+            else d2 *= factP[i+1] ;
+        }
+        if(!Is_Prime32(d1+d2,tbPrime)) return 0 ;
+    }
+    return 1 ;
+}
 
-// brut version 2
-// Phase 0 : compute list of prime < N=100 000 000
-// Phase 1 :
+
+// brut force using decompostion of n in product of prime factors
+//   and using the fact that n mstt have no square factor.
+// Phase 1 : compute list of prime < N=100 000 000
+// Phase 2 :
 //   for each prime p , p==3 % 4 and (p+3)/3 prime
 //    so d=1 and d=2 are OK and 2 is not a square factor
 //    decompose n in prime factor n=p-1 = p1 * p2 * p3 ... pk (check no square)
-//    then check for each divisor of d that d=p+n/d is prime.
-// The list of divisor d is build using n=p1 * p2 * ... * pk (2**k divisor <=> 2**(k-1) divisor pair)
+//    then check for each divisor d of n that d=p+n/d is prime.
+//    The list of divisor d is build using n=p1 * p2 * ... * pk (2**k divisor <=> 2**(k-1) divisor pair)
 int PB357b(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;
     pbR->nbClock = clock();
@@ -290,23 +292,23 @@ int PB357b(PB_RESULT *pbR) {
     
 }
 
-// Phase 0 : compute list of prime < N=100 000 000
-// Phase 1 :
+// Phase 1 : compute list of prime < N=100 000 000
+// Phase 2 :
 //   for each prime p , p==3 % 4 and (p+3)/3 prime
 //    so d=1 and d=2 are OK and 2 is not a square factor
-//    mark for n=p-1 initialise divisor count nbPG(n) so d+n/d is prime (d=1 as 1+n/1 prime)
+//    for n=p-1 initialise decomposition count nbPG(n) to one (d=1 as 1+n/1 prime)
 //    use the fact that p==3 % 4 (to avoid 2 square divisor)  to store only N/4 values
-// Phase 2 :
+// Phase 3 :
 //  for each prime p > 2
-//      a) for each d=2 d<p/2 increment divisor count nbPG(n) for n=d*(p-d) so d+n/d is prime
+//      a) for each d=2 d<p/2 increment decompostion count nbPG(n) for n=d*(p-d) so d+n/d is prime
 //      b) for each multiple kp = k*p increment the count of prime divisor nbDivP(kp)
 //          if k is a multipe of p (p square prime divisor) kill kp by setting nbPG(kp)=0
-// Phase 3 :
+// Phase 4 :
 //   Sum for n with nbPG(n) == 2**nbDivP(n)
 //   as if n=p1*p2*..pk with k==nbDivP(n) , n as 2**k divisor.
 typedef struct IS_PG {
-    u_int8_t nbPG ; //
-    u_int8_t nbDivP ;
+    uint8_t nbPG ; //
+    uint8_t nbDivP ;
 } IS_PG ;
 int PB357c(PB_RESULT *pbR) {
     CTX_PRIMETABLE * ctxP  ;

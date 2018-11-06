@@ -42,8 +42,8 @@ typedef struct cubeO {
 typedef struct CTX_Cube {
     int nbC ;
     int nbCand ;
-    u_int64_t nbVertice ;
-    u_int64_t nbCube ;
+    uint64_t nbVertice ;
+    uint64_t nbCube ;
 } CTX_Cube ;
 
 static inline V3 PVect( V3 T1,V3 T2,int N) {
@@ -219,7 +219,7 @@ int PB579(PB_RESULT *pbR) {
     CC.nbCube =  ((((int64_t)N)*N * (N+1) * (N+1)) / 4 ) % PB579_MOD ;
 #else
     CC.nbCube =  ((((int64_t)N)*N * (N+1) * (N+1)) / 4 ) ;
-    CC.nbVertice =(((u_int64_t)(N))*(N+1)*(3 * N*N*N*N*N + 39 * N*N*N*N + 213 * N*N*N + 627 * N*N + 640 * N + 158 ))/ 420 ;
+    CC.nbVertice =(((uint64_t)(N))*(N+1)*(3 * N*N*N*N*N + 39 * N*N*N*N + 213 * N*N*N + 627 * N*N + 640 * N + 158 ))/ 420 ;
 #endif
     for(N=3;N<=PB579_SIZE;N+=2) {
         int32_t S1 = N*N ;
@@ -348,21 +348,21 @@ int PB620a(PB_RESULT *pbR) {
 
 
 typedef struct P_EXP {
-    u_int32_t   p;
-    u_int32_t   exp ;
+    uint32_t   p;
+    uint32_t   exp ;
     
 } P_EXP ;
 #define PB622_NBP   11 // number of prime factors for 2**60-1
 int PB622(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int i, jp,k;
-    u_int64_t S=0;
+    uint64_t S=0;
     P_EXP fact2exp60_m1[PB622_NBP] = {{3, 2}, {5, 2}, {7, 1}, {11, 1}, {13, 1}, {31, 1}, {41, 1}, {61,1}, {151, 1}, {331, 1}, {1321, 1}};
     P_EXP fact2div60byP[3][PB622_NBP] ;
-    u_int32_t quotPrime60[3] = { (1<<(60/2))-1 , (1<<(60/3)) -1 , (1<<(60/5)) -1 } ;
+    uint32_t quotPrime60[3] = { (1<<(60/2))-1 , (1<<(60/3)) -1 , (1<<(60/5)) -1 } ;
     {
         for(i=0;i<PB622_NBP;i++) {
-            u_int32_t p = fact2exp60_m1[i].p ;
+            uint32_t p = fact2exp60_m1[i].p ;
             for(jp=0;jp<3;jp++) {
                 int exp, N ;
                 for(exp=0, N=quotPrime60[jp];(N % p )== 0; exp++ , N /= p) ;
@@ -383,7 +383,7 @@ int PB622(PB_RESULT *pbR) {
                     if(k==PB622_NBP) break ; // divisor of quotPrime60[jp]
                 }
                 if(jp==3) { // 60 is the minimum value, good candidate
-                    u_int64_t N ;
+                    uint64_t N ;
                     for(k=0,N=1;k<PB622_NBP;k++) {
                         int ie ;
                         for(ie=exp[k];ie>0;ie--) N *= fact2exp60_m1[k].p ;
@@ -418,8 +418,8 @@ int PB625(PB_RESULT *pbR) {
         printf("Too memory for %lld\n",PB625_MAX) ;
         return 0 ;
     }
-    u_int64_t *sumPhi=calloc(PB625_MAX+1,sizeof(sumPhi[0])) ;
-    u_int64_t nbP = 1 ;
+    uint64_t *sumPhi=calloc(PB625_MAX+1,sizeof(sumPhi[0])) ;
+    uint64_t nbP = 1 ;
     for(p=2;p<=PB625_MAX;p++)  {
         if(sumPhi[p]) {
             nbP += sumPhi[p] ;
@@ -446,18 +446,18 @@ int PB625(PB_RESULT *pbR) {
         
     }
     
-    u_int64_t isum =  (N+(N/2)+1)  ;
-    u_int64_t idif =  (N-(N/2))  ;
+    uint64_t isum =  (N+(N/2)+1)  ;
+    uint64_t idif =  (N-(N/2))  ;
     if(isum & 1) idif /=2 ;
     else isum /=2 ;
     idif = idif % PB625_MOD ;
     isum = isum % PB625_MOD ;
 
-    u_int64_t S = (isum*idif) % PB625_MOD ;
+    uint64_t S = (isum*idif) % PB625_MOD ;
     //    printf("SN=%lld ",S );
     for(i=1;2*i<=N;i++) {
 //        if(i==plim) printf("(i=%d S=%lld)",i,S);
-        S += ((u_int64_t)(i % PB625_MOD ) *  sumPhi[N/i] ) % PB625_MOD;
+        S += ((uint64_t)(i % PB625_MOD ) *  sumPhi[N/i] ) % PB625_MOD;
         S = S % PB625_MOD ;
 //        printf("(%d,%lld,%lld)",i,sumPhi[N/i],S);
     }
@@ -465,7 +465,7 @@ int PB625(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",S);
     free(sumPhi) ;
 #else
-    u_int64_t S = 0 ;
+    uint64_t S = 0 ;
     for(i=1;i<=N;i++) {
         for(j=1;j<=i;j++) {
             S += PGCD(i,j);
@@ -478,23 +478,23 @@ int PB625(PB_RESULT *pbR) {
     return 1 ;
 }
 typedef struct P625  {
-    u_int64_t p ;
-    u_int64_t q ;
-    u_int64_t ioffset ;
+    uint64_t p ;
+    uint64_t q ;
+    uint64_t ioffset ;
 } P625 ;
 
 
 typedef struct N625 {
-    u_int64_t   gcd ;
-    u_int64_t   index ;
+    uint64_t   gcd ;
+    uint64_t   index ;
 } N625 ;
 
 int PB625a(PB_RESULT *pbR) {
     int sizeD = pow(PB625_MAX, 0.625) ;
     pbR->nbClock = clock() ;
     int64_t  N = PB625_MAX ;
-    u_int32_t *sumPhi=calloc(sizeD,sizeof(sumPhi[0])) ;
-    u_int64_t *sumPhi_Ext=malloc(sizeD*sizeof(sumPhi_Ext[0])) ;
+    uint32_t *sumPhi=calloc(sizeD,sizeof(sumPhi[0])) ;
+    uint64_t *sumPhi_Ext=malloc(sizeD*sizeof(sumPhi_Ext[0])) ;
     
     { // comp sumPhi[n] = Sigma[1..n] Phi[n] ,Phi[n] = #[1..n] prime with n
         sumPhi[1] = 1 ;
@@ -507,7 +507,7 @@ int PB625a(PB_RESULT *pbR) {
                 sumPhi[p] = (int32_t) nbP ;
                 continue ;
             } else {
-                u_int32_t pm = p-1 ;
+                uint32_t pm = p-1 ;
                 nbP += pm ;
                 nbP = nbP % PB625_MOD ;
                 sumPhi[p] = (int32_t) nbP ;
@@ -522,26 +522,26 @@ int PB625a(PB_RESULT *pbR) {
             }
         }
     }
-    u_int64_t S1 = 0 , S2 = 0 ,S=0;
-    u_int64_t i0,i1 ;
+    uint64_t S1 = 0 , S2 = 0 ,S=0;
+    uint64_t i0,i1 ;
     {
         int32_t d ;
         // calcul for i in [2,SizeD] sum { sumPhi[i] * (T(N/i) - T(N/(i+1)) }
         for(d=1;d<=sizeD;d++) {
             i0 = N/d ;
             i1 = N/(d+1) ;
-            u_int64_t isum = ((i0+i1+1) & 1 ) ? ((i0+i1+1) % PB625_MOD) : (((i0+i1+1)/2) % PB625_MOD) ;
-            u_int64_t idif = ((i0+i1+1) & 1 ) ? (((i0-i1)/2) % PB625_MOD) : ((i0-i1) % PB625_MOD) ;
-            u_int64_t nb= (isum*idif ) % PB625_MOD ;
+            uint64_t isum = ((i0+i1+1) & 1 ) ? ((i0+i1+1) % PB625_MOD) : (((i0+i1+1)/2) % PB625_MOD) ;
+            uint64_t idif = ((i0+i1+1) & 1 ) ? (((i0-i1)/2) % PB625_MOD) : ((i0-i1) % PB625_MOD) ;
+            uint64_t nb= (isum*idif ) % PB625_MOD ;
             S1 += (nb * sumPhi[d]) % PB625_MOD ;
 //            if(d==1) printf("Sn=%lld",S1);
         }
     }
 //    printf(" S1=%lld ",S1);
-    u_int64_t id = N/sizeD ;
+    uint64_t id = N/sizeD ;
     while(id > 0) {
-        u_int64_t Nd = N / id ;
-        u_int64_t k ;
+        uint64_t Nd = N / id ;
+        uint64_t k ;
         i0 = (Nd & 1) ? (Nd % PB625_MOD) : ((Nd/2) % PB625_MOD) ;
         i1 = (Nd & 1) ? (((Nd+1)/2) % PB625_MOD) : ((Nd+1) % PB625_MOD) ;
         // calcul de sumPhi[Nd] stored in sumPhi_ext[id]
@@ -550,7 +550,7 @@ int PB625a(PB_RESULT *pbR) {
         // - sigma{ 1<k<=Nd/sizeD ; sumPhi[N/(k*id)] := sumPhi_Ext[k*id] }
         // - sigma{ Nd/sizeD < k <= Nd; sumPhi[Nd/k } . This sum is cut in two parts
         // to take in account that Nd/k takes many time the same value for big k.
-        u_int64_t Si = (i0*i1) % PB625_MOD ; // Nd*((Nd+1)/2
+        uint64_t Si = (i0*i1) % PB625_MOD ; // Nd*((Nd+1)/2
         for(k=2;k<=Nd/sizeD;k++) {
             Si += PB625_MOD - sumPhi_Ext[k*id] ; //  Si -= sumPhi_Ext[k*id] ;
         }
@@ -581,15 +581,15 @@ int PB625b(PB_RESULT *pbR) {
     int sizeD = pLim ;
     pbR->nbClock = clock() ;
     int32_t j ;
-    u_int64_t p , N = PB625_MAX ;
-    u_int64_t *sumPhi=calloc(sizeD,sizeof(sumPhi[0])) ;
-    u_int64_t *sumPhi2=malloc(sizeD*sizeof(sumPhi2[0])) ;
+    uint64_t p , N = PB625_MAX ;
+    uint64_t *sumPhi=calloc(sizeD,sizeof(sumPhi[0])) ;
+    uint64_t *sumPhi2=malloc(sizeD*sizeof(sumPhi2[0])) ;
     N625 *nxt = malloc(sizeD*sizeof(nxt[0])) ;
     int64_t nbPrimeAlloc = sizeD ;
     P625 * tbPrime = malloc(nbPrimeAlloc * sizeof(tbPrime[0])) ;
     int nbPrime = 0 ;
     
-    u_int64_t nbP = 1 ;
+    uint64_t nbP = 1 ;
     sumPhi[1] = 1 ;
     {
         int j,p; // limited by sizeD, int3é is sufficient.
@@ -601,7 +601,7 @@ int PB625b(PB_RESULT *pbR) {
                 continue ;
             } else {
                 tbPrime[nbPrime].p = p ;
-                u_int64_t pm = p-1 ;
+                uint64_t pm = p-1 ;
                 nbP += pm ;
                 nbP = nbP % PB625_MOD ;
                 sumPhi[p] = nbP ;
@@ -619,37 +619,37 @@ int PB625b(PB_RESULT *pbR) {
             }
         }
     }
-    u_int64_t isum =  (N+(N/2)+1) ;
-    u_int64_t idif =  (N-(N/2))  ;
+    uint64_t isum =  (N+(N/2)+1) ;
+    uint64_t idif =  (N-(N/2))  ;
     if(isum & 1) idif /=2 ;
     else isum /=2 ;
     idif = idif % PB625_MOD ;
     isum = isum % PB625_MOD ;
-    u_int64_t S = (isum*idif) % PB625_MOD ;
+    uint64_t S = (isum*idif) % PB625_MOD ;
 //    printf("SN=%lld ",S );
     
-    u_int64_t pl ;
-    u_int64_t S1 = 0 , S2 = 0 ;
-    u_int64_t i0,i1 ;
+    uint64_t pl ;
+    uint64_t S1 = 0 , S2 = 0 ;
+    uint64_t i0,i1 ;
 
     {
         int32_t i ;
         for(i=2;i<=sizeD;i++) {
             i0 = N/i ;
             i1 = N/(i+1) ;
-            u_int64_t isum = ((i0+i1+1) & 1 ) ? ((i0+i1+1) % PB625_MOD) : (((i0+i1+1)/2) % PB625_MOD) ;
-            u_int64_t idif = ((i0+i1+1) & 1 ) ? (((i0-i1)/2) % PB625_MOD) : ((i0-i1) % PB625_MOD) ;
-            u_int64_t nb= (isum*idif ) % PB625_MOD ;
+            uint64_t isum = ((i0+i1+1) & 1 ) ? ((i0+i1+1) % PB625_MOD) : (((i0+i1+1)/2) % PB625_MOD) ;
+            uint64_t idif = ((i0+i1+1) & 1 ) ? (((i0-i1)/2) % PB625_MOD) : ((i0-i1) % PB625_MOD) ;
+            uint64_t nb= (isum*idif ) % PB625_MOD ;
             S1 += (nb * sumPhi[i]) % PB625_MOD ;
             S1 = S1 % PB625_MOD ;
         }
     }
 //    printf(" S1=%lld ",S1);
-    u_int64_t pgNext = i0 ;
+    uint64_t pgNext = i0 ;
 
-    u_int64_t invPgNext = N /pgNext ;
+    uint64_t invPgNext = N /pgNext ;
     while(invPgNext < sizeD) {
-        S1 += ((u_int64_t)pgNext * sumPhi[invPgNext]) % PB625_MOD;
+        S1 += ((uint64_t)pgNext * sumPhi[invPgNext]) % PB625_MOD;
         S1 = S1 % PB625_MOD ;
         pgNext-- ;
         invPgNext = N /pgNext ;
@@ -667,8 +667,8 @@ int PB625b(PB_RESULT *pbR) {
         for(ip=0;ip<nbPrime;ip++) {
             if(tbPrime[ip].ioffset < sizeD) {
                 p = tbPrime[ip].p ;
-                u_int64_t q = tbPrime[ip].q ;
-                u_int64_t j ;
+                uint64_t q = tbPrime[ip].q ;
+                uint64_t j ;
                 for(j=tbPrime[ip].ioffset;j<sizeD;j+=p,q++) {
                     
                     if(sumPhi2[j]) {
@@ -774,10 +774,10 @@ int PB626(PB_RESULT *pbR) {
         if(classMatPerm[i]) continue ;
         printf("\n%o->",i);
         nbClassPerm ++ ;
-        u_int8_t permL[PB626_DIM] ;
+        uint8_t permL[PB626_DIM] ;
         for(k=0;k<PB626_DIM;k++) permL[k] = k ;
         do {
-            u_int8_t permC[PB626_DIM] ;
+            uint8_t permC[PB626_DIM] ;
             for(k=0;k<PB626_DIM;k++) permC[k] = k ;
             do {
                 int64_t iMat = 0 ;
