@@ -10,6 +10,7 @@
 #define p054_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 typedef struct Card {
     uint8_t h ;    // high
     uint8_t c ;    // color

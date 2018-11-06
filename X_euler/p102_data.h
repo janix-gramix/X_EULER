@@ -10,6 +10,7 @@
 #define p102_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 #define PB102_NBT   1000
 typedef struct Triangle {
     int32_t xa;

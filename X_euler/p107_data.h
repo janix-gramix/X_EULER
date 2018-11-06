@@ -10,6 +10,7 @@
 #define p107_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 #define PB107_SIZE  40
 // #define PB107_SIZE  7
 const uint16_t *  P107_GetData(void) ;

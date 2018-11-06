@@ -11,6 +11,7 @@
 #define p081_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 
 const uint16_t * P081_GetData(void) ;
 

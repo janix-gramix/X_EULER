@@ -8,7 +8,7 @@
 
 #ifndef faray_utils_h
 #define faray_utils_h
-
+#include <stdint.h>
 typedef struct FRACTRED {
     int n ;
     int d ;

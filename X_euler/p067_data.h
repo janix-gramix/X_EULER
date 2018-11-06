@@ -10,6 +10,7 @@
 #define p067_data_h
 
 #include <stdio.h>
+#include <stdint.h>
 
 
 const uint8_t * P067_GetData(void) ;
