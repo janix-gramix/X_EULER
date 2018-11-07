@@ -2880,14 +2880,16 @@ int PB092a(PB_RESULT *pbR) {
     nbT[1] = 0 ;
     nbT[PB092_T89] = 0 ;
     int i,k, n,lgBack  ;
-    uint8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+//    uint8_t *terminal = calloc(maxValue+1,sizeof(terminal[0]));
+    uint8_t terminal[81*PB092_NBDIG+1] ;
+    memset(terminal,0,sizeof(terminal)) ;
     int16_t *backTrace = malloc((maxValue+1)*sizeof(backTrace[0])) ;
     terminal[1] = 1 ;
     terminal[89] = PB092_T89 ;
     for(i=1;i<=maxValue;i++) { // compute terminal pour possible sum
-        n = i; lgBack = 0 ;
+        n = i; lgBack = 0 ; // lgback longueur de la chaine
         while(n>maxValue || terminal[n]==0 ) {
-            if(n<=maxValue) backTrace[lgBack++] = n ;
+            if(n<=maxValue) backTrace[lgBack++] = n ; // valeur en dessous
             int nxt ;
             for(nxt = 0 ; n > 0; n /= 10 ) {
                 nxt += (n % 10) * (n % 10) ;
@@ -2910,7 +2912,7 @@ int PB092a(PB_RESULT *pbR) {
                 }
             }
             nbT[0] = nbT[1] = nbT[PB092_T89] = 0 ;
-            for(is=0;is<=81*PB092_NBDIG;is++) {
+            for(is=0;is<=81*(nb+1);is++) {
                 nbT[terminal[is]] += histoSum[nb][is] ;
             }
             if(pbR->isVerbose)fprintf(stdout,"\t PB%s %cTerm=89[%lld]\n",pbR->ident,(nb==PB092_NBASK-1) ? '*':' ',nbT[PB092_T89]) ;
