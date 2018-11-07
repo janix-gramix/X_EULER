@@ -102,9 +102,7 @@ int PB066(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) {
-        char * str_x = mpz_get_str(NULL,10,max_x) ;
-        fprintf(stdout,"\t PB%s x(%d)=%s\n",pbR->ident, bestN,str_x);
-        free (str_x) ;
+        gmp_fprintf(stdout,"\t PB%s x(%d)=%Zd\n",pbR->ident, bestN,max_x) ;
     }
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",bestN);
     return 1 ;
