@@ -1863,11 +1863,10 @@ RAD2N * Rad2nAlloc(int maxn,int maxr,int isOrdered) {
                 for(j=0;j<nbSup;j++) {
                     if(rdn->rad2n[rgN+j] <= maxRad) {
                         int n = rdn->rad2n[rgN+j]*powp ;
-                        if(rgN+nbSup+pSup > maxr) printf("r%d->%d ",rgN+nbSup+pSup,n) ;
                         rdn->rad2n[rgN+nbSup+pSup] = n ;
-                        if(n>=maxn) printf("n%d->%d ",n,curRad) ;
                         rdn->n2rad[n] = curRad ;  // printf("+%d ",n) ;
                         pSup++ ;
+                        if(rgN+nbSup+pSup > maxr) break ;
                     }
                 }
             }
@@ -2062,6 +2061,7 @@ int PB127a(PB_RESULT *pbR) {
         int ia,ra ;
         for(ia=0;a=rdn->rad2n[ia], (ra=rdn->n2rad[a])<=maxRa;ia++) {
             b=c-a ;
+            if(b<=0) continue ;
             int rb = rdn->n2rad[b] ;
             if( ra*rb < maxRab && ra<rb && PGCD(ra,rb) == 1) {
 //              printf("rad(%dx%dx%d)=%d<%d\n",a,b,c,ra*rb*rc,c) ;
