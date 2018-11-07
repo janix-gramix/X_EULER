@@ -1378,9 +1378,9 @@ int PB103f(PB_RESULT *pbR) {
     return 1 ;
 }
 
-GlobalPaths * G_glbP[PB103_NB] ;
+//GlobalPaths * G_glbP[PB103_NB] ;
 
-void InitLevelg(DevD *antDD, DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum103_t Smin) {
+void InitLevelg(DevD *antDD, DevD  *DD, int is,GlobalPaths * glbP, sum103_t pondDelta[PB103_NB],sum103_t Smin) {
     
     DELTA * antDelt = (antDD->isDR) ? &(antDD->R) : &(antDD->D) ;
     int j ;
@@ -1408,7 +1408,7 @@ void InitLevelg(DevD *antDD, DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum
             Delt->Srev += Delt->deltas[j-1] *pondDelta[is+1-j] ;
             Delt->val[j] = Delt->val[j-1] + Delt->deltas[j-1] + 1 ;
         }
-        Delt->deltas[is-1] = FindMinDeltaPreG(Delt->val,G_glbP[is]) ;
+        Delt->deltas[is-1] = FindMinDeltaPreG(Delt->val,glbP) ;
         Delt->S += Delt->deltas[is-1] * pondDelta[is-1] ;
         Delt->Srev += Delt->deltas[is-1] *pondDelta[1] ;
         Delt->val[is] = Delt->val[is-1] + Delt->deltas[is-1] + 1 ;
@@ -1440,6 +1440,7 @@ void InitLevelg(DevD *antDD, DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum
 #define PRINT_MIN
 // #define PRINT
 int PB103g(PB_RESULT *pbR) {
+    GlobalPaths * G_glbP[PB103_NB] ;
     pbR->nbClock = clock() ;
     BestDev BD[PB103_NB] ;
     
@@ -1485,7 +1486,7 @@ int PB103g(PB_RESULT *pbR) {
         DD[is].D.nbRev = 0 ;
         DD[is].D.IsMin = DD[is].R.IsMin = 1 ;
         strcpy(DD[is].History,"I") ;
-        InitLevelg(DD+is,DD+is+1, is+1, pondDelta,Smin) ;
+        InitLevelg(DD+is,DD+is+1, is+1,G_glbP[is+1], pondDelta,Smin) ;
         is++ ;
         printf("****** PASS %d avec MAX_DEV = %d *****\n",pass,max_dev);
         while(is>3) {
@@ -1571,7 +1572,7 @@ int PB103g(PB_RESULT *pbR) {
                         
                         
                         {
-                            InitLevelg(DD+is,DD+is+1, is+1, pondDelta,Smin) ;
+                            InitLevelg(DD+is,DD+is+1, is+1,G_glbP[is+1], pondDelta,Smin) ;
                             Delt->val[is]++ ; Delt->deltas[is-1]++ ; Delt->S += pondDelta[is] ; Delt->Srev += pondDelta[1] ;
                             is ++ ; // on passer au niveau superieur
                             continue ;
