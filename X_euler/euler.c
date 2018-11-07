@@ -136,7 +136,7 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(063,49,'Powerful digit counts')
     ,PROTO_CALL(064,1322,'Odd period square roots')
     ,PROTO_CALL(065,272,'Convergents of e')
-    ,PROTO_CALL(066,661,'Diophantine equation')
+    ,PROTO_CALL(066_gmp,661,'Diophantine equation')
     ,PROTO_CALL(067,7273,'Maximum path sum II')
     ,PROTO_CALL(068,6531031914842725,'Magic 5-gon ring')
 //    ,PROTO_CALL(069a,510510,'Totient maximum')
