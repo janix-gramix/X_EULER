@@ -203,6 +203,7 @@ int PB052a(PB_RESULT *pbR) {
         uint32_t N1 ;
         uint8_t digXsort[PB052_MAXD] ;
         uint8_t digXxk[PB052_MAXD+1] ;
+        memset(digXxk,0,sizeof(digXxk)) ;
         for(i=0,N1=n;N1 != 0; i++) {
             digXsort[i] = N1 % 10 ; N1 /= 10 ;
         }
