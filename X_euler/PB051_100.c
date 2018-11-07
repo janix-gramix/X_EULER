@@ -2487,7 +2487,7 @@ int PB086(PB_RESULT *pbR) {
     int i,n,m,c,k ;
     int M = PB086_MAX ;
     int minM = 1 ;
-    uint32_t *histoM = calloc(PB086_MAX,sizeof(histoM[0])) ;
+    uint32_t *histoM = calloc(PB086_MAX+1,sizeof(histoM[0])) ;
     for(m=2;;m++) {
         // c >= 1/3 (a+b+c) as c>=b>=a
         // (a+b=c) = m**2 - n**2 + 2*m*n has a minima for n in [0,m] when n=0 => m**2
