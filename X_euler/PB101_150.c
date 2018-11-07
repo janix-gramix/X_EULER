@@ -3042,8 +3042,8 @@ int PB147(PB_RESULT *pbR) {
     int  i,j,k;
     int64_t sum  = 0;
     int nbRec[PB147_MD*PB147_MD],nbRec2[PB147_MD*PB147_MD] ;
-    int xMin[2*PB147_MD];
-    int xMax[2*PB147_MD];
+    int xMin[2*(PB147_MD+1)];
+    int xMax[2*(PB147_MD+1)];
     nbRec[0] = 1 ;
     int nbErr = 0 ;
     for(i=0;i<PB147_MD;i++) {
