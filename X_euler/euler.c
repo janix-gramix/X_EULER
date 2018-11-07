@@ -279,6 +279,12 @@ static PB_CALL ALL_calls[] = {
     // version la plus rapide avec calcul FACT en uint64_t et optimisation last loop
     //    ,PROTO_CALL(597_gmpx,50018178282,'Torpids')
     // version beaucoup plus rapide en O(n**2)
+    
+    ,PROTO_CALL(357c,1739023853137,'Prime generating integers')
+//    ,PROTO_CALL(357b,1739023853137,'Prime generating integers')
+//    ,PROTO_CALL(357a,1739023853137,'Prime generating integers')
+//    ,PROTO_CALL(357,1739023853137,'Prime generating integers')
+
     ,PROTO_CALL(579,3805524,'Lattice points in lattice cubes')
     ,PROTO_CALL(597_gmpy,50018178282,'Torpids')
     ,PROTO_CALL(620a,1470337306,'Planetary Gears')
@@ -300,10 +306,7 @@ static PB_CALL CUR_calls[] = {
 
 //    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
 //    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
-     PROTO_CALL(357c,1739023853137,'Prime generating integers')
-    ,PROTO_CALL(357b,1739023853137,'Prime generating integers')
-    ,PROTO_CALL(357a,1739023853137,'Prime generating integers')
-    ,PROTO_CALL(357,1739023853137,'Prime generating integers')
+    PROTO_CALL(092a,8581146,'Square digit chains')
  
 
 
@@ -328,8 +331,8 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-//    char * isALL = "100" ;
-    char * isALL = NULL ;
+    char * isALL = "300" ;
+//    char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {
         Execute(&ttr,ptCall);
