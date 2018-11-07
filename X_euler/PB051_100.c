@@ -448,19 +448,6 @@ int PB054(PB_RESULT *pbR) {
     
 #endif
     pbR->nbClock = clock()  ;
-    char * bb = "leki eklup ikffhycuhtu bq byiju tui ikifusji bu nkcuhe kd" ;
-    char aa[200] ;
-    strcpy(aa,bb) ;
-    int ia ;
-    for(ia=0;aa[ia];ia++) {
-        if(aa[ia] != ' ') {
-            int il = aa[ia] - 'a' ;
-            il += 'k' - 'a' ;
-            if( il >=26) il -= 26 ;
-            aa[ia] = il + 'a' ;
-        }
-    }
-    printf("%s\n",aa);
     const Play * PL = P054_GetData() ;
     int nbWinP0 =0 ;
     int i ;
