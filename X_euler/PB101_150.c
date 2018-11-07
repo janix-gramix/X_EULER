@@ -273,7 +273,7 @@ int PB107(PB_RESULT *pbR) {
         VtoT[i].numTree = 0 ; // can be the same tree as this tree is never used
         VtoT[i].nxtVertex = i ;
     }
-    heapsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ; // sort edges by cost
+    qsort(EDG,nbEdge,sizeof(EDG[0]),CmpEdge) ; // sort edges by cost
     int indSortEdg = 0 ;
     int maxLength = 0 ;
     uint32_t savingCost = 0 ;

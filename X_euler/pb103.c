@@ -1625,7 +1625,7 @@ int PB105(PB_RESULT *pbR) {
         int32_t * sub = tbSub[nt] ;
         int lg ;
         for(lg=0;sub[lg]!=0;lg++) ;
-        heapsort(sub,lg,sizeof(sub[0]),Cmpint16) ;
+        qsort(sub,lg,sizeof(sub[0]),Cmpint16) ;
         if(sub[0] >= MinCheck(sub,lg)  && CheckEquality(sub,lg) ) {
             int i;
             for(i=0;i<lg;i++) S += sub[i] ;
