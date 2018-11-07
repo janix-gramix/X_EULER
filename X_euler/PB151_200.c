@@ -36,7 +36,7 @@ int PB187(PB_RESULT *pbR) {
     }
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbFind) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbFind) ;
     return 1 ;
 }
 int PB187a(PB_RESULT *pbR) {
@@ -64,7 +64,7 @@ int PB187a(PB_RESULT *pbR) {
     }
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbFind) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbFind) ;
     return 1 ;
 }
 //
@@ -125,7 +125,7 @@ int PB187b(PB_RESULT *pbR) {
     }
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbFind) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbFind) ;
     return 1 ;
 }
 
@@ -213,7 +213,7 @@ int PB192(PB_RESULT *pbR) {
         Sum += qk ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
 }
 
@@ -247,7 +247,7 @@ int PB198e(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version with Besout d0<%d n0/d0<%d loops=%d\n",pbR->ident,nbA,d0Max,PB198_MIND,nbLoop) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -293,7 +293,7 @@ int PB198f(PB_RESULT *pbR) {
     SBT_free(sbt);
     
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -354,7 +354,7 @@ int PB198g(PB_RESULT *pbR) {
      if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version  direct with d0<%d loops=%d\n",pbR->ident,nbA,N,nbLoop) ;
     
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -393,7 +393,7 @@ int PB198(PB_RESULT *pbR) {
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version with stack(%d) (den only) loops=%d\n",pbR->ident,nbA-1,sbdt->sizeStack,nbLoop) ;
     SBdT_free(sbdt);
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA-1) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA-1) ;
     return 1 ;
 }
 
@@ -431,7 +431,7 @@ int PB198a(PB_RESULT *pbR) {
 
     SBT_free(sbt);
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -453,7 +453,7 @@ int PB198b(PB_RESULT *pbR) {
     nbA += STBrcv(fr0,fr1,PB198bCB) ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version recursive (Fract[1/2,1]) loops=%d\n",pbR->ident,nbA-1,loopPB198b) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -484,7 +484,7 @@ int PB198c(PB_RESULT *pbR) {
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version stack(%d) Den[%d %d] loops=%d\n",pbR->ident,nbA-1,sbdt->sizeStack,PB198_MIND,iMax,nbLoop) ;
     SBdT_free(sbdt);
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 
@@ -507,7 +507,7 @@ int PB198d(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s S=%lld,Version recursive Den[%d %d] loops=%d\n",pbR->ident,nbA-1,PB198_MIND,iMax,loopPB198d) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",nbA) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbA) ;
     return 1 ;
 }
 

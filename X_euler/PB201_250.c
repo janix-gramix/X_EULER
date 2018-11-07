@@ -74,7 +74,7 @@ int PB206(PB_RESULT *pbR) {
     } else {
         N *= 10 ;
         if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld **2 = %lld\n",pbR->ident,N,N*N) ;
-        sprintf(pbR->strRes,"%lld",N);
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",N);
         return 1 ;
     }
 }
@@ -106,7 +106,7 @@ int PB206a(PB_RESULT *pbR) {
                         m *= 10 ;
                         pbR->nbClock = clock() - pbR->nbClock ;
                         if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld **2 = %lld\n",pbR->ident,m,m*m) ;
-                        sprintf(pbR->strRes,"%lld",m);
+                        snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",m);
                         return 1 ;
                         
                     }
@@ -161,7 +161,7 @@ int PB357(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
 }
 // Phase 1 : compute list of prime < N=100 000 000
@@ -216,7 +216,7 @@ int PB357a(PB_RESULT *pbR) {
     free(isPG) ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
 }
 
@@ -287,7 +287,7 @@ int PB357b(PB_RESULT *pbR) {
     Free_tablePrime(ctxP) ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
     
 }
@@ -357,7 +357,7 @@ int PB357c(PB_RESULT *pbR) {
     free(pg) ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nb=%d Sum= %lld\n",pbR->ident,nb,Sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
 }
 

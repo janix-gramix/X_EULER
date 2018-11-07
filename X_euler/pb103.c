@@ -591,7 +591,7 @@ int PB103(PB_RESULT *pbR) {
             }
             int lg = 0 ;
             for(j=0;j<PB103_NB;j++){
-                lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
             }
         }
         is = PB103_NB-2 ;
@@ -730,7 +730,7 @@ int PB103a(PB_RESULT *pbR) {
             }
             int lg = 0 ;
             for(j=0;j<PB103_NB;j++){
-                lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
             }
         }
         is = PB103_NB-2 ;
@@ -812,7 +812,7 @@ int PB103b(PB_RESULT *pbR) {
                 }
                 int lg = 0 ;
                 for(j=0;j<PB103_NB;j++){
-                    lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                    lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
                 }
             }
         }
@@ -894,7 +894,7 @@ int PB103c(PB_RESULT *pbR) {
                         }
                         int lg = 0 ;
                         for(j=0;j<PB103_NB;j++){
-                            lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                            lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
                         }
                         break ;
                     }
@@ -975,7 +975,7 @@ int PB103d(PB_RESULT *pbR) {
                     }
                     int lg = 0 ;
                     for(j=0;j<PB103_NB;j++){
-                        lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                        lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
                     }
                     values[is]++ ; S[is] += pondDelta[is] ; continue;
                 }
@@ -1069,7 +1069,7 @@ int PB103e(PB_RESULT *pbR) {
                         
                         int lg = 0 ;
                         for(j=0;j<PB103_NB;j++){
-                            lg+=sprintf(pbR->strRes+lg,"%2.2d",values[j]+v0) ;
+                            lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",values[j]+v0) ;
                         }
                     }
                     values[is]++ ; S[is] += pondDelta[is] ; SRev += pondDelta[PB103_NB-is] ; continue;
@@ -1326,7 +1326,7 @@ int PB103f(PB_RESULT *pbR) {
                             {
                                 int lg = 0 ;
                                 for(j=0;j<PB103_NB;j++){
-                                    lg+=sprintf(pbR->strRes+lg,"%2.2d",DeltSol->val[j]+v0) ;
+                                    lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",DeltSol->val[j]+v0) ;
                                 }
                                 
                             }
@@ -1544,7 +1544,7 @@ int PB103g(PB_RESULT *pbR) {
                             {
                                 int lg = 0 ;
                                 for(j=0;j<PB103_NB;j++){
-                                    lg+=sprintf(pbR->strRes+lg,"%2.2d",DeltSol->val[j]+v0) ;
+                                    lg+=snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%2.2d",DeltSol->val[j]+v0) ;
                                 }
 
                             }
@@ -1632,7 +1632,7 @@ int PB105(PB_RESULT *pbR) {
             //            printf("%d ",nt);
         }
     }
-    sprintf(pbR->strRes,"%d",S) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -1647,7 +1647,7 @@ int PB106(PB_RESULT *pbR) {
     for(k=2 ; 2*k <= PB106_ASK ; k++) {
         S += (chkP->nsumK[k-1]-1)*chkP->npermK[k-1];
     }
-    sprintf(pbR->strRes,"%d",S) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     FreeAlterPath(altP);
     FreeCheckPath(chkP);
     pbR->nbClock = clock() - pbR->nbClock ;

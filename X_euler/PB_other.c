@@ -263,7 +263,7 @@ int PB579(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s NbCubeType=%d NbCubes=%lld NBVertices=%lld \n"
                               ,pbR->ident,CC.nbC,CC.nbCube,CC.nbVertice) ;
-    sprintf(pbR->strRes,"%lld",CC.nbVertice);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",CC.nbVertice);
     
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -318,7 +318,7 @@ int PB620(PB_RESULT *pbR) {
             }
         }
     }
-    sprintf (pbR->strRes,"%d",nbSol);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -341,7 +341,7 @@ int PB620a(PB_RESULT *pbR) {
             }
         }
     }
-    sprintf (pbR->strRes,"%d",nbSol);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -394,7 +394,7 @@ int PB622(PB_RESULT *pbR) {
             } else {  ip-- ; }
         }
     }
-    sprintf (pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -463,7 +463,7 @@ int PB625(PB_RESULT *pbR) {
 //        printf("(%d,%lld,%lld)",i,sumPhi[N/i],S);
     }
     if(pbR->isVerbose)fprintf(stdout, "\t PB%s MAX=%lld[%d] S=%lld\n",pbR->ident,PB625_MAX,PB625_MOD,S );
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     free(sumPhi) ;
 #else
     uint64_t S = 0 ;
@@ -473,7 +473,7 @@ int PB625(PB_RESULT *pbR) {
         }
     }
     if(pbR->isVerbose)fprintf(stdout, "\t PB%s MAX=%lld[%d] S=%lld\n",pbR->ident,PB625_MAX,PB625_MOD,S );
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
 #endif
      pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -568,7 +568,7 @@ int PB625a(PB_RESULT *pbR) {
     }
     S =(S1+S2) % PB625_MOD ;
     if(pbR->isVerbose)fprintf(stdout, "\t PB%s MAX=%lld[%d] S=%lld\n",pbR->ident,PB625_MAX,PB625_MOD,S );
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     free(sumPhi) ; free(sumPhi_Ext) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -709,7 +709,7 @@ int PB625b(PB_RESULT *pbR) {
     }
     S =(S+S1-S2) % PB625_MOD ;
     if(pbR->isVerbose)fprintf(stdout, "\t PB%s MAX=%lld[%d] S=%lld\n",pbR->ident,PB625_MAX,PB625_MOD,S );
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -806,7 +806,7 @@ int PB626(PB_RESULT *pbR) {
     for(nbB=1;nbB<= nbBitMax;nbB++) {
         nbB += 
     }
-    sprintf (pbR->strRes,"%d",nbClass);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbClass);
  */
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -825,7 +825,7 @@ int PB1000(PB_RESULT *pbR) {
     const T_prime * tbPrime = GetTbPrime(ctxP) ;
     
     fprintf(stdout,"\t PB%s prime[%d] = %u\n",pbR->ident, PB1000_NUM,tbPrime[PB1000_NUM-1]) ;
-    sprintf(pbR->strRes,"%u",tbPrime[PB1000_NUM-1]);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%u",tbPrime[PB1000_NUM-1]);
     Free_tablePrime(ctxP) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;

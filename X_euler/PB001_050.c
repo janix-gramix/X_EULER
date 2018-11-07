@@ -24,9 +24,9 @@ int PB001(PB_RESULT *pbR) {
         if(i3 == 0  || i5 ==0) S += i ;
         if(++i3==3) i3 =0 ;
         if(++i5==5) i5 =0 ;
-    }
+    };
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes), "%lld",S);
     return 1 ;
 }
 
@@ -42,7 +42,7 @@ int PB002(PB_RESULT *pbR) {
         u0 = u1 -u0 ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     return 1 ;
 }
 
@@ -62,7 +62,7 @@ int PB003(PB_RESULT *pbR) {
     }
     if (n > bp) bp = n ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",bp);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",bp);
     return 1 ;
     
 }
@@ -110,7 +110,7 @@ int PB004(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s P=%d = %d x %d \n",pbR->ident,bestP,bestn1,bestP/ bestn1);
     if ( bestn1 ) {
-        sprintf(pbR->strRes,"%d",bestP);
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",bestP);
         return 1 ;
     } else {
         return 0 ;
@@ -125,7 +125,7 @@ int PB005(PB_RESULT *pbR) {
     for(i=2;i<20;i++) {
         PPCM *= i/ PGCD(PPCM,i);
     }
-    sprintf(pbR->strRes,"%d",PPCM);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",PPCM);
     return 1 ;
 }
 
@@ -134,7 +134,7 @@ int PB006(PB_RESULT *pbR) {
     int64_t Sn = (n *(n+1)) / 2 ;
     int64_t Sn2 = (n*(n+1)*(2*n+1)) / 6 ;
     int64_t diff = Sn * Sn - Sn2 ;
-    sprintf(pbR->strRes,"%lld",diff);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",diff);
     return 1;
 }
 
@@ -220,7 +220,7 @@ int PB007(PB_RESULT *pbR) {
     printf("\n");
 #endif
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%u",ctx.lastPrime);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%u",ctx.lastPrime);
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s  prime n°%d  = %u\n",pbR->ident,ctx.nbPrime,ctx.lastPrime) ;
     return 1 ;
     
@@ -274,7 +274,7 @@ int PB008(PB_RESULT *pbR) {
     strDig[bestIndex+PB008_NB] = 0 ;
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s Prod(%s)  =%lld\n",pbR->ident,strDig+bestIndex,bestProd) ;
-    sprintf(pbR->strRes,"%lld",bestProd) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",bestProd) ;
     return 1 ;
 }
 
@@ -291,7 +291,7 @@ int PB009(PB_RESULT *pbR) {
     int b = 2*m*n ;
     int c = m*m + n*n ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s %dx%dx%d=%d %d+%d+%d=%d %d**2+%d**2=%d %d**2=%d\n",pbR->ident, a,b,c,a*b*c,a,b,c,a+b+c,a,b,a*a+b*b,c,c*c) ;
-    sprintf(pbR->strRes,"%d",a*b*c) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",a*b*c) ;
     return 1;
 }
 
@@ -315,7 +315,7 @@ int PB010(PB_RESULT *pbR) {    CTX_PB010 ctx ;
     pbR->nbClock = clock() - pbR->nbClock ;
     
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s SUM(prime<%u)  = %lld\n",pbR->ident,nbMax,ctx.sum) ;
-    sprintf(pbR->strRes,"%lld",ctx.sum) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ctx.sum) ;
     return 1 ;
 }
 
@@ -392,7 +392,7 @@ int PB011(PB_RESULT *pbR) {
                               , (bestInd+3*bestDelta) / PB11_SIZE ,(bestInd+3*bestDelta) % PB11_SIZE
                               , tbIn[bestInd],tbIn[bestInd+bestDelta],tbIn[bestInd+2*bestDelta],tbIn[bestInd+3*bestDelta]
                               ,bestProd ) ;
-    sprintf(pbR->strRes,"%d",bestProd);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",bestProd);
     return 1 ;
 }
 
@@ -418,7 +418,7 @@ int PB012(PB_RESULT *pbR) {
         } while (nbDiv <= 500) ;
         pbR->nbClock = clock() - pbR->nbClock ;
         if(pbR->isVerbose)fprintf(stdout,"\t PB%s triangle(%lld)=%lld a %lld diviseurs\n",pbR->ident,n,ntr,nbDiv);
-        sprintf(pbR->strRes,"%lld",ntr);
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ntr);
     }
     Free_tablePrime(ctxP);
     return 1;
@@ -555,7 +555,7 @@ int PB013(PB_RESULT *pbR) {
     {
         int lg  = 0 ;
         for(i=0;lg < 10;i++) {
-            lg+= sprintf(pbR->strRes+lg,"%d",sum[i]);
+            lg+= snprintf(pbR->strRes+lg,sizeof(pbR->strRes)-lg,"%d",sum[i]);
         }
         pbR->strRes[10] = '\0' ;
     }
@@ -648,7 +648,7 @@ int PB014(PB_RESULT *pbR) {
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s  lg=%d for %d\n"
                               ,pbR->ident
                               ,bestLg,kBest);
-    sprintf(pbR->strRes,"%d",kBest);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",kBest);
 #if PB014_PRINT
     {
         TY_SYR *chainVal = malloc((bestLg+1)*sizeof(chainVal[0])) ;
@@ -675,7 +675,7 @@ int PB015(PB_RESULT *pbR) {
     //    = 21x23x25x27x...x39x 2**10 / 1x2x3x4...x10
     // On fait les simplifications 25x2 = 5x10  ; 27=3x9 ; 21x2 = 6x7 ; 2**6=2x4x8 ;
     // Il reste en haut 23x29x31x33x35x37x39x2**2
-    sprintf(pbR->strRes,"%lld", ((uint64_t) 23) * 29 * 31 * 33 * 35 *37 * 39 * 4 );
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld", ((uint64_t) 23) * 29 * 31 * 33 * 35 *37 * 39 * 4 );
     return 1 ;
 }
 
@@ -709,7 +709,7 @@ int PB016(PB_RESULT *pbR) {
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s  Sumdig(2**%d)=%d\n"
                                ,pbR->ident
                                ,PB016_EXP,S) ;
-    sprintf(pbR->strRes,"%d",S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S);
     return 1 ;
 }
 
@@ -735,7 +735,7 @@ int PB017(PB_RESULT *pbR) {
     ;
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s Len=%d\n",pbR->ident,len);
-    sprintf(pbR->strRes,"%d",len);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",len);
      return 1;
 }
 
@@ -770,7 +770,7 @@ int PB018(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",vals[0]) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",vals[0]) ;
     return 1 ;
 }
 
@@ -796,7 +796,7 @@ int PB019(PB_RESULT *pbR) {
         d0 = (d0+31) % 7 ; 
     }
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s Number of sundays=%d\n",pbR->ident,nbSunday);
-    sprintf(pbR->strRes,"%d",nbSunday);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSunday);
     return 1;
 }
 
@@ -834,7 +834,7 @@ int PB020(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s  Sumdig(%d!)=%d\n",pbR->ident, PB020_FACT,S) ;
-    sprintf(pbR->strRes,"%d",S) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
 
@@ -865,7 +865,7 @@ int PB021(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\n") ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",S) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
 
@@ -900,7 +900,7 @@ int PB022(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s Sum=%d\n",pbR->ident,sum) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",sum) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",sum) ;
     return 1 ;
 }
 
@@ -951,7 +951,7 @@ int PB023(PB_RESULT *pbR) {
     
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s  nbNo2ab=%d ,Sum=%d\n",pbR->ident,nbNoSum2a,SumNo2a) ;
-    sprintf(pbR->strRes,"%d",SumNo2a);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",SumNo2a);
     return 1 ;
 }
 
@@ -1015,7 +1015,7 @@ int PB025(PB_RESULT *pbR) {
     } while(len < PB025_MAXDIGIT) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s len>=%d pour Fibonnaci n°%d \n",pbR->ident , PB025_MAXDIGIT,n) ;
-    sprintf(pbR->strRes,"%d",n);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",n);
     return 1 ;
 }
 
@@ -1050,7 +1050,7 @@ int PB026(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose)fprintf(stdout,"\t PB%s Pour 1/%d cycle de %d \n",pbR->ident, dmax,maxCycle) ;
-    sprintf(pbR->strRes,"%d",dmax) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",dmax) ;
     return 1 ;
 }
 
@@ -1102,7 +1102,7 @@ int PB027(PB_RESULT *pbR) {
                                   ,(aMax > 0) ? '+' : '-'
                                   ,(aMax > 0) ? aMax : -aMax
                                   , bMax, maxNbprime) ;
-        sprintf(pbR->strRes,"%d",aMax*bMax) ;
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",aMax*bMax) ;
         
     }
     Free_tablePrime(ctxP);
@@ -1142,7 +1142,7 @@ int PB028(PB_RESULT *pbR) {
      */
     int k=500 ;
     
-    sprintf(pbR->strRes,"%d",(16*k*k*k + 30*k*k + 26*k + 3) / 3) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",(16*k*k*k + 30*k*k + 26*k + 3) / 3) ;
     return 1 ;
     
 }
@@ -1186,7 +1186,7 @@ int PB029(PB_RESULT *pbR) {
     // pour p = 5 ,6 ,7 , 10 nbCol = 49 ;
     nbCol += 49 * 4 ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",99*99 - nbCol) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",99*99 - nbCol) ;
     return 1 ;
 }
 
@@ -1209,7 +1209,7 @@ int PB030(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) fprintf(stdout,"] = %d\n",SumRes) ;
-    sprintf(pbR->strRes,"%d",SumRes);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",SumRes);
     return 1 ;
 }
 
@@ -1246,7 +1246,7 @@ int PB031(PB_RESULT *pbR) {
         sum = 0 ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbDecomp) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbDecomp) ;
     return 1 ;
 }
 
@@ -1278,7 +1278,7 @@ int PB032(PB_RESULT *pbR) {
     } while(rg >= 0 ) ;
     if(pbR->isVerbose)fprintf(stdout,"\n");
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",Sum) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Sum) ;
     return 1 ;
 }
 
@@ -1308,7 +1308,7 @@ int PB033(PB_RESULT *pbR) {
         Num /= pgcd ; Den /=pgcd ;
     }
     if(pbR->isVerbose)fprintf(stdout,"\n\t PB%s Prod=%d/%d\n",pbR->ident,Num,Den) ;
-    sprintf(pbR->strRes,"%d",Den);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Den);
     return 1 ;
 }
 
@@ -1358,7 +1358,7 @@ int PB034(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\n") ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",Sum) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Sum) ;
     return 1 ;
     
 }
@@ -1409,7 +1409,7 @@ int PB035(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\n") ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbFind);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbFind);
     free(isPrimeUsed) ;
     return 1 ;
 }
@@ -1483,7 +1483,7 @@ int PB036(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose)fprintf(stdout,"\n\t PB%s Nbfind=%d\n",pbR->ident,nbFind) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Sum);
     return 1 ;
 }
 
@@ -1588,7 +1588,7 @@ int PB037(PB_RESULT *pbR) {
         for(i=0;i<nbFind;i++) fprintf(stdout,"%d%c",truncPrime[i], (i == nbFind-1) ? '\n' : ' ') ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Sum);
     free(truncRight);
     return 1 ;
 }
@@ -1672,7 +1672,7 @@ int PB037r(PB_RESULT *pbR) {
         for(i=0;i<nbFind;i++) fprintf(stdout,"%d%c",truncPrime[i], (i == nbFind-1) ? '\n' : ' ') ;
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Sum);
     free(truncRight);
     return 1 ;
 }
@@ -1753,7 +1753,7 @@ int PB038(PB_RESULT *pbR) {
     
     if(pbR->isVerbose)fprintf(stdout,"\n") ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",maxP) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",maxP) ;
     return 1 ;
     
 }
@@ -1804,7 +1804,7 @@ int PB039(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() -  pbR->nbClock ;
     
-    sprintf(pbR->strRes,"%d",2*Pbest) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",2*Pbest) ;
     free(nbSol);
     return 1;
 }
@@ -1839,7 +1839,7 @@ int PB040(PB_RESULT *pbR) {
     }
     if(pbR->isVerbose) fprintf(stdout,"\n");
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",P);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",P);
     return 1 ;
 }
 
@@ -1868,7 +1868,7 @@ int PB041(PB_RESULT *pbR) {
     Free_tablePrime(ctxP);
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pBest) {
-        sprintf(pbR->strRes,"%u",pBest);
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%u",pBest);
         return 1 ;
     } else {
         return 0 ;
@@ -1896,7 +1896,7 @@ int PB042(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%d",nbTriangle);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbTriangle);
     return 1 ;
 }
 
@@ -1942,7 +1942,7 @@ int PB043(PB_RESULT *pbR) {
     } while(NextPermutRg(dig, 10, rg) >= 0) ;
     if(pbR->isVerbose) fprintf(stdout,"nbLoop=%d\n",nbL);
     pbR->nbClock = clock() - pbR->nbClock ;
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     return 1 ;
 }
 
@@ -1978,7 +1978,7 @@ int PB044(PB_RESULT *pbR) {
                     if((r=IsPentagonal(Pi+Pj)) && IsPentagonal(Pi-Pj) ) {
                         pbR->nbClock = clock() - pbR->nbClock ;
                         if(pbR->isVerbose)fprintf(stdout,"P(%d)=%d P(%d)=%lld P(%d)=%lld=%lld+%lld P(%d)=%lld=%lld+%lld\n",k,Pk2/2,j,Pj,i,Pi,Pi-Pj,Pj,r,Pi+Pj,Pi,Pj) ;
-                        sprintf(pbR->strRes,"%d",Pk2/2);
+                        snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",Pk2/2);
                         return 1 ;
                         
                     }
@@ -2006,7 +2006,7 @@ int PB045(PB_RESULT *pbR) {
             if((d&1) && (d*(PENT_T)(d+1) == Pk2) ) {
                 if(pbR->isVerbose)fprintf(stdout,"P(%d)=%lld=T(%d)=H(%d) ",k,Pk2/2,d,(d+1)/2) ;
                 nbSol-- ;
-                if(nbSol == PB045_NBS - 2) sprintf(pbR->strRes,"%lld",Pk2/2);
+                if(nbSol == PB045_NBS - 2) snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Pk2/2);
             }
         }
     }
@@ -2036,7 +2036,7 @@ int PB046(PB_RESULT *pbR) {
             while(curOdd < indP) {
                 if(!oddDec[curOdd]) {
                     Free_tablePrime(ctxP) ;
-                    sprintf(pbR->strRes,"%d",2*curOdd+1) ;
+                    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",2*curOdd+1) ;
                     pbR->nbClock = clock() - pbR->nbClock ;
                     return 1 ;
                 }
@@ -2080,7 +2080,7 @@ int PB047(PB_RESULT *pbR) {
             if(FindNbDivPrime(n+3,tbPrime) < 4 ) {
                 n += 4 ; continue ;
             }
-            sprintf(pbR->strRes,"%d",n);
+            snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",n);
             Free_tablePrime(ctxP) ;
             pbR->nbClock = clock() - pbR->nbClock ;
             return 1 ;
@@ -2116,7 +2116,7 @@ int PB048(PB_RESULT *pbR) {
         }
         Sum = (Sum + Npow) % PB048_MOD ;
     }
-    sprintf(pbR->strRes,"%lld",Sum);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -2163,7 +2163,7 @@ int PB049(PB_RESULT *pbR) {
                 int e3 = 2*Permut[i].perm[i2] - Permut[i].perm[i1] ;
                 for(i3=i2+1;i3<nb; i3++) {
                     if( Permut[i].perm[i3] == e3) {
-                        sprintf(pbR->strRes,"%d%d%d",Permut[i].perm[i1],Permut[i].perm[i2],Permut[i].perm[i3]) ;
+                        snprintf(pbR->strRes, sizeof(pbR->strRes),"%d%d%d",Permut[i].perm[i1],Permut[i].perm[i2],Permut[i].perm[i3]) ;
                         i = PB049_MAXN ; i3= i2 = i1 = nb ;
                     }
                 }
@@ -2171,7 +2171,7 @@ int PB049(PB_RESULT *pbR) {
         }
         
     }
-    //    sprintf(pbR->strRes,"%lld",Sum);
+    //    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
     free(Permut);
     Free_tablePrime(ctxP);
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -2231,6 +2231,6 @@ int PB050(PB_RESULT *pbR) {
     
     pbR->nbClock = clock() - pbR->nbClock ;
     Free_tablePrime(ctxP);
-    sprintf(pbR->strRes,"%d",bestP);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",bestP);
     return 1 ;
 }
