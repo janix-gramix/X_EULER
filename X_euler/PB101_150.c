@@ -1292,10 +1292,7 @@ int PB119(PB_RESULT *pbR) {
 
 int PB120(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int SumR = 0 ;
-
-    pbR->nbClock = clock() - pbR->nbClock ;
-    
+    int SumR = 0 ;   
     SumR += 2*3 ;
     int n4 ;
     for(n4=4;n4<1000;n4 += 4) {
