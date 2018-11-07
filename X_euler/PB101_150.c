@@ -1254,7 +1254,7 @@ int PB119(PB_RESULT *pbR) {
     int antNb = 0 ;
     for(nd=3,Pow10=1000;nb<PB119_MAX;nd++ , Pow10 *= 10) {
         antNb = nb ;
-        for(s=2;s<=9*PB119_NBD_MAX;s++){
+        for(s=2;s<9*PB119_NBD_MAX;s++){
             uint64_t pow  ;
             for(pow=Pow[s];pow < Pow10 ; pow *= s){
                 uint64_t p1 = pow  ;
