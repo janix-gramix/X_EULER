@@ -72,7 +72,7 @@ int PB056_gmp(PB_RESULT *pbR) {
     return 1 ;
 }
 
-int PB066(PB_RESULT *pbR) {
+int PB066_gmp(PB_RESULT *pbR) {
     int32_t N , n , d ;
     int32_t k0, k02 ;
     pbR->nbClock = clock()  ;
@@ -102,7 +102,7 @@ int PB066(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) {
-        gmp_fprintf(stdout,"\t PB%s x(%d)=%Zd\n",pbR->ident, bestN,max_x) ;
+        gmp_printf("\t PB%s x(%d)=%Zd\n",pbR->ident, bestN,max_x) ;
     }
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",bestN);
     return 1 ;

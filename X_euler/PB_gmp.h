@@ -14,6 +14,7 @@
 
 PROTO_PB(016_gmp) ;
 PROTO_PB(056_gmp) ;
+PROTO_PB(066_gmp) ;
 PROTO_PB(080_gmp) ;
 PROTO_PB(104_gmp) ;
 
