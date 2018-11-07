@@ -1818,7 +1818,7 @@ typedef struct RAD2N {
     int32_t * n2rad ;
 } RAD2N ;
 
-// maxn : max value for n
+// maxn : max value for n (inclusive also)
 // maxr : max rad(n) orderer (inclusive rad2n[maxr] is OK)
 RAD2N * Rad2nAlloc(int maxn,int maxr,int isOrdered) {
     RAD2N * rdn = calloc(1,sizeof(rdn[0])) ;
@@ -1829,8 +1829,8 @@ RAD2N * Rad2nAlloc(int maxn,int maxr,int isOrdered) {
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
     int nbPrime = GetNbPrime(ctxP) ;
-    rdn->rad2n = malloc((maxn+1)*sizeof(rdn->rad2n[0]));
-    rdn->n2rad = calloc(maxn,sizeof(rdn->n2rad[0]));
+    rdn->rad2n = malloc((maxr+1)*sizeof(rdn->rad2n[0]));
+    rdn->n2rad = calloc(maxn+1,sizeof(rdn->n2rad[0]));
     int i ;
     int rgN = 0 ;
     rdn->rad2n[rgN++] = 1 ;
@@ -1863,7 +1863,9 @@ RAD2N * Rad2nAlloc(int maxn,int maxr,int isOrdered) {
                 for(j=0;j<nbSup;j++) {
                     if(rdn->rad2n[rgN+j] <= maxRad) {
                         int n = rdn->rad2n[rgN+j]*powp ;
+                        if(rgN+nbSup+pSup > maxr) printf("r%d->%d ",rgN+nbSup+pSup,n) ;
                         rdn->rad2n[rgN+nbSup+pSup] = n ;
+                        if(n>=maxn) printf("n%d->%d ",n,curRad) ;
                         rdn->n2rad[n] = curRad ;  // printf("+%d ",n) ;
                         pSup++ ;
                     }
@@ -1904,7 +1906,7 @@ int cmpRad(const void * e1,const  void * e2) {
 int PB124(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int nAsk = 0 ;
-    RAD2N * rdn = Rad2nAlloc(PB124_MAXP,PB124_RG, 1) ;
+    RAD2N * rdn = Rad2nAlloc(PB124_MAXP+1,PB124_RG, 1) ;
     nAsk = rdn->rad2n[PB124_RG] ;
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nAsk) ;
@@ -2014,7 +2016,7 @@ int PB126(PB_RESULT *pbR) {
 #define PB127_MAXF  20
 int PB127(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    RAD2N * rdn=Rad2nAlloc(PB127_MAXP,PB127_MAXP,0) ;
+    RAD2N * rdn=Rad2nAlloc(PB127_MAXP-1,PB127_MAXP,0) ;
     //boucle externe sur b
     int a,b,c ;
     int sum = 0 ;
@@ -2049,7 +2051,7 @@ int PB127(PB_RESULT *pbR) {
 // explore a by rad(a) order (easy as obtain naturally by rad(n) calculation in rad2n
 int PB127a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    RAD2N * rdn=Rad2nAlloc(PB127_MAXP,PB127_MAXP,0) ;
+    RAD2N * rdn=Rad2nAlloc(PB127_MAXP-1,PB127_MAXP,0) ;
     int a,b,c ;
     int sum = 0 ;
     for(c=3;c<PB127_MAXP;c++) {
