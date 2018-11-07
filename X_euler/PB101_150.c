@@ -198,7 +198,8 @@ static int CmpUint32(const void *el1, const void *el2) {
 int PB104(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int k ;
-     uint32_t PanDigital[FACT9] ;
+//     uint32_t PanDigital[FACT9] ;
+    uint32_t *PanDigital = malloc(FACT9 * sizeof(PanDigital[0]));
     uint8_t perm[9] = {1,2,3,4,5,6,7,8,9} ;
     int is=0 ;
     do {
@@ -225,6 +226,7 @@ int PB104(PB_RESULT *pbR) {
         F0=F1 ;
         F1=tmp ;
     }
+    free(PanDigital);
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",k) ;
     return 1 ;
