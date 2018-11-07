@@ -1378,7 +1378,7 @@ int PB103f(PB_RESULT *pbR) {
     return 1 ;
 }
 
-GlobalPaths * glbP[PB103_NB] ;
+GlobalPaths * G_glbP[PB103_NB] ;
 
 void InitLevelg(DevD *antDD, DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum103_t Smin) {
     
@@ -1408,7 +1408,7 @@ void InitLevelg(DevD *antDD, DevD  *DD, int is, sum103_t pondDelta[PB103_NB],sum
             Delt->Srev += Delt->deltas[j-1] *pondDelta[is+1-j] ;
             Delt->val[j] = Delt->val[j-1] + Delt->deltas[j-1] + 1 ;
         }
-        Delt->deltas[is-1] = FindMinDeltaPreG(Delt->val,glbP[is]) ;
+        Delt->deltas[is-1] = FindMinDeltaPreG(Delt->val,G_glbP[is]) ;
         Delt->S += Delt->deltas[is-1] * pondDelta[is-1] ;
         Delt->Srev += Delt->deltas[is-1] *pondDelta[1] ;
         Delt->val[is] = Delt->val[is-1] + Delt->deltas[is-1] + 1 ;
@@ -1450,7 +1450,7 @@ int PB103g(PB_RESULT *pbR) {
     { int i ; for(i=3;i<PB103_NB;i++)
     {
         hlfP[i] = GetHalfPath(i+1) ;
-        glbP[i] = GetGlobalPath(i+1) ;
+        G_glbP[i] = GetGlobalPath(i+1) ;
     }
     }
     sum103_t Smin = InitPondSum(pondDelta,PB103_NB ,AltP) ;

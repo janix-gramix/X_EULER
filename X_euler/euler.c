@@ -306,7 +306,16 @@ static PB_CALL CUR_calls[] = {
 
 //    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
 //    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
-    PROTO_CALL(092a,8581146,'Square digit chains')
+
+    //    PROTO_CALL(092a,8581146,'Square digit chains')
+    PROTO_CALL(103g,20313839404245,'Special subset sums: optimum')
+    // diverse variante de moins en moins efficaces surtout pour des ordres superieurs (8,9,10 PB NP-complet)
+        ,PROTO_CALL(103f,20313839404245,'Special subset sums: optimum')
+        ,PROTO_CALL(103e,20313839404245,'Special subset sums: optimum')
+        ,PROTO_CALL(103c,20313839404245,'Special subset sums: optimum')
+        ,PROTO_CALL(103b,20313839404245,'Special subset sums: optimum')
+        ,PROTO_CALL(103a,20313839404245,'Special subset sums: optimum')
+        ,PROTO_CALL(103,20313839404245,'Special subset sums: optimum')
  
 
 
@@ -331,8 +340,8 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-    char * isALL = "300" ;
-//    char * isALL = NULL ;
+//    char * isALL = "300" ;
+    char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {
         Execute(&ttr,ptCall);
