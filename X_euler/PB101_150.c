@@ -391,8 +391,8 @@ int PB110(PB_RESULT *pbR) {
                                 ,233,239,241,251,257,263,269,271,277,281} ;
     int minS = (strcmp(pbR->ident,"110") == 0) ? PB110_MINS : PB108_MINS ;
     int sumA ;
-     uint64_t nMin = 1L << PB108_ALPHAM ;
-    for(sumA=2;(1L<<sumA) <= nMin ;sumA++) {
+     uint64_t nMin = ((uint64_t)1) << PB108_ALPHAM ;
+    for(sumA=2;(((uint64_t)1)<<sumA) <= nMin ;sumA++) {
         //      printf("\nSum(alpha)=%d ",sumA) ;
         int nbA,nbAmax ;
          uint64_t n=1 ;
