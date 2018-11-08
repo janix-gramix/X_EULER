@@ -95,7 +95,7 @@ int NextSub(uint8_t *sub,int k, int n) {
     int j,i ;
     if(sub[k-1]< n-1) {
         sub[k-1]++ ; return k-1 ;
-    } else if (sub[k-2] < n-2) {
+    } else if (k >1 && sub[k-2] < n-2) {
         sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
     }
     for(i=k-3;i>=0;i--) {
@@ -115,7 +115,7 @@ int NextSub16(uint16_t *sub,int k, int n) {
     int j,i ;
     if(sub[k-1]< n-1) {
         sub[k-1]++ ; return k-1 ;
-    } else if (sub[k-2] < n-2) {
+    } else if (k >1 &&  sub[k-2] < n-2) {
         sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
     }
     for(i=k-3;i>=0;i--) {
@@ -135,7 +135,7 @@ int NextSub32(uint32_t *sub,int k, int n) {
     int j,i ;
     if(sub[k-1]< n-1) {
         sub[k-1]++ ; return k-1 ;
-    } else if (sub[k-2] < n-2) {
+    } else if (k >1 &&  sub[k-2] < n-2) {
         sub[k-2]++ ; sub[k-1] = sub[k-2]+1 ; return k-2 ;
     }
     for(i=k-3;i>=0;i--) {
