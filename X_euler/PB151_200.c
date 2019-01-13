@@ -130,6 +130,82 @@ int PB187b(PB_RESULT *pbR) {
 }
 
 
+#define PB191_LEN   30
+#define PB191_NBLL  12
+typedef enum LL2 {
+  OO_0,OA_0,AO_0,AA_0,OO_1,OA_1,AO_1,AA_1,LA,LO,AL,OL
+} LL2 ;
+
+
+int PB191(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t nbChains[PB191_NBLL]  ,newNb[PB191_NBLL];
+    int i ;
+    nbChains[OO_0]=1; nbChains[OA_0]=1;nbChains[AO_0]=1;nbChains[AA_0]=1;
+    nbChains[OO_1]=0; nbChains[OA_1]=0;nbChains[AO_1]=0;nbChains[AA_1]=0;
+    nbChains[LA]=1; nbChains[AL]=1;nbChains[LO]=1;nbChains[OL]=1;
+    for(i=2;i<PB191_LEN;i++) {
+        newNb[OO_0] = nbChains[OO_0] + nbChains[AO_0] ;
+        newNb[OO_1] = nbChains[OO_1] + nbChains[AO_1] + nbChains[LO] ;
+
+        newNb[AA_0] = nbChains[OA_0] ;
+        newNb[AA_1] = nbChains[OA_1] + nbChains[LA] ;
+
+        newNb[OA_0] = nbChains[OO_0] + nbChains[AO_0] ;
+        newNb[OA_1] = nbChains[OO_1] + nbChains[AO_1] + nbChains[LO] ;
+
+        newNb[AO_0] = nbChains[AA_0] + nbChains[OA_0] ;
+        newNb[AO_1] = nbChains[AA_1] + nbChains[OA_1] + nbChains[LA] ;
+        
+        newNb[LA] = nbChains[AL] + nbChains[OL];
+        newNb[LO] = nbChains[AL] + nbChains[OL] ;
+
+        newNb[AL] = nbChains[OA_0] + nbChains[AA_0];
+        newNb[OL] = nbChains[OO_0] + nbChains[AO_0];
+
+        memcpy(nbChains,newNb,sizeof(nbChains)) ;
+    }
+    int64_t nbTot = 0;
+    for(i=0;i<PB191_NBLL;i++) {
+        nbTot += nbChains[i] ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NbChains=%lld\n",pbR->ident,nbTot) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbTot) ;
+    return 1 ;
+}
+
+typedef enum LL2a {
+    A0_0,A0_1,A1_0,A1_1,A2_0,A2_1
+} LL2a ;
+
+#define PB191_NBLLa  6
+
+int PB191a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t nbChains[PB191_NBLLa]  ,newNb[PB191_NBLLa];
+    int i ;
+    for(i=0;i<PB191_NBLLa;i++) nbChains[i] = 0 ;
+    nbChains[A0_0]=1;
+    for(i=0;i<PB191_LEN;i++) {
+        newNb[A0_0] = nbChains[A0_0] + nbChains[A1_0] + nbChains[A2_0] ; //  rajout O
+        newNb[A0_1] = nbChains[A0_1] + nbChains[A1_1] + nbChains[A2_1]    // rejout O
+            +  nbChains[A0_0] + nbChains[A1_0] + nbChains[A2_0] ; // rajout L
+        newNb[A1_0] = nbChains[A0_0] ;
+        newNb[A1_1] = nbChains[A0_1] ;
+        newNb[A2_0] = nbChains[A1_0] ;
+        newNb[A2_1] = nbChains[A1_1] ;
+        memcpy(nbChains,newNb,sizeof(nbChains)) ;
+    }
+    int64_t nbTot = 0;
+    for(i=0;i<PB191_NBLLa;i++) {
+        nbTot += nbChains[i] ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s NbChains=%lld\n",pbR->ident,nbTot) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbTot) ;
+    return 1 ;
+}
 
 
 #define PB192_MAXN  100000
@@ -214,6 +290,230 @@ int PB192(PB_RESULT *pbR) {
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
+    return 1 ;
+}
+
+ #define PB193_MAX   1125899906842624LL
+// #define PB193_MAX   64LL
+
+int PB193(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    int maxP = (int) Sqrt64(PB193_MAX)+1 ;
+    if((ctxP = Gen_tablePrime(maxP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int i;
+    int P ;
+    int nbM = nbPrime ;
+    const T_prime *ptnbM = tbPrime+nbM ;
+    const T_prime *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8 ;
+    int64_t nbSqrMult = 0 ;
+    int64_t P2,P3,P4,P5,P6,P7,P8 ;
+    for(pt1=tbPrime;pt1<ptnbM ;pt1++) {
+        int64_t P1 = PB193_MAX / ( *pt1 * (int64_t) *pt1)  ;
+        nbSqrMult += P1 ;
+        for(pt2=pt1+1;pt2<ptnbM && (P2=*pt2 * (int64_t) *pt2 ) <= P1 ;pt2++) {
+            P2 = P1 / P2 ;
+            nbSqrMult -= P2 ;
+            for(pt3=pt2+1;pt3<ptnbM && (P3=*pt3 * (int64_t) *pt3 ) <= P2 ;pt3++) {
+                P3 = P2 / P3 ;
+                nbSqrMult += P3 ;
+                for(pt4=pt3+1;pt4<ptnbM && (P4=*pt4 * (int64_t) *pt4 ) <= P3 ;pt4++) {
+                    P4 = P3 / P4 ;
+                    nbSqrMult -= P4 ;
+                    for(pt5=pt4+1;pt5<ptnbM && (P5=*pt5 * (int64_t) *pt5 ) <= P4 ;pt5++) {
+                        P5 = P4 / P5 ;
+                        nbSqrMult += P5 ;
+                        for(pt6=pt5+1;pt6<ptnbM && (P6=*pt6 * (int64_t) *pt6 ) <= P5;pt6++) {
+                            P6 = P5 / P6 ;
+                            nbSqrMult -= P6 ;
+                            for(pt7=pt6+1;pt7<ptnbM  && (P7=*pt7 * (int64_t) *pt7 ) <= P6 ;pt7++) {
+                                P7 = P6 / P7 ;
+                                nbSqrMult += P7 ;
+                                for(pt8=pt7+1;pt8<ptnbM && (P8=*pt8 * (int64_t) *pt8 ) <= P7 ;pt8++) {
+                                    P8 = P7 / P8 ;
+                                    nbSqrMult -= P8 ;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    int64_t nbFind = PB193_MAX - nbSqrMult ;
+ 
+    Free_tablePrime(ctxP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbFind) ;
+    return 1 ;
+}
+
+int PB193a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    int maxP = (int) Sqrt64(PB193_MAX) ;
+    if((ctxP = Gen_tablePrime(maxP)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int64_t *tbPrime2 = malloc((nbPrime+1)*sizeof(tbPrime2[0])) ;
+    int i;
+    for(i=0;i<nbPrime;i++) {
+        tbPrime2[i] = tbPrime[i]*(int64_t)tbPrime[i] ;
+    }
+    tbPrime2[i] = tbPrime2[i-1] ; // on duplique le derneir element pour eviter un test
+    Free_tablePrime(ctxP) ;
+
+    int64_t *ptnbM = tbPrime2+nbPrime ;
+    int64_t *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8 ;
+    int64_t nbSqrMult = 0 ;
+    int64_t P2,P3,P4,P5,P6,P7,P8 ;
+    for(pt1=tbPrime2;pt1<ptnbM ;pt1++) {
+        int64_t P1 = PB193_MAX / *pt1  ;
+        nbSqrMult += P1 ;
+        for(pt2=pt1+1; *pt2 <= P1 ;pt2++) {
+            P2 = P1 / *pt2 ;
+            nbSqrMult -= P2 ;
+            for(pt3=pt2+1; *pt3  <= P2 ;pt3++) {
+                P3 = P2 / *pt3 ;
+                nbSqrMult += P3 ;
+                for(pt4=pt3+1;*pt4  <= P3 ;pt4++) {
+                    P4 = P3 / *pt4 ;
+                    nbSqrMult -= P4 ;
+                    for(pt5=pt4+1;*pt5  <= P4 ;pt5++) {
+                        P5 = P4 / *pt5 ;
+                        nbSqrMult += P5 ;
+                        for(pt6=pt5+1;*pt6  <= P5;pt6++) {
+                            P6 = P5 / *pt6 ;
+                            nbSqrMult -= P6 ;
+                            for(pt7=pt6+1;*pt7  <= P6 ;pt7++) {
+                                P7 = P6 / *pt7 ;
+                                nbSqrMult += P7 ;
+                                for(pt8=pt7+1;*pt8  <= P7 ;pt8++) {
+                                    P8 = P7 / *pt8 ;
+                                    nbSqrMult -= P8 ;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    int64_t nbFind = PB193_MAX - nbSqrMult ;
+    free(tbPrime2) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbFind) ;
+    return 1 ;
+}
+
+#define PB195_MX    400
+int PB195(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int a,b ;
+    u_int8_t *solutions = calloc(PB195_MX*PB195_MX,sizeof(solutions[0])) ;
+    for(a=1;a<PB195_MX;a++) {
+        for(b=1;b<PB195_MX;b++) {
+            if(PGCD(a,b) > 1) continue ;
+ /*           int c2 =a*a +b*b - a*b ;
+            int c =Sqrt32(c2) ;
+            if(c2 == c*c) {
+                int64_t A2 = (a+b+c)*(b+c-a)*(a+b-c)*(a+c-b) ;
+                int A = (int) Sqrt64(A2) ;
+                int p =(a+b+c);
+                printf("(%d,%d,%d,A2=%lld,4*A=%d,2xp=%d)\n",a,b,c,A2,A,p) ;
+            }
+*/
+/*
+            int c2 = 3*a*a+b*b ;
+            int c =Sqrt32(c2) ;
+            if(c2 == c*c) {
+                if(a&1) {
+                    int m = a+b ;
+                    int n = abs(3*a-b) ;
+                    int g = PGCD(m,n);
+                    m = m/g ;
+                    n = n/g ;
+                    printf("(3x%d,%d,%d)->(%d,%d,%d)\n",a,b,c,m,n,Sqrt32(3*m*m+n*n)) ;
+                } else {
+                    int n2 = (b+c)/2 ;
+                    int n = Sqrt32(n2);
+                    if(n*n != n2) {
+                        n2 = (c-b)/2 ;
+                        n = Sqrt32(n2);
+                        if(n*n != n2) printf("(3x%d,%d,%d)!!!\n",a,b,c) ;
+                    }
+                    int m = a / (2*n) ;
+                    printf("(3x%d,%d,%d)(m=%d,n=%d=>%d,%d)\n",a,b,c,m,n,2*m*n,abs(3*m*m-n*n)) ;
+                }
+            }
+*/
+            int c2 = 3*a*a+b*b ;
+            int c =Sqrt32(c2) ;
+            if(c2 == c*c) {
+                solutions[a*PB195_MX+b] |= 1 ;
+            }
+        }
+    }
+    int m,n ;
+    for(m=1;m<PB195_MX/2;m++) {
+        for(n=1;n*m<PB195_MX/2;n++) {
+            if(PGCD(m,n) > 1) continue ;
+            int M = 2*m*n ;
+            int N = abs(3*m*m-n*n) ;
+            int g = PGCD(M,N);
+            if(g > 1) continue ;
+            M /= g ; N /= g ;
+            if(N<PB195_MX) {
+                if((solutions[M*PB195_MX+N] & 0xE) != 0) {
+                    printf("Doublon[%d](%d,%d,%d)(%d,%d) ",solutions[M*PB195_MX+N],m,n,g,M,N) ;
+                }
+                solutions[M*PB195_MX+N] |= 2 ;
+
+                int M1 = M+N ;
+                int N1 = abs(3*M-N) ;
+                g = PGCD(M1,N1);
+                if(g > 1) continue ;
+                if(M1<PB195_MX && N1 <PB195_MX ) {
+                    if((solutions[M1*PB195_MX+N1] & 0xE) != 0) {
+                        printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[M1*PB195_MX+N1],m,n,g,M1,N1) ;
+                    }
+                    solutions[M1*PB195_MX+N1] |= 4 ;
+                }
+                M1 = abs(M-N) ;
+                N1 = 3*M+N ;
+                g = PGCD(M1,N1);
+                if(g > 1) continue ;
+                 if(M1<PB195_MX && N1 <PB195_MX ) {
+                    if((solutions[M1*PB195_MX+N1] & 0xE) != 0) {
+                        printf("DoublonM-N[%d](%d,%d,%d)(%d,%d) ",solutions[M1*PB195_MX+N1],m,n,g,M1,N1) ;
+                    }
+                    solutions[M1*PB195_MX+N1] |= 8 ;
+                }
+
+            }
+        }
+    }
+    for(a=1;a<PB195_MX;a++) {
+        for(b=1;b<PB195_MX;b++) {
+            if(solutions[a*PB195_MX+b]) {
+                if(solutions[a*PB195_MX+b] ==1 || (solutions[a*PB195_MX+b] & 1)==0) {
+                    printf("PB(%d),(%d,%d) ",solutions[a*PB195_MX+b], a,b) ;
+                } else {
+                    printf("OK(%d),(%d,%d) ",solutions[a*PB195_MX+b], a,b) ;
+                }
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+//    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbFind) ;
     return 1 ;
 }
 
