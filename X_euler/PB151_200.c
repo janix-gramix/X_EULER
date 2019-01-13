@@ -415,12 +415,13 @@ int PB193a(PB_RESULT *pbR) {
 }
 
 #define PB195_MX    400
+#define PB195_MAXR  100
 int PB195(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int a,b ;
     u_int8_t *solutions = calloc(PB195_MX*PB195_MX,sizeof(solutions[0])) ;
     for(a=1;a<PB195_MX;a++) {
-        for(b=1;b<PB195_MX;b++) {
+        for(b=a+1;b<PB195_MX;b++) {
             if(PGCD(a,b) > 1) continue ;
  /*           int c2 =a*a +b*b - a*b ;
             int c =Sqrt32(c2) ;
@@ -455,7 +456,7 @@ int PB195(PB_RESULT *pbR) {
                 }
             }
 */
-            int c2 = 3*a*a+b*b ;
+            int c2 = a*a+b*b-a*b ;
             int c =Sqrt32(c2) ;
             if(c2 == c*c) {
                 solutions[a*PB195_MX+b] |= 1 ;
@@ -463,39 +464,49 @@ int PB195(PB_RESULT *pbR) {
         }
     }
     int m,n ;
-    for(m=1;m<PB195_MX/2;m++) {
-        for(n=1;n*m<PB195_MX/2;n++) {
+    for(m=1;m<PB195_MX;m++) {
+        for(n=1;n*m<PB195_MX;n++) {
             if(PGCD(m,n) > 1) continue ;
             int M = 2*m*n ;
             int N = abs(3*m*m-n*n) ;
             int g = PGCD(M,N);
             if(g > 1) continue ;
-            M /= g ; N /= g ;
-            if(N<PB195_MX) {
-                if((solutions[M*PB195_MX+N] & 0xE) != 0) {
-                    printf("Doublon[%d](%d,%d,%d)(%d,%d) ",solutions[M*PB195_MX+N],m,n,g,M,N) ;
-                }
-                solutions[M*PB195_MX+N] |= 2 ;
+             if(N<PB195_MX) {
+                 if(N>M && M+N < PB195_MX) {
+                     int a = N-M ;
+                     int b = N+M ;
+                     
+                     if((solutions[a*PB195_MX+b] & 0xE) != 0) {
+                         printf("Doublon[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
+                     }
+                     solutions[a*PB195_MX+b] |= 2 ;
+                 }
 
                 int M1 = M+N ;
                 int N1 = abs(3*M-N) ;
                 g = PGCD(M1,N1);
                 if(g > 1) continue ;
-                if(M1<PB195_MX && N1 <PB195_MX ) {
-                    if((solutions[M1*PB195_MX+N1] & 0xE) != 0) {
-                        printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[M1*PB195_MX+N1],m,n,g,M1,N1) ;
+                if(M1+N1 <PB195_MX*2 && N1>M1) {
+                    int a = (N1-M1)/2 ;
+                    int b = (N1+M1)/2 ;
+                    
+                    if((solutions[a*PB195_MX+b] & 0xE) != 0) {
+                        printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
                     }
-                    solutions[M1*PB195_MX+N1] |= 4 ;
+                    solutions[a*PB195_MX+b] |= 4 ;
                 }
                 M1 = abs(M-N) ;
                 N1 = 3*M+N ;
                 g = PGCD(M1,N1);
                 if(g > 1) continue ;
-                 if(M1<PB195_MX && N1 <PB195_MX ) {
-                    if((solutions[M1*PB195_MX+N1] & 0xE) != 0) {
-                        printf("DoublonM-N[%d](%d,%d,%d)(%d,%d) ",solutions[M1*PB195_MX+N1],m,n,g,M1,N1) ;
-                    }
-                    solutions[M1*PB195_MX+N1] |= 8 ;
+                 if(M1+N1 <PB195_MX*2 && N1>M1) {
+                     int a = (N1-M1)/2 ;
+                     int b = (N1+M1)/2 ;
+                     
+                     if((solutions[a*PB195_MX+b] & 0xE) != 0) {
+                         printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
+                     }
+                     solutions[a*PB195_MX+b] |= 8 ;
                 }
 
             }
