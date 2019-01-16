@@ -414,117 +414,75 @@ int PB193a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB195_MX    400
-#define PB195_MAXR  100
+
+// #define PB195_MX   200
+
+
+// #define PB195_MX   20000
+
+#define PB195_MAXR  1053779
+
+// #define PB195_MAXR 100000000
+
+#define PB195_MAXR2 PB195_MAXR*PB195_MAXR
 int PB195(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int a,b ;
-    u_int8_t *solutions = calloc(PB195_MX*PB195_MX,sizeof(solutions[0])) ;
-    for(a=1;a<PB195_MX;a++) {
-        for(b=a+1;b<PB195_MX;b++) {
-            if(PGCD(a,b) > 1) continue ;
- /*           int c2 =a*a +b*b - a*b ;
-            int c =Sqrt32(c2) ;
-            if(c2 == c*c) {
-                int64_t A2 = (a+b+c)*(b+c-a)*(a+b-c)*(a+c-b) ;
-                int A = (int) Sqrt64(A2) ;
-                int p =(a+b+c);
-                printf("(%d,%d,%d,A2=%lld,4*A=%d,2xp=%d)\n",a,b,c,A2,A,p) ;
-            }
-*/
-/*
-            int c2 = 3*a*a+b*b ;
-            int c =Sqrt32(c2) ;
-            if(c2 == c*c) {
-                if(a&1) {
-                    int m = a+b ;
-                    int n = abs(3*a-b) ;
-                    int g = PGCD(m,n);
-                    m = m/g ;
-                    n = n/g ;
-                    printf("(3x%d,%d,%d)->(%d,%d,%d)\n",a,b,c,m,n,Sqrt32(3*m*m+n*n)) ;
-                } else {
-                    int n2 = (b+c)/2 ;
-                    int n = Sqrt32(n2);
-                    if(n*n != n2) {
-                        n2 = (c-b)/2 ;
-                        n = Sqrt32(n2);
-                        if(n*n != n2) printf("(3x%d,%d,%d)!!!\n",a,b,c) ;
-                    }
-                    int m = a / (2*n) ;
-                    printf("(3x%d,%d,%d)(m=%d,n=%d=>%d,%d)\n",a,b,c,m,n,2*m*n,abs(3*m*m-n*n)) ;
-                }
-            }
-*/
-            int c2 = a*a+b*b-a*b ;
-            int c =Sqrt32(c2) ;
-            if(c2 == c*c) {
-                solutions[a*PB195_MX+b] |= 1 ;
-            }
+    double R =  PB195_MAXR * 2 / sqrt(3.0);
+    double R3 = R * 3 ;
+    int nbSol = 0 ;
+    int m,mr ;
+    int mMax = sqrt(R3)+1 ;
+     for(m=1;m<mMax;m++) {
+         int n ;
+          for(n=1; (mr=m*(n+m))<R3 ;n++) {
+             if(PGCD(m,n) > 1) continue ;
+             if((n % 3) != 0) {
+                 nbSol += R / mr ;
+             } else {
+                 nbSol += R3 / mr ;
+             }
         }
     }
-    int m,n ;
-    for(m=1;m<PB195_MX;m++) {
-        for(n=1;n*m<PB195_MX;n++) {
-            if(PGCD(m,n) > 1) continue ;
-            int M = 2*m*n ;
-            int N = abs(3*m*m-n*n) ;
-            int g = PGCD(M,N);
-            if(g > 1) continue ;
-             if(N<PB195_MX) {
-                 if(N>M && M+N < PB195_MX) {
-                     int a = N-M ;
-                     int b = N+M ;
-                     
-                     if((solutions[a*PB195_MX+b] & 0xE) != 0) {
-                         printf("Doublon[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
-                     }
-                     solutions[a*PB195_MX+b] |= 2 ;
-                 }
-
-                int M1 = M+N ;
-                int N1 = abs(3*M-N) ;
-                g = PGCD(M1,N1);
-                if(g > 1) continue ;
-                if(M1+N1 <PB195_MX*2 && N1>M1) {
-                    int a = (N1-M1)/2 ;
-                    int b = (N1+M1)/2 ;
-                    
-                    if((solutions[a*PB195_MX+b] & 0xE) != 0) {
-                        printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
-                    }
-                    solutions[a*PB195_MX+b] |= 4 ;
-                }
-                M1 = abs(M-N) ;
-                N1 = 3*M+N ;
-                g = PGCD(M1,N1);
-                if(g > 1) continue ;
-                 if(M1+N1 <PB195_MX*2 && N1>M1) {
-                     int a = (N1-M1)/2 ;
-                     int b = (N1+M1)/2 ;
-                     
-                     if((solutions[a*PB195_MX+b] & 0xE) != 0) {
-                         printf("DoublonM+N[%d](%d,%d,%d)(%d,%d) ",solutions[a*PB195_MX+b],m,n,g,a,b) ;
-                     }
-                     solutions[a*PB195_MX+b] |= 8 ;
-                }
-
-            }
-        }
-    }
-    for(a=1;a<PB195_MX;a++) {
-        for(b=1;b<PB195_MX;b++) {
-            if(solutions[a*PB195_MX+b]) {
-                if(solutions[a*PB195_MX+b] ==1 || (solutions[a*PB195_MX+b] & 1)==0) {
-                    printf("PB(%d),(%d,%d) ",solutions[a*PB195_MX+b], a,b) ;
-                } else {
-                    printf("OK(%d),(%d,%d) ",solutions[a*PB195_MX+b], a,b) ;
-                }
-            }
-        }
-    }
+    printf("Nbsol=%d\n",nbSol) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-//    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbFind) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
+    return 1 ;
+}
+
+int PB195a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    double R =  PB195_MAXR * 2 / sqrt(3.0);
+    double R3 = R * 3 ;
+    int nbSol = 0 ;
+    int m,n,mr ;
+    int mMax = sqrt(R3)+1 ;
+    int nMax = R3/4 ; // for m>=4
+    u_int8_t *isNotPrime_mn = calloc(nMax,sizeof(isNotPrime_mn[0])) ;
+    for(n=1;(mr=n+1)<R3;n++) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=1
+    for(n=1;(mr=2*n+4)<R3;n +=2) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=2
+    for(n=1;(mr=3*n+9)<R;n++) { if( (n%3) != 0 ) nbSol += R/mr ; } // m=3
+    for(m=4;m<mMax;m++) { // m >= 4
+        nMax =R3/m - m ; // m*(m+n)=R3
+        nbSol += R/(m*(m+1)) ; // n=1
+        for(n=2;n<=nMax;n++){
+            if(isNotPrime_mn[n]) { isNotPrime_mn[n] = 0 ; continue ; }
+            if(n<=m) {
+                if( (m % n) == 0 ) { // n divisor of m
+                    int np ; // invalidate multiple on n
+                    for(np = 2*n; np<=nMax;np+=n) isNotPrime_mn[np] = 1 ;
+                    continue ;
+                }
+            }
+            // n is prime with m
+            mr = m * (m+n) ;
+            nbSol += (n % 3) ? R/mr : R3/mr ;
+
+        }
+    }
+    printf("Nbsol=%d\n",nbSol) ;
+    free(isNotPrime_mn) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
 }
 
