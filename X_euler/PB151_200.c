@@ -15,6 +15,41 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
+#define PB173_NB    1000000
+int PB173(PB_RESULT *pbR) {
+    int N = PB173_NB/4 ;
+    pbR->nbClock = clock() ;
+    int n ;
+    int64_t S = 0 ;
+    S += N-1 ; // product 1xn
+    for(n=2;n*(n+1)<=N;n++) {
+        S += N/n - n ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+    return 1 ;
+}
+
+#define PB174_NB    1000000
+int PB174(PB_RESULT *pbR) {
+    int N = PB173_NB/4 ;
+    pbR->nbClock = clock() ;
+    int *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
+    int n ;
+    for(n=2;n<=N;n++) { nbProd[n] = 1 ; }
+    for(n=2;n*n<N;n++) {
+        int p ;
+        for(p=n+1;n*p<=N;p++) { nbProd[n*p]++ ; }
+    }
+    int S = 0 ;
+    for(n=2;n<=N;n++) { if(nbProd[n]<=10)S++ ;  }
+    free(nbProd) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+    return 1 ;
+}
+
+
 //#define PB187_MAX   2000000000
 #define PB187_MAX   100000000
 int PB187(PB_RESULT *pbR) {
@@ -414,27 +449,32 @@ int PB193a(PB_RESULT *pbR) {
     return 1 ;
 }
 
+ // #define PB195_MAXR   100
 
-// #define PB195_MX   200
 
-
-// #define PB195_MX   20000
+// #define PB195_MAXR   10000
 
 #define PB195_MAXR  1053779
 
-// #define PB195_MAXR 100000000
+//#define PB195_MAXR 10000000
+// parametrage triangle primitif m^n (premiers)
+// a=m(3m+2n) ; b = (m+n)("m+n)
+// c = sqrt(a*a+b*b-axb) = 3m*m+3*mxn+n*n
+// R = sqrt(3)/2 * m * (m+n) si n%3 != 0
+// si n= 3*p
+// a/3 , b/3 est primitif
+// R = 1/(2*sqrt(3)) * m * (m+3p)
 
-#define PB195_MAXR2 PB195_MAXR*PB195_MAXR
 int PB195(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    double R =  PB195_MAXR * 2 / sqrt(3.0);
-    double R3 = R * 3 ;
-    int nbSol = 0 ;
+    double R =  PB195_MAXR * 2 / sqrtl(3.0);
+    double R3 = PB195_MAXR * 2 * sqrtl(3.0) ;
+    int64_t nbSol = 0 ;
     int m,mr ;
     int mMax = sqrt(R3)+1 ;
-     for(m=1;m<mMax;m++) {
+     for(m=1;m<=mMax;m++) {
          int n ;
-          for(n=1; (mr=m*(n+m))<R3 ;n++) {
+          for(n=1; (mr=m*(n+m))<=R3 ;n++) {
              if(PGCD(m,n) > 1) continue ;
              if((n % 3) != 0) {
                  nbSol += R / mr ;
@@ -443,30 +483,30 @@ int PB195(PB_RESULT *pbR) {
              }
         }
     }
-    printf("Nbsol=%d\n",nbSol) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nbsol=%lld\n",pbR->ident ,nbSol) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
     return 1 ;
 }
 
 int PB195a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    double R =  PB195_MAXR * 2 / sqrt(3.0);
-    double R3 = R * 3 ;
-    int nbSol = 0 ;
+    double R =  PB195_MAXR * 2 / sqrtl(3);
+    double R3 = PB195_MAXR * 2 * sqrtl(3) ;
+    int64_t nbSol = 0 ;
     int m,n,mr ;
     int mMax = sqrt(R3)+1 ;
-    int nMax = R3/4 ; // for m>=4
+    int nMax = R3/4 + 2 ; // for m>=4
     u_int8_t *isNotPrime_mn = calloc(nMax,sizeof(isNotPrime_mn[0])) ;
-    for(n=1;(mr=n+1)<R3;n++) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=1
-    for(n=1;(mr=2*n+4)<R3;n +=2) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=2
-    for(n=1;(mr=3*n+9)<R;n++) { if( (n%3) != 0 ) nbSol += R/mr ; } // m=3
-    for(m=4;m<mMax;m++) { // m >= 4
+    for(n=1;(mr=n+1)<=R3;n++) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=1
+    for(n=1;(mr=2*n+4)<=R3;n +=2) { nbSol += (n % 3) ? R/mr : R3/mr ; } // m=2
+    for(n=1;(mr=3*n+9)<=R;n++) { if( (n%3) != 0 ) nbSol += R/mr ; } // m=3
+    for(m=4;m<=mMax;m++) { // m >= 4
         nMax =R3/m - m ; // m*(m+n)=R3
         nbSol += R/(m*(m+1)) ; // n=1
         for(n=2;n<=nMax;n++){
             if(isNotPrime_mn[n]) { isNotPrime_mn[n] = 0 ; continue ; }
-            if(n<=m) {
+            if(n <= m) {
                 if( (m % n) == 0 ) { // n divisor of m
                     int np ; // invalidate multiple on n
                     for(np = 2*n; np<=nMax;np+=n) isNotPrime_mn[np] = 1 ;
@@ -476,13 +516,12 @@ int PB195a(PB_RESULT *pbR) {
             // n is prime with m
             mr = m * (m+n) ;
             nbSol += (n % 3) ? R/mr : R3/mr ;
-
         }
     }
-    printf("Nbsol=%d\n",nbSol) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s Nbsol=%lld\n",pbR->ident ,nbSol) ;
     free(isNotPrime_mn) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
     return 1 ;
 }
 
@@ -782,7 +821,108 @@ int PB198d(PB_RESULT *pbR) {
 
 
 
+#define PB199_NBITER    10
 
+typedef struct T199_CIRCLE {
+    int nb ;
+    int type ;
+    double  q1 ;
+    double  q2 ;
+    double  q3 ;
+} T199_CIRCLE ;
+
+#define T199_T111 1
+#define T199_T112 2
+#define T199_T123 3
+
+
+int PB199(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int n,na ;
+    int nbMax = na = 2 ; // T111 + T112
+    for(n=0;n<PB199_NBITER;n++) {
+        na *= 3 ;
+        nbMax += na ;
+    }
+    double S = 1 ;
+    int indTbyNiv[PB199_NBITER+1] ;
+    int nbTbyNiv[PB199_NBITER+1] ;
+    T199_CIRCLE *TC199 = malloc(nbMax*sizeof(TC199[0])) ;
+    na = 0 ;
+    indTbyNiv[0] = na ;
+    TC199[na].type = T199_T111 ;
+    TC199[na].nb = 1 ;
+    TC199[na].q1 = TC199[na].q2 = TC199[na].q3 = 1/(2*sqrt(3.0)-3) ;
+    S -= 3 * (2*sqrt(3.0)-3)*(2*sqrt(3.0)-3) ;
+    na++ ;
+    TC199[na].type = T199_T112 ;
+    TC199[na].nb = 3 ;
+    TC199[na].q1 = TC199[na].q2 =  1/(2*sqrt(3.0)-3) ;
+    TC199[na].q3 = -1.0 ;
+    na++ ;
+    nbTbyNiv[0] = na - indTbyNiv[0] ;
+    for(n=0;n<PB199_NBITER;n++) {
+        int no = indTbyNiv[n] ;
+        int na = no + nbTbyNiv[n] ;
+        indTbyNiv[n+1] = na ;
+        while(no<indTbyNiv[n+1]){
+            double q ;
+            if(TC199[no].type== T199_T123) {
+                q = TC199[no].q1 + TC199[no].q2 + TC199[no].q3 + 2*sqrt( TC199[no].q1 * TC199[no].q2 + TC199[no].q1 * TC199[no].q3 + TC199[no].q2 * TC199[no].q3) ;
+                TC199[na].type = T199_T123 ;
+                TC199[na].nb = TC199[no].nb ;
+                TC199[na].q1  = TC199[no].q1 ;
+                TC199[na].q2  = TC199[no].q2 ;
+                TC199[na].q3 = q ;
+                na++ ;
+
+                TC199[na].type = T199_T123 ;
+                TC199[na].nb = TC199[no].nb ;
+                TC199[na].q1  = TC199[no].q1 ;
+                TC199[na].q2  = TC199[no].q3 ;
+                TC199[na].q3 = q ;
+                na++ ;
+
+                TC199[na].type = T199_T123 ;
+                TC199[na].nb = TC199[no].nb ;
+                TC199[na].q1  = TC199[no].q2 ;
+                TC199[na].q2  = TC199[no].q3 ;
+                TC199[na].q3 = q ;
+                na++ ;
+
+                
+            } else if(TC199[no].type== T199_T112) {
+                q = 2*TC199[no].q1 + TC199[no].q3 + 2*sqrt( TC199[no].q1 * (TC199[no].q1+2*TC199[no].q3) ) ;
+                TC199[na].type = T199_T112 ;
+                TC199[na].nb = TC199[no].nb ;
+                TC199[na].q1 = TC199[na].q2 = TC199[no].q1 ;
+                TC199[na].q3 = q ;
+                na++ ;
+
+                TC199[na].type = T199_T123 ;
+                TC199[na].nb = 2*TC199[no].nb ;
+                TC199[na].q1  = TC199[no].q1 ;
+                TC199[na].q2  = TC199[no].q3 ;
+                TC199[na].q3 = q ;
+                na++ ;
+
+            } else { // T199_T111
+                q = TC199[no].q1 * (3 + 2 *sqrt(3)) ;
+                 TC199[na].type = T199_T112 ;
+                TC199[na].nb = 3 * TC199[no].nb ;
+                TC199[na].q1 = TC199[na].q2 = TC199[no].q1 ;
+                TC199[na].q3 = q ;
+                na++ ;
+            }
+            S -= TC199[no++].nb / (q*q) ;
+       }
+        nbTbyNiv[n+1] = na - indTbyNiv[n+1] ;
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s %d -> S=%.8f\n",pbR->ident,n,S) ;
+     }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.8f",S) ;
+    return 1 ;
+}
 
 
 
