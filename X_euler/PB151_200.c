@@ -15,6 +15,8 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
+// nb(tiles) = 4*n*p with n>p
+// so count multiples k*p from k=p+1 to k<= N/p
 #define PB173_NB    1000000
 int PB173(PB_RESULT *pbR) {
     int N = PB173_NB/4 ;
@@ -30,16 +32,18 @@ int PB173(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB174_NB    1000000
+// #define PB174_NB    1000000
+#define PB174_NB    100
+
 int PB174(PB_RESULT *pbR) {
-    int N = PB173_NB/4 ;
+    int N = PB174_NB/4 ;
     pbR->nbClock = clock() ;
-    int *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
+    uint8_t *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
     int n ;
     for(n=2;n<=N;n++) { nbProd[n] = 1 ; }
     for(n=2;n*n<N;n++) {
-        int p ;
-        for(p=n+1;n*p<=N;p++) { nbProd[n*p]++ ; }
+        int np ;
+        for(np=n*(n+1);np<=N;np+=n) { nbProd[np]++ ; }
     }
     int S = 0 ;
     for(n=2;n<=N;n++) { if(nbProd[n]<=10)S++ ;  }
@@ -48,6 +52,135 @@ int PB174(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
+
+ #define PB179_NB    10000000
+// #define PB179_NB    100
+int PB179(PB_RESULT *pbR) {
+    int N =  PB179_NB ;
+    pbR->nbClock = clock() ;
+    uint16_t *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
+    int n ;
+    for(n=2;n<=N;n++) { nbProd[n] = 2 ; }
+    int nMax = Sqrt32(N);
+    for(n=2;n<=nMax;n++) {
+        int np = n*n ;
+        nbProd[np]++ ;
+        for(np += n ;np<=N;np+=n) { nbProd[np] += 2 ; }
+    }
+    int S = 0 ;
+    for(n=2;n<N;n++) {
+//        printf("(%d,%d)",n,nbProd[n]) ;
+        if(nbProd[n]==nbProd[n+1] ) {
+            S++ ;
+        }
+        
+    }
+    free(nbProd) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+    return 1 ;
+}
+
+int PB179a(PB_RESULT *pbR) {
+    int N =  PB179_NB ;
+    pbR->nbClock = clock() ;
+    uint16_t *nbDiv=malloc((N+1)*sizeof(nbDiv[0])) ;
+    int n ;
+    for(n=2;n<=N;n++) {
+        nbDiv[n] = 2 - (n&1);
+    }
+    int pow2 ;
+    for(pow2=4;pow2<=N;pow2 *=2){
+        for(n=pow2;n<=N;n+=pow2) nbDiv[n]++ ;
+    }
+    int p ;
+    int maxP = Sqrt32(N) ;
+    for(p=3;p<=N;p+=2) {
+        if(nbDiv[p]>1) continue ;
+        int k ;
+        for(n=p,k=1;n<=N;n+=p, k++) {
+            if(k<p) {
+                nbDiv[n] *= 2 ;
+            } else {
+                k = 0 ;
+            }
+        }
+        if(p<=maxP) {
+            int powp;
+            int exp1 ;
+            int maxPowp = N/ p ;
+            for(powp=p*p,exp1=3;;exp1++,powp *=p) {
+                for(n=(int)powp,k=1;n<=N;n+=(int)powp, k++) {
+                    if(k<p) {
+                        nbDiv[n] *= exp1 ;
+                    } else {
+                        k = 0 ;
+                    }
+                }
+                if(powp>maxPowp) break ;
+            }
+        }
+    }
+    int S = 0 ;
+    for(n=2;n<N;n++) {
+//        printf("(%d,%d)",n,nbProd[n]) ;
+       if(nbDiv[n]==nbDiv[n+1] ) {
+            S++ ;
+        }
+        
+    }
+    free(nbDiv) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+    return 1 ;
+}
+
+int PB179b(PB_RESULT *pbR) {
+    int N =  PB179_NB ;
+    pbR->nbClock = clock() ;
+    uint16_t *pDivMax=malloc((N+1)*sizeof(pDivMax[0])) ;
+    int n ;
+    pDivMax[1] = 1 ;
+    for(n=2;n<=N;n++) {
+        pDivMax[n] = (n&1) ? 0 : 2 ;
+    }
+
+    int p ;
+    int maxP = Sqrt32(N) ;
+    
+    for(p=3;p<=maxP;p+=2) {
+        if(pDivMax[p]) continue ;
+        for(n=p;n<=N;n+=p) {
+            pDivMax[n] = p ;
+        }
+    }
+    for(n=3;n<=N;n++) {
+        if(n == pDivMax[n] || (pDivMax[n] == 0) ) {
+            pDivMax[n] = 2 ;
+        } else {
+            p = pDivMax[n] ;
+            int d,d1,exp1 ;
+            for(d=n/p,exp1=2;d1=d/p,d==d1*p;d = d1) {
+                exp1++ ;
+            }
+            pDivMax[n] = pDivMax[d]*exp1 ;
+        }
+    }
+    int S = 0 ;
+    for(n=2;n<N;n++) {
+//                printf("(%d,%d)",n,pDivMax[n]) ;
+        if(pDivMax[n]==pDivMax[n+1] ) {
+            S++ ;
+        }
+        
+    }
+    free(pDivMax) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+    return 1 ;
+}
+
+
 
 
 //#define PB187_MAX   2000000000
