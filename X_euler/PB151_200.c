@@ -60,7 +60,7 @@ int PB179(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     uint16_t *nbProd=malloc((N+2)*sizeof(nbProd[0])) ;
     int n ;
-    nbProd[2] = 2 ;
+    nbProd[2] = nbProd[3] = 2 ;
     for(n=4;n<=N;n+=2) {
         nbProd[n] = 4 ;
         nbProd[n+1] = 2 ;
@@ -92,9 +92,9 @@ int PB179c(PB_RESULT *pbR) {
     int N =  PB179_NB ;
     pbR->nbClock = clock() ;
     int dMax = Sqrt32(N) ;
-    int nMax = dMax+1;
-    nMax += nMax & 1 ; // nMax even
-    uint16_t *nbProd=malloc((nMax)*sizeof(nbProd[0])) ;
+    int sizeCache = 16384 ;
+    sizeCache += sizeCache & 1 ; // sizeCache even
+    uint16_t *nbDiv=malloc((sizeCache)*sizeof(nbDiv[0])) ;
     int32_t *nxtFactor = malloc((dMax+1)*sizeof(nxtFactor[0])) ;
     int n,d ;
     for(d=3;d<=dMax;d++) {
@@ -102,35 +102,36 @@ int PB179c(PB_RESULT *pbR) {
     }
     int offset = 4 ;
 //    nbProd[2-offset] = 2 ;
-    int nbProdAnt = 2 ; // n=3
+    int nbDivAnt = 2 ; // n=3
     int S = 1 ; // (2,3)
-    for(;offset < N;offset += nMax ) {
-         for(n=0;n<nMax;n+=2) {
-            nbProd[n] = 4 ;
-            nbProd[n+1] = 2 ;
+    for(;offset < N;offset += sizeCache ) {
+         for(n=0;n<sizeCache;n+=2) {
+            nbDiv[n] = 4 ;
+            nbDiv[n+1] = 2 ;
         }
-        int ndMax = nMax ;
-        if(offset+nMax >N+1) {
-            ndMax = N+1 - offset ;
+        int indCacheMax = sizeCache ;
+        if(offset+sizeCache >N+1) {
+            indCacheMax = N+1 - offset ;
         }
         for(d=3;d<=dMax;d++) {
            int fd = nxtFactor[d] ;
            int np = d*fd - offset ;
-           if(np >= ndMax) continue ;
-           if(fd == d) { nbProd[np]++ ; fd++ ; np += d ; }
-           for(;np<ndMax;np += d ) {
-               nbProd[np] += 2 ; fd++ ;
+           if(np >= indCacheMax) continue ;
+           if(fd == d) { nbDiv[np]++ ; fd++ ; np += d ; }
+           for(;np<indCacheMax;np += d ) {
+               nbDiv[np] += 2 ;
+               fd++ ;
            }
            nxtFactor[d] = fd ;
         }
  //       printf("\n [%d->%d[ ",offset,offset+ndMax) ;
-        for(n=0;n< ndMax ; n++) {
+        for(n=0;n< indCacheMax ; n++) {
  //           printf("(%d,%d)",n+offset,nbProd[n]) ;
-            if(nbProd[n]==nbProdAnt) S++ ;
-            nbProdAnt = nbProd[n] ;
+            if(nbDiv[n]==nbDivAnt) S++ ;
+            nbDivAnt = nbDiv[n] ;
         }
     }
-    free(nbProd) ; free(nxtFactor) ;
+    free(nbDiv) ; free(nxtFactor) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
