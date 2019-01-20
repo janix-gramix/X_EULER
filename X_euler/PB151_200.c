@@ -32,8 +32,8 @@ int PB173(PB_RESULT *pbR) {
     return 1 ;
 }
 
-// #define PB174_NB    1000000
-#define PB174_NB    100
+#define PB174_NB    1000000
+// #define PB174_NB    100
 
 int PB174(PB_RESULT *pbR) {
     int N = PB174_NB/4 ;
@@ -53,19 +53,26 @@ int PB174(PB_RESULT *pbR) {
     return 1 ;
 }
 
- #define PB179_NB    10000000
-// #define PB179_NB    100
+#define PB179_NB    10000000
+//#define PB179_NB    1000
 int PB179(PB_RESULT *pbR) {
     int N =  PB179_NB ;
     pbR->nbClock = clock() ;
-    uint16_t *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
+    uint16_t *nbProd=malloc((N+2)*sizeof(nbProd[0])) ;
     int n ;
-    for(n=2;n<=N;n++) { nbProd[n] = 2 ; }
+    nbProd[2] = 2 ;
+    for(n=4;n<=N;n+=2) {
+        nbProd[n] = 4 ;
+        nbProd[n+1] = 2 ;
+    }
     int nMax = Sqrt32(N);
-    for(n=2;n<=nMax;n++) {
+    for(n=3;n<=nMax;n++) {
         int np = n*n ;
         nbProd[np]++ ;
-        for(np += n ;np<=N;np+=n) { nbProd[np] += 2 ; }
+        for(np += n ;np<=N;np+=n) {
+            nbProd[np] += 2 ;
+            
+        }
     }
     int S = 0 ;
     for(n=2;n<N;n++) {
@@ -80,6 +87,55 @@ int PB179(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
+
+int PB179c(PB_RESULT *pbR) {
+    int N =  PB179_NB ;
+    pbR->nbClock = clock() ;
+    int dMax = Sqrt32(N) ;
+    int nMax = dMax+1;
+    nMax += nMax & 1 ; // nMax even
+    uint16_t *nbProd=malloc((nMax)*sizeof(nbProd[0])) ;
+    int32_t *nxtFactor = malloc((dMax+1)*sizeof(nxtFactor[0])) ;
+    int n,d ;
+    for(d=3;d<=dMax;d++) {
+        nxtFactor[d] = d ;
+    }
+    int offset = 4 ;
+//    nbProd[2-offset] = 2 ;
+    int nbProdAnt = 2 ; // n=3
+    int S = 1 ; // (2,3)
+    for(;offset < N;offset += nMax ) {
+         for(n=0;n<nMax;n+=2) {
+            nbProd[n] = 4 ;
+            nbProd[n+1] = 2 ;
+        }
+        int ndMax = nMax ;
+        if(offset+nMax >N+1) {
+            ndMax = N+1 - offset ;
+        }
+        for(d=3;d<=dMax;d++) {
+           int fd = nxtFactor[d] ;
+           int np = d*fd - offset ;
+           if(np >= ndMax) continue ;
+           if(fd == d) { nbProd[np]++ ; fd++ ; np += d ; }
+           for(;np<ndMax;np += d ) {
+               nbProd[np] += 2 ; fd++ ;
+           }
+           nxtFactor[d] = fd ;
+        }
+ //       printf("\n [%d->%d[ ",offset,offset+ndMax) ;
+        for(n=0;n< ndMax ; n++) {
+ //           printf("(%d,%d)",n+offset,nbProd[n]) ;
+            if(nbProd[n]==nbProdAnt) S++ ;
+            nbProdAnt = nbProd[n] ;
+        }
+    }
+    free(nbProd) ; free(nxtFactor) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+    return 1 ;
+}
+
 
 int PB179a(PB_RESULT *pbR) {
     int N =  PB179_NB ;
@@ -140,6 +196,7 @@ int PB179b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     uint16_t *pDivMax=malloc((N+1)*sizeof(pDivMax[0])) ;
     int n ;
+    
     pDivMax[1] = 1 ;
     for(n=2;n<=N;n++) {
         pDivMax[n] = (n&1) ? 0 : 2 ;
