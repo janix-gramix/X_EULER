@@ -52,37 +52,36 @@ int PB174(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
-
+// #define PB179_NB    1000
 #define PB179_NB    10000000
-//#define PB179_NB    1000
+
 int PB179(PB_RESULT *pbR) {
     int N =  PB179_NB ;
     pbR->nbClock = clock() ;
-    uint16_t *nbProd=malloc((N+2)*sizeof(nbProd[0])) ;
-    int n ;
-    nbProd[2] = nbProd[3] = 2 ;
-    for(n=4;n<=N;n+=2) {
-        nbProd[n] = 4 ;
-        nbProd[n+1] = 2 ;
+    uint16_t *nbDiv=malloc((N+2)*sizeof(nbDiv[0])) ;
+    int n,d ;
+    nbDiv[2] = nbDiv[3] = 2 ;
+    for(n=4;n<=N;n+=2) { // d=2
+        nbDiv[n] = 4 ;
+        nbDiv[n+1] = 2 ;
     }
-    int nMax = Sqrt32(N);
-    for(n=3;n<=nMax;n++) {
-        int np = n*n ;
-        nbProd[np]++ ;
-        for(np += n ;np<=N;np+=n) {
-            nbProd[np] += 2 ;
+    int dMax = Sqrt32(N);
+    for(d=3;d<=dMax;d++) { // d > 2
+        int np = d*d ;
+        nbDiv[np]++ ;
+        for(np += d ;np<=N;np+=d) {
+            nbDiv[np] += 2 ;
             
         }
     }
     int S = 0 ;
     for(n=2;n<N;n++) {
-//        printf("(%d,%d)",n,nbProd[n]) ;
-        if(nbProd[n]==nbProd[n+1] ) {
+        if(nbDiv[n]==nbDiv[n+1] ) {
             S++ ;
         }
         
     }
-    free(nbProd) ;
+    free(nbDiv) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
@@ -94,44 +93,42 @@ int PB179c(PB_RESULT *pbR) {
     int dMax = Sqrt32(N) ;
     int sizeCache = 16384 ;
     sizeCache += sizeCache & 1 ; // sizeCache even
-    uint16_t *nbDiv=malloc((sizeCache)*sizeof(nbDiv[0])) ;
-    int32_t *nxtFactor = malloc((dMax+1)*sizeof(nxtFactor[0])) ;
+    uint16_t *nbDiv=malloc((sizeCache)*sizeof(nbDiv[0])) ; // number of divisor
+    int32_t *indNxtFactor = malloc((dMax+1)*sizeof(indNxtFactor[0])) ; // indice of nxt multiple
     int n,d ;
-    for(d=3;d<=dMax;d++) {
-        nxtFactor[d] = d ;
+    int offset = 6 ; // offset for the current cache pof nbDiv
+    for(d=3;d<=dMax;d++) { // if n = d1*d2 d1<=d2
+        indNxtFactor[d] = d*d - offset ;
     }
-    int offset = 4 ;
-//    nbProd[2-offset] = 2 ;
-    int nbDivAnt = 2 ; // n=3
+    int nbDivAnt = 2 ; // n=5
     int S = 1 ; // (2,3)
-    for(;offset < N;offset += sizeCache ) {
-         for(n=0;n<sizeCache;n+=2) {
-            nbDiv[n] = 4 ;
-            nbDiv[n+1] = 2 ;
+    for(;offset < N;offset += sizeCache ) { // loop, by moving the cache
+         for(n=0;n<sizeCache;n+=2) { // special case for d=2
+            nbDiv[n] = 4 ; // n even
+            nbDiv[n+1] = 2 ; // n odd
         }
         int indCacheMax = sizeCache ;
-        if(offset+sizeCache >N+1) {
+        if(offset+sizeCache >N+1) { // check if last cache move
             indCacheMax = N+1 - offset ;
         }
-        for(d=3;d<=dMax;d++) {
-           int fd = nxtFactor[d] ;
-           int np = d*fd - offset ;
-           if(np >= indCacheMax) continue ;
-           if(fd == d) { nbDiv[np]++ ; fd++ ; np += d ; }
-           for(;np<indCacheMax;np += d ) {
-               nbDiv[np] += 2 ;
-               fd++ ;
-           }
-           nxtFactor[d] = fd ;
+        for(d=3;d<=dMax;d++) { // d=3,...dMax
+            int np = indNxtFactor[d] ;
+            if(np < indCacheMax) { //
+                if(np == d*d - offset ) { // square
+                    nbDiv[np]++ ; np += d ;
+                }
+                for(;np<indCacheMax;np += d ) {
+                    nbDiv[np] += 2 ; // add product, 2 divisors
+                }
+            }
+            indNxtFactor[d] = np - sizeCache  ;
         }
- //       printf("\n [%d->%d[ ",offset,offset+ndMax) ;
-        for(n=0;n< indCacheMax ; n++) {
- //           printf("(%d,%d)",n+offset,nbProd[n]) ;
+        for(n=0;n< indCacheMax ; n++) { // check nbDiv[n] == nbDiv[n-1]
             if(nbDiv[n]==nbDivAnt) S++ ;
             nbDivAnt = nbDiv[n] ;
         }
     }
-    free(nbDiv) ; free(nxtFactor) ;
+    free(nbDiv) ; free(indNxtFactor) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
@@ -143,6 +140,7 @@ int PB179a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     uint16_t *nbDiv=malloc((N+1)*sizeof(nbDiv[0])) ;
     int n ;
+    // pow of 2
     for(n=2;n<=N;n++) {
         nbDiv[n] = 2 - (n&1);
     }
@@ -163,8 +161,7 @@ int PB179a(PB_RESULT *pbR) {
             }
         }
         if(p<=maxP) {
-            int powp;
-            int exp1 ;
+            int powp ,exp1 ;
             int maxPowp = N/ p ;
             for(powp=p*p,exp1=3;;exp1++,powp *=p) {
                 for(n=(int)powp,k=1;n<=N;n+=(int)powp, k++) {
@@ -180,7 +177,6 @@ int PB179a(PB_RESULT *pbR) {
     }
     int S = 0 ;
     for(n=2;n<N;n++) {
-//        printf("(%d,%d)",n,nbProd[n]) ;
        if(nbDiv[n]==nbDiv[n+1] ) {
             S++ ;
         }
@@ -199,38 +195,36 @@ int PB179b(PB_RESULT *pbR) {
     int n ;
     
     pDivMax[1] = 1 ;
-    for(n=2;n<=N;n++) {
+    for(n=2;n<=N;n++) { // case d= 2
         pDivMax[n] = (n&1) ? 0 : 2 ;
     }
-
     int p ;
     int maxP = Sqrt32(N) ;
-    
-    for(p=3;p<=maxP;p+=2) {
+    // search max prime divisor for each n
+    for(p=3;p<=maxP;p+=2) { // loop for p even
         if(pDivMax[p]) continue ;
-        for(n=p;n<=N;n+=p) {
+        for(n=p;n<=N;n+=p) { // multiple of
             pDivMax[n] = p ;
         }
     }
     for(n=3;n<=N;n++) {
         if(n == pDivMax[n] || (pDivMax[n] == 0) ) {
+            // n , case n< maxP and n > maxP
             pDivMax[n] = 2 ;
         } else {
             p = pDivMax[n] ;
-            int d,d1,exp1 ;
+            int d,d1,exp1 ; // search max pow of p
             for(d=n/p,exp1=2;d1=d/p,d==d1*p;d = d1) {
                 exp1++ ;
             }
-            pDivMax[n] = pDivMax[d]*exp1 ;
+            pDivMax[n] = pDivMax[d]*exp1 ; // as d and p prime
         }
     }
     int S = 0 ;
     for(n=2;n<N;n++) {
-//                printf("(%d,%d)",n,pDivMax[n]) ;
         if(pDivMax[n]==pDivMax[n+1] ) {
             S++ ;
         }
-        
     }
     free(pDivMax) ;
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -238,8 +232,147 @@ int PB179b(PB_RESULT *pbR) {
     return 1 ;
 }
 
+#define PB181_NB 120
+#define PB181_NW 80
+#define PB181_MAXBW PB181_NB
+#define PB181_MINBW PB181_NW
 
 
+#define indBW(nb,nw)    ((nb)*(PB181_NW+1)+(nw))
+
+#define P2(nb,nw)   xP2[indBW((nb),(nw))]
+#define M2(nb,nw)   xM2[indBW((nb),(nw))]
+
+// decomposition monocolore
+// base sur le theoreme pentagonal d'euler
+// P(n) = Sum(k){ (-1)**(k+1) P(n - (k(3k-1))/2) }
+int PB181(PB_RESULT *pbR) {
+    u_int64_t xP1[PB181_MAXBW+1] ;
+    u_int64_t xP2[(1+PB181_NB)*(1+PB181_NW)] ;
+    u_int64_t xM2[(1+PB181_NB)*(1+PB181_NW)] ;
+    int m,n ;
+    pbR->nbClock = clock() ;
+    xP1[0] = xP1[1] = 1 ;
+    for(n=2;n<=PB181_MAXBW;n++) {
+        int k , P = 0 ,Pk = 1  ;
+        for(k=1; Pk <= n ; Pk += 3*k+1, k++ ) {
+            if(k&1) {
+                P += xP1[n - Pk] ;
+                // car P-k = Pk+k
+                if(Pk + k <= n ) P += xP1[n - Pk - k ] ;
+            } else {
+                P -= xP1[n - Pk] ;
+                if(Pk + k <= n ) P -= xP1[n - Pk - k ] ;
+            }
+        }
+        xP1[n] = P ;
+    }
+    int nb, nw ;
+    for(nb=1;nb<=PB181_NB;nb++) {
+        P2(nb,0)= M2(nb,0) = xP1[nb] ;
+    }
+    for(nw=1;nw<=PB181_NW;nw++) {
+        P2(0,nw)= M2(0,nw) = xP1[nw] ;
+    }
+    P2(0,0)= M2(0,0) = 1 ;
+    P2(1,1) = 2 ; M2(1,1) = 1 ;
+     for(m=2;m<=PB181_MAXBW;m++) {
+        int maxN = (m < PB181_NW ) ? m : PB181_NW ;
+        M2(m,1) = 1 ;
+        if(m<=PB181_NW)  M2(1,m) = 1 ;
+        for(n=2;n<=maxN;n++) {
+            int k ;
+            u_int64_t P = 0 ;
+  //          printf("M[%d,%d]->",m,n) ;
+            for(k=2;k<=n;k++){ // number of BW
+                int kb,kw ,kbw ;
+                nb = m - k ;
+                nw = n - k ;
+                if(nw==0) {
+                    for(kbw=0;kbw<=k;kbw++) {
+                        {
+                            kb = k -kbw ;
+                            if(kb == 0 && nb) continue ;
+                            if(kb && nb == 0 ) continue ;
+                            P +=  M2(nb,kb) * xP1[kbw] ;
+                          //               P += F ;
+                            //                       printf("+%lldB(%d,%d)Bx(%d)x(%d,%d)W ",F,nb,kb,kbw,kw,nw) ;
+                        }
+                      }
+                    continue ;
+                }
+                for(kbw=0;kbw<=k;kbw++) {
+                    u_int64_t F = 0 ;
+                    for(kb= 1 ;kb<k-kbw;kb++) {
+                        kw = k -kb - kbw ;
+                         F += M2(nb,kb)*M2(kw,nw) ;
+                    }
+                    P += F * xP1[kbw] ;
+                }
+            }
+   //         printf(" =%lld\n",P);
+            M2(m,n) = P ;
+            if(m<=PB181_NW) M2(n,m) = P ;
+        }
+    }
+   
+    for(m=1;m<=PB181_MAXBW;m++) {
+        int maxN = (m < PB181_NW ) ? m : PB181_NW ;
+        for(n=1;n<=maxN;n++) {
+            u_int64_t P = xP1[m]*xP1[n] ;
+ //           printf("P[%d,%d]->%lld(%d)(%d)",m,n,P,m,n) ;
+            int kb,kw ;
+            for(kb=1;kb<=m;kb++) {
+                nb = m - kb ;
+                u_int64_t F = 0;
+                for(kw=1;kw<=n;kw++) {
+                    nw = n - kw ;
+                    F += xP1[nw] * M2(kb,kw) ;
+    //                P += xP1[nb] * xP1[nw] * M2(kb,kw) ;
+   //                 printf("+%lld(%d)(%d),(%d,%d) ",xP1[nb] * xP1[nw] * M2(kb,kw),nb,nw,kb,kw) ;
+                }
+                P += xP1[nb] * F ;
+            }
+  //          printf(" =%lld\n",P);
+            P2(m,n) = P ;
+            if(m<=PB181_NW) P2(n,m) = P ;
+        }
+    }
+
+    
+    
+    printf("P2(3,1)=%lld, P2(3,3)=%lld P2(%d,%d)=%lld\n",P2(3,1),P2(3,3),PB181_NB,PB181_NW,P2(PB181_NB,PB181_NW)) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",P2(PB181_NB,PB181_NW)) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+// Partition of multiset
+// par recurrence sur la taille des sous-ensembles de (m+n) elements (mB,nW)
+// que l'on ajoute aux denombrement des partitions ne contenant que des sous-ensembles de taille inferieure.
+int PB181a(PB_RESULT *pbR) {
+    u_int64_t xP2[(1+PB181_NB)*(1+PB181_NW)] ;
+    int m,n ;
+    pbR->nbClock = clock() ;
+    for (m = 0; m <= PB181_NB; m++) {
+        for (n = 0; n <= PB181_NW; n++) {
+            P2(m,n)=0 ;
+        }
+    }
+    P2(0,0)=1 ;
+    for (n = 0; n <= PB181_NW; n++) {
+        for (m = (n) ? 0 : 1 ; m <= PB181_NB; m++) {
+            int i,j ;
+            for (j = n; j <= PB181_NW; j++) {
+                for (i = m; i <= PB181_NB; i++) {
+                    P2(i,j) += P2(i - m,j - n);
+                }
+            }
+        }
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",P2(PB181_NB,PB181_NW)) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
 
 //#define PB187_MAX   2000000000
 #define PB187_MAX   100000000
