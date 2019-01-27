@@ -232,8 +232,8 @@ int PB179b(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB181_NB 120
-#define PB181_NW 80
+#define PB181_NB 60
+#define PB181_NW 40
 #define PB181_MAXBW PB181_NB
 #define PB181_MINBW PB181_NW
 
@@ -281,35 +281,28 @@ int PB181(PB_RESULT *pbR) {
         M2(m,1) = 1 ;
         if(m<=PB181_NW)  M2(1,m) = 1 ;
         for(n=2;n<=maxN;n++) {
-            int k ;
             u_int64_t P = 0 ;
-  //          printf("M[%d,%d]->",m,n) ;
-            for(k=2;k<=n;k++){ // number of BW
+            for(nb = m-2, nw=n-2;nw>0;nb--,nw--) {
                 int kb,kw ,kbw ;
-                nb = m - k ;
-                nw = n - k ;
-                if(nw==0) {
-                    for(kbw=0;kbw<=k;kbw++) {
-                        {
-                            kb = k -kbw ;
-                            if(kb == 0 && nb) continue ;
-                            if(kb && nb == 0 ) continue ;
-                            P +=  M2(nb,kb) * xP1[kbw] ;
-                          //               P += F ;
-                            //                       printf("+%lldB(%d,%d)Bx(%d)x(%d,%d)W ",F,nb,kb,kbw,kw,nw) ;
-                        }
-                      }
-                    continue ;
-                }
-                for(kbw=0;kbw<=k;kbw++) {
+  //              nb = m - k ;
+  //              nw = n - k ;
+                for(kbw=0;kbw<=n-nw-2;kbw++) {
                     u_int64_t F = 0 ;
-                    for(kb= 1 ;kb<k-kbw;kb++) {
-                        kw = k -kb - kbw ;
-                         F += M2(nb,kb)*M2(kw,nw) ;
+                    for(kb= 1 , kw = n-nw-1-kbw  ;kw>0;kb++,kw--) {
+                           F += M2(nb,kb)*M2(kw,nw) ;
                     }
                     P += F * xP1[kbw] ;
                 }
             }
+            if(nb==0) {
+                P +=  xP1[m] ;
+            } else {
+                int kb ,kbw ;
+                for(kbw=0,kb=n;kb>0;) {
+                    P +=  M2(nb,kb--) * xP1[kbw++] ;
+                }
+            }
+
    //         printf(" =%lld\n",P);
             M2(m,n) = P ;
             if(m<=PB181_NW) M2(n,m) = P ;
@@ -322,14 +315,11 @@ int PB181(PB_RESULT *pbR) {
             u_int64_t P = xP1[m]*xP1[n] ;
  //           printf("P[%d,%d]->%lld(%d)(%d)",m,n,P,m,n) ;
             int kb,kw ;
-            for(kb=1;kb<=m;kb++) {
-                nb = m - kb ;
+            for(kb=1,nb=m-1;nb>=0;kb++,nb--) {
+   //             nb = m - kb ;
                 u_int64_t F = 0;
-                for(kw=1;kw<=n;kw++) {
-                    nw = n - kw ;
-                    F += xP1[nw] * M2(kb,kw) ;
-    //                P += xP1[nb] * xP1[nw] * M2(kb,kw) ;
-   //                 printf("+%lld(%d)(%d),(%d,%d) ",xP1[nb] * xP1[nw] * M2(kb,kw),nb,nw,kb,kw) ;
+                for(kw=1,nw=n-1;nw>=0;) {
+                    F += xP1[nw--] * M2(kb,kw++) ;
                 }
                 P += xP1[nb] * F ;
             }
