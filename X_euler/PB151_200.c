@@ -232,8 +232,8 @@ int PB179b(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB181_NB 240
-#define PB181_NW 140
+#define PB181_NB 60
+#define PB181_NW 40
 #define PB181_MAXBW PB181_NB
 #define PB181_MINBW PB181_NW
 
@@ -277,6 +277,7 @@ int PB181(PB_RESULT *pbR) {
             PW2(m,n)=0 ;
         }
     }
+    
     PW2(0,0)=1 ;
     for (m = 0; m <= PB181_NW; m++) {
         if(m > 0) PW2(m,0) = 0 ;
@@ -305,19 +306,19 @@ int PB181(PB_RESULT *pbR) {
         int maxN = (m < PB181_NW ) ? m : PB181_NW ;
         for(n=1;n<=maxN;n++) {
             int m1,m2,n1,n2;
-            u_int64_t P = 0 ;
+            // n1==n n2 =0 , m2= 0
+            u_int64_t P = P2(m-n,n) ;
   //          printf("P2(%d,%d)=",m,n) ;
-            for(n1=0;n1<=n;n1++) {
+            for(n1=0;n1<n;n1++) {
                 n2 = n - n1 ;
-                for(m2=0;m2<=n2;m2++) {
-                    if(m2==n2 && m2 > 0) break ;
+                for(m2=0;m2<n2;m2++) {
                     m1 = m-m2 ;
                     if(m1< n1) break ;
-                             P += P2(m1-n1,n1)*PW2(m2,n2-m2) ;
+                    P += P2(m1-n1,n1)*PW2(m2,n2-m2) ;
  //                   printf("+%lld=P2(%d,%d)*PW2(%d,%d) ",P2(m1-n1,n1)*PW2(m2,n2-m2),m1-n1,n1,m2,n2) ;
                 }
-            }
-  //          printf("=%lld\n",P);
+               }
+//          printf("=%lld\n",P);
             P2(m,n) = P ;
             if(m<=PB181_NW) P2(n,m) = P ;
         }
