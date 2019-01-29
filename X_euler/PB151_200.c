@@ -232,17 +232,107 @@ int PB179b(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB181_NB 60
-#define PB181_NW 40
+#define PB181_NB 240
+#define PB181_NW 140
 #define PB181_MAXBW PB181_NB
 #define PB181_MINBW PB181_NW
 
 
 #define indBW(nb,nw)    ((nb)*(PB181_NW+1)+(nw))
 
-#define P2(nb,nw)   xP2[indBW((nb),(nw))]
-#define M2(nb,nw)   xM2[indBW((nb),(nw))]
 
+#define indBWK(nb,nw,k)    ((nb)*(PB181_NW+1)*(PB181_MINBW+1)+(nw)*(PB181_MINBW+1)+k)
+
+#define P2(nb,nw)   xP2[indBW((nb),(nw))]
+#define PW2(nb,nw)   xPW2[indBW((nb),(nw))]
+#define M2(nb,nw)   xM2[indBW((nb),(nw))]
+#define P2K(nb,nw,k) xP2K[indBWK((nb),(nw),(k))]
+
+
+int PB181(PB_RESULT *pbR) {
+    u_int64_t xP1[PB181_MAXBW+1] ;
+    u_int64_t xP2[(1+PB181_NB)*(1+PB181_NW)] ;
+    u_int64_t xPW2[(1+PB181_NW)*(1+PB181_NW)] ;
+
+    int m,n ;
+    pbR->nbClock = clock() ;
+    xP1[0] = xP1[1] = 1 ;
+    for(n=2;n<=PB181_MAXBW;n++) {
+        int k , P = 0 ,Pk = 1  ;
+        for(k=1; Pk <= n ; Pk += 3*k+1, k++ ) {
+            if(k&1) {
+                P += xP1[n - Pk] ;
+                // car P-k = Pk+k
+                if(Pk + k <= n ) P += xP1[n - Pk - k ] ;
+            } else {
+                P -= xP1[n - Pk] ;
+                if(Pk + k <= n ) P -= xP1[n - Pk - k ] ;
+            }
+        }
+        xP1[n] = P ;
+    }
+    
+      for (m = 0; m <= PB181_NB; m++) {
+        for (n = 0; n <= PB181_NW; n++) {
+            PW2(m,n)=0 ;
+        }
+    }
+    PW2(0,0)=1 ;
+    for (m = 0; m <= PB181_NW; m++) {
+        if(m > 0) PW2(m,0) = 0 ;
+        for (n = 1 ; n <= PB181_NW; n++) {
+            int i,j ;
+            PW2(m,n)++;
+            for (i = m; i <= PB181_NW; i++) {
+                for (j = n+1; j <= PB181_NW; j++) {
+                    PW2(i,j) += PW2(i - m,j - n);
+                }
+            }
+        }
+    }
+
+    int nb, nw ;
+    for(nb=1;nb<=PB181_NB;nb++) {
+        P2(nb,0) = xP1[nb] ;
+    }
+    for(nw=1;nw<=PB181_NW;nw++) {
+        P2(0,nw) = xP1[nw] ;
+    }
+    P2(0,0) = 1 ;
+    P2(1,1) = 2 ;
+    
+    for(m=1;m<=PB181_MAXBW;m++) {
+        int maxN = (m < PB181_NW ) ? m : PB181_NW ;
+        for(n=1;n<=maxN;n++) {
+            int m1,m2,n1,n2;
+            u_int64_t P = 0 ;
+  //          printf("P2(%d,%d)=",m,n) ;
+            for(n1=0;n1<=n;n1++) {
+                n2 = n - n1 ;
+                for(m2=0;m2<=n2;m2++) {
+                    if(m2==n2 && m2 > 0) break ;
+                    m1 = m-m2 ;
+                    if(m1< n1) break ;
+                             P += P2(m1-n1,n1)*PW2(m2,n2-m2) ;
+ //                   printf("+%lld=P2(%d,%d)*PW2(%d,%d) ",P2(m1-n1,n1)*PW2(m2,n2-m2),m1-n1,n1,m2,n2) ;
+                }
+            }
+  //          printf("=%lld\n",P);
+            P2(m,n) = P ;
+            if(m<=PB181_NW) P2(n,m) = P ;
+        }
+    }
+    
+    
+    
+    printf("P2(3,1)=%lld,  P2(2,2)=%lld , P2(3,3)=%lld P2(%d,%d)=%lld\n",P2(3,1),P2(2,2),P2(3,3),PB181_NB,PB181_NW,P2(PB181_NB,PB181_NW)) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",P2(PB181_NB,PB181_NW)) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+#if 0
 // decomposition monocolore
 // base sur le theoreme pentagonal d'euler
 // P(n) = Sum(k){ (-1)**(k+1) P(n - (k(3k-1))/2) }
@@ -336,6 +426,8 @@ int PB181(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+#endif
+
 // Partition of multiset
 // par recurrence sur la taille des sous-ensembles de (m+n) elements (mB,nW)
 // que l'on ajoute aux denombrement des partitions ne contenant que des sous-ensembles de taille inferieure.
@@ -360,6 +452,7 @@ int PB181a(PB_RESULT *pbR) {
         }
     }
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",P2(PB181_NB,PB181_NW)) ;
+    printf("P2(3,1)=%lld,  P2(2,2)=%lld , P2(3,3)=%lld P2(%d,%d)=%lld\n",P2(3,1),P2(2,2),P2(3,3),PB181_NB,PB181_NW,P2(PB181_NB,PB181_NW)) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
