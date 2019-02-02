@@ -247,7 +247,7 @@ int PB579(PB_RESULT *pbR) {
                     nbT++;
                 }
                 do {
-                    Diff -= 2*n2+1 , n2++  ;
+                    Diff -= 2*n2+1 ; n2++  ;
                 } while(Diff > 0) ;
             }
         }
@@ -411,7 +411,6 @@ int PB622(PB_RESULT *pbR) {
 
 
 int PB625(PB_RESULT *pbR) {
-    int plim = Sqrt64(PB625_MAX) ;
     pbR->nbClock = clock() ;
     int i ,p ,j , N = PB625_MAX ;
 #if 1

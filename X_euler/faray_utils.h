@@ -27,7 +27,7 @@ typedef struct SBTree {
     FRACTRED fr1 ;
 } SBTree ;
 
-SBTree * SBT_alloc() ;
+SBTree * SBT_alloc(void) ;
 void SBT_init(SBTree * sbt,FRACTRED fr0, FRACTRED fr1) ;
 int SBT_ValidNxt(SBTree * sbt, int isOK) ;
 SBTree * SBT_free(SBTree * sbt) ;
@@ -46,7 +46,7 @@ typedef int (* STBDen_CB)(int d0,int d1) ;
 
 
 void SBdT_init(SBdTree * sbdt,int32_t d0, int32_t d1) ;
-SBdTree * SBdT_alloc() ;
+SBdTree * SBdT_alloc(void) ;
 int SBdT_ValidNxt(SBdTree * sbdt, int isOK) ;
 SBdTree * SBdT_free(SBdTree * sbdt) ;
     

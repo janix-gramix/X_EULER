@@ -888,9 +888,9 @@ int PB022(PB_RESULT *pbR) {
     }
     qsort(nameOrder,p022_size,sizeof(nameOrder[0]),CmpName022);
     int sum = 0 ;
-    char * * ptNames =   P022_GetData()  ;
+    const char * * ptNames =   P022_GetData()  ;
     for(i=0;i<p022_size;i++) {
-        char * c = ptNames[nameOrder[i]] ;
+        const char * c = ptNames[nameOrder[i]] ;
         int cost = 0 ;
         while(*c) {
             cost += *c++ - '@' ;

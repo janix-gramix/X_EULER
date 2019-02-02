@@ -372,7 +372,7 @@ static int CheckEqualityPreN(sum103_t *v,int N,CheckPaths * chkP) {
 
 
 static uint8_t isSum[20000] ;
-
+/*
 static int CheckEqualityHalf(sum103_t *v,int N) {
     int k = N/2 ;
     if(k==1) return 1;
@@ -397,7 +397,7 @@ static int CheckEqualityHalf(sum103_t *v,int N) {
     } while( (il=NextSub(perm2,k,N)) >= 0) ;
     return 1;
 }
-
+*/
 static int CheckEqualityPreH(sum103_t *v,HalfPaths * hlfP) {
     int N = hlfP->maxN ;
     int k = hlfP->maxN / 2  ;

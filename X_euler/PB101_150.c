@@ -1353,8 +1353,6 @@ typedef struct Chain122 {
 } Chain122 ;
 int PB122(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int SumR = 0 ;
-    
     Chain122 * tbCH = malloc(sizeof(tbCH[0])*PB122_NBCHAIN) ;
     uint8_t MinM[PB122_MAX+1] ;
     int nxtCH = 0 ;
@@ -1432,11 +1430,9 @@ int PB122(PB_RESULT *pbR) {
 int PB122a(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     Chain122 tbCH[30] ;
-    int isDeltaOne[30] ;
     uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
-    int iOut= 0 ;
  //   memset(MinM,0,sizeof(MinM)) ;
     int i ;
     for(i=0;i<PB122_MAX+1;i++) MinM[i] = 0 ;
@@ -1513,7 +1509,6 @@ int PB122b(PB_RESULT *pbR) {
     uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
-    int iOut= 0 ;
     //   memset(MinM,0,sizeof(MinM)) ;
     int i ;
     for(i=0;i<PB122_MAX+1;i++) MinM[i] = 0 ;
@@ -1664,7 +1659,6 @@ int PB122c(PB_RESULT *pbR) {
     uint8_t MinM[PB122_MAX+1] ;
     int nbMulMax = 1 ;
     int nbFind = 0 ;
-    int iOut= 0 ;
     //   memset(MinM,0,sizeof(MinM)) ;
     int i ;
     for(i=0;i<PB122_MAX+1;i++) MinM[i] = 0 ;
@@ -1937,7 +1931,7 @@ int PB125(PB_RESULT *pbR) {
                     for(i3= 0 ; i3<10 ; i3++) {
                         int N6=incr[0]*i0+incr[1]*i1+incr[2]*i2+incr[3]*i3 ;
                         int n,c ;
-                            for(n=2;c=(n+1)*(2*n+1),n*c<=N6 ;n++) {
+                        for(n=2;c=(n+1)*(2*n+1),n*c<=N6 ;n++) {
                             if(N6 % n) continue ;
                             int nd = N6 / n ;
                             int b = 6*(n+1) ;
@@ -1975,7 +1969,7 @@ int PB125(PB_RESULT *pbR) {
 
 int PB126(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int minLayerNB = PB126_MAXV ;
+  //  int minLayerNB = PB126_MAXV ;
     int * histLayer = calloc(PB126_MAXV,sizeof(histLayer[0])) ;
     int a=1,b=1,c=1 ;
     int layer ;
@@ -2421,7 +2415,6 @@ int PB133(PB_RESULT *pbR) {
     for(i=3;i<nbPrime;i++) {
         int p = tbPrime[i] ;
         int n0 = p-1 ;
-        int q ;
         int d1 ;
         int dmin = n0 ;
         for(d1=2;d1*d1<=n0;d1++) {
@@ -2490,7 +2483,6 @@ int PB134(PB_RESULT *pbR) {
         return 0 ;
     }
     const T_prime * tbPrime = GetTbPrime(ctxP);
-    int nbPrime = GetNbPrime(ctxP) ;
     int  i;
     int64_t sum  = 0;
     // loop for primes, begin by 5
@@ -2669,7 +2661,7 @@ int PB137(PB_RESULT *pbR) {
 //  brute force
 int PB139(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int i,n,m,a,b,c,p ;
+    int n,m,a,b,c,p ;
     int32_t nbT = 0 ;
     for(m=2;;m++) {
         int nb = 0 ;
@@ -3040,8 +3032,7 @@ int PB147(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
 
     int  i,j,k;
-    int64_t sum  = 0;
-    int nbRec[PB147_MD*PB147_MD],nbRec2[PB147_MD*PB147_MD] ;
+     int nbRec[PB147_MD*PB147_MD],nbRec2[PB147_MD*PB147_MD] ;
     int xMin[2*(PB147_MD+1)];
     int xMax[2*(PB147_MD+1)];
     nbRec[0] = 1 ;

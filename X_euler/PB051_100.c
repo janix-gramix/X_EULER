@@ -2686,8 +2686,7 @@ int PB089(PB_RESULT *pbR) {
     char * Units[] = { "", "I", "II", "III" , "IV" , "V" , "VI" , "VII", "VIII", "IX" } ;
     for(n=0;n<p089_size;n++) {
         const char *inR = Roman[n] ;
-        char reduct[20] ;
-        int len = strlen(inR) ;
+         int len = strlen(inR) ;
         int totValue = 0 ;
         int antValue = 0 ;
         for(i=0;i<len;i++) {
