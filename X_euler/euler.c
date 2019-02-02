@@ -63,6 +63,12 @@ void Execute(TotalRun *ttr, PB_CALL *pbCall) {
 
 #define PROTO_CALL(NUM,SOL,NAME)   {#NUM, PB##NUM , #SOL, #NAME}
 
+/*
+ Liens
+ 173->174->179
+ 76->181 (decompostion en partition et nombre pentagonaux)
+ 
+*/
 static PB_CALL ALL_calls[] = {
     
 
@@ -246,12 +252,31 @@ static PB_CALL ALL_calls[] = {
  // ,PROTO_CALL(145,608720,'How many reversible numbers are there below one-billion?')
 
     ,PROTO_CALL(147,846910284,'Rectangles in cross-hatched grids')
+    ,PROTO_CALL(173,1572729,'Using up to one million tiles how many different "hollow" square laminae can be formed?')
+    ,PROTO_CALL(174,209566,'Counting the number of "hollow" square laminae that can form one, two, three, ... distinct arrangements')
+
+    ,PROTO_CALL(179c,986262,'Consecutive positive divisors')
+//    ,PROTO_CALL(179b,986262,'Consecutive positive divisors')
+//    ,PROTO_CALL(179a,986262,'Consecutive positive divisors')
+//    ,PROTO_CALL(179,986262,'Consecutive positive divisors')
+
+    ,PROTO_CALL(181,83735848679360680,'Investigating in how many ways objects of two different colours can be grouped')
+//    ,PROTO_CALL(181a,83735848679360680,'Investigating in how many ways objects of two different colours can be grouped')
+
 //    ,PROTO_CALL(187,17427258,'Semiprimes')
     ,PROTO_CALL(187a,17427258,'Semiprimes')
 //    ,PROTO_CALL(187b,17427258,'Semiprimes')
     
+//    ,PROTO_CALL(191,1918080160,'Prize Strings')
+    ,PROTO_CALL(191a,1918080160,'Prize Strings')
+
+    
     ,PROTO_CALL(192,57060635927998347,'Best Approximations')
 //    ,PROTO_CALL(192_gmp,57060635927998347,'Best Approximations')
+    ,PROTO_CALL(193,684465067343069,'Squarefree Numbers')
+//    ,PROTO_CALL(193a,684465067343069,'Squarefree Numbers')
+    ,PROTO_CALL(195a,75085391,'Inscribed circles of triangles with one angle of 60 degrees')
+//   ,PROTO_CALL(195,75085391,'Inscribed circles of triangles with one angle of 60 degrees')
 
 
 //    ,PROTO_CALL(198,52374425,'Ambiguous Numbers')
@@ -262,6 +287,7 @@ static PB_CALL ALL_calls[] = {
 //    ,PROTO_CALL(198e,52374425,'Ambiguous Numbers')
 //    ,PROTO_CALL(198f,52374425,'Ambiguous Numbers')
     ,PROTO_CALL(198g,52374425,'Ambiguous Numbers')
+    ,PROTO_CALL(199,0.00396087,'Iterative Circle Packing')
 
 
 
@@ -307,7 +333,8 @@ static PB_CALL CUR_calls[] = {
 //    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
 //    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
 
-        PROTO_CALL(092a,8581146,'Square digit chains')
+    PROTO_CALL(188,95962097,'The hyperexponentiation of a number')
+    ,PROTO_CALL(188_gmp,95962097,'The hyperexponentiation of a number')
 
 
 
@@ -331,8 +358,8 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-    char * isALL = "300" ;
-//    char * isALL = NULL ;
+//    char * isALL = "300" ;
+    char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {
         Execute(&ttr,ptCall);
