@@ -200,18 +200,7 @@ int PB104_gmp(PB_RESULT *pbR) {
 // En suite on cherche le plus petit des diviseur de Ephi[125000] = 1250000 * 4/5 = 1000000
 // tel que a**m2=1 [m1]
 //
-int32_t modPow_gmp(int32_t exp,int32_t mod) {
-    u_int64_t modPOW2 = PB188_VAL ;
-    u_int32_t answer = (exp & 1) ? (PB188_VAL % mod) : 1 ;
-    int i ;
-    for(i=1;exp >= (1<<i) ;i++) {
-        modPOW2 = (modPOW2 * modPOW2) % mod ;
-        if( (1<<i) & exp) {
-            answer = (answer * modPOW2 ) % mod  ;
-        }
-    }
-    return answer ;
-}
+
 int PB188_gmp(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     mpz_t mod,oldMod,q,r,rop,z1777,zp2 ;
@@ -230,12 +219,26 @@ int PB188_gmp(PB_RESULT *pbR) {
 
     while(mpz_cmp_ui(mod,1) > 0 ) {
         mpz_set(Ephi,mod) ;
-        if(nbPow2 > 0 ) nbPow2-- ;
+        if(nbPow2 > 0 ) {
+            nbPow2-- ;
+ //           mpz_divexact_ui (Ephi,Ephi, 2) ;
+        }
         //        if((Ephi % 5) == 0 ) Ephi = (4*Ephi)/5 ;
         if(nbPow5 > 0) {
             nbPow2 += 2 ;
             nbPow5-- ;
+  //          mpz_divexact_ui (Ephi,Ephi, 5) ;
+  //          mpz_mul_si(Ephi,Ephi,4) ;
         }
+ /*
+         while(nbPow2 > 0 && (mpz_divexact_ui(q,Ephi,2),mpz_powm (rop,z1777,q,mod),mpz_cmp_ui(rop,1)==0)) {
+            nbPow2 -- ;mpz_set(Ephi,q) ;
+        }
+        while(nbPow5 > 0 && (mpz_divexact_ui(q,Ephi,5),mpz_powm (rop,z1777,q,mod),mpz_cmp_ui(rop,1)==0)) {
+            nbPow5 -- ;mpz_set(Ephi,q) ;
+        }
+*/
+
         mpz_tdiv_r(zp2,z1777,mod) ;
         mpz_ui_pow_ui(rop,2,nbPow2) ;
         mpz_powm(zp2,zp2,rop,mod);
@@ -257,20 +260,28 @@ int PB188_gmp(PB_RESULT *pbR) {
             mpz_tdiv_r(zp2,zp2,mod) ;
             newPow2++ ;
         }
-        mpz_ui_pow_ui (zp2,2,newPow2) ;
-        mpz_ui_pow_ui (Ephi,5,newPow5) ;
+ 
+        
+        mpz_ui_pow_ui (zp2,2,nbPow2) ;
+        mpz_ui_pow_ui (Ephi,5,nbPow5) ;
         mpz_mul(Ephi,Ephi,zp2) ;
+ 
         mpz_init(modEXP1[++nbMod]) ;
         mpz_set(modEXP1[nbMod],Ephi) ;
         mpz_set(mod,Ephi) ;
+        nbPow5 = newPow5 ;
+        nbPow2 = newPow2 ;
+        
+        gmp_fprintf(stdout,"(%d,%d)",nbPow2,nbPow5);
+//        gmp_fprintf(stdout,"(%d,%d) %Zd \n",nbPow2,nbPow5,Ephi);
     }
-    
+    int nbModMax = nbMod ;
     for(mpz_set_ui(mod,0);--nbMod>=0;) {
         mpz_set(oldMod,mod) ;
         mpz_powm(mod,z1777,oldMod,modEXP1[nbMod]) ;
      }
     
-    if(pbR->isVerbose) gmp_fprintf(stdout,"\t PB%s (%d)digits=%Zd \n",pbR->ident,PB188_EXP10,mod);
+    if(pbR->isVerbose) gmp_fprintf(stdout,"\t PB%s Exp=%d (%d)digits=%Zd \n",pbR->ident,nbModMax,PB188_EXP10,mod);
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lu",mpz_mod_ui(r,mod,100000000) ) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
