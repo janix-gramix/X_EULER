@@ -203,86 +203,52 @@ int PB104_gmp(PB_RESULT *pbR) {
 
 int PB188_gmp(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    mpz_t mod,oldMod,q,r,rop,z1777,zp2 ;
+    mpz_t mod,oldMod,newMod,q,r,rop,z1777,zp2 ;
     mpz_t Ephi ;
-    mpz_t modEXP1[4*PB188_EXP10];
-    mpz_init(mod) ; mpz_init(oldMod) ;mpz_init(Ephi);mpz_init(q);mpz_init(r);
+    mpz_init(mod) ; mpz_init(oldMod); mpz_init(newMod) ;mpz_init(Ephi);mpz_init(q);mpz_init(r);
     mpz_init(zp2) ;
     mpz_init(rop); mpz_init(z1777) ;
     int nbMod =0 ;
     mpz_set_ui(z1777,PB188_VAL) ;
-    mpz_init(modEXP1[nbMod]) ;
-    mpz_ui_pow_ui (mod,10,PB188_EXP10) ;
-    mpz_set (modEXP1[nbMod], mod) ;
-    int nbPow2 = PB188_EXP10 ;
-    int nbPow5 = PB188_EXP10 ;
-
-    while(mpz_cmp_ui(mod,1) > 0 ) {
-        mpz_set(Ephi,mod) ;
-        if(nbPow2 > 0 ) {
-            nbPow2-- ;
- //           mpz_divexact_ui (Ephi,Ephi, 2) ;
-        }
-        //        if((Ephi % 5) == 0 ) Ephi = (4*Ephi)/5 ;
-        if(nbPow5 > 0) {
-            nbPow2 += 2 ;
-            nbPow5-- ;
-  //          mpz_divexact_ui (Ephi,Ephi, 5) ;
-  //          mpz_mul_si(Ephi,Ephi,4) ;
-        }
- /*
-         while(nbPow2 > 0 && (mpz_divexact_ui(q,Ephi,2),mpz_powm (rop,z1777,q,mod),mpz_cmp_ui(rop,1)==0)) {
-            nbPow2 -- ;mpz_set(Ephi,q) ;
-        }
-        while(nbPow5 > 0 && (mpz_divexact_ui(q,Ephi,5),mpz_powm (rop,z1777,q,mod),mpz_cmp_ui(rop,1)==0)) {
-            nbPow5 -- ;mpz_set(Ephi,q) ;
-        }
-*/
-
-        mpz_tdiv_r(zp2,z1777,mod) ;
-        mpz_ui_pow_ui(rop,2,nbPow2) ;
-        mpz_powm(zp2,zp2,rop,mod);
-        u_int32_t newPow5 = 0 ;
-        u_int32_t newPow2 = 0 ;
-        if( nbPow5 > 0) {
-            while(mpz_cmp_ui(zp2,1)!=0) {
-                mpz_powm_ui(zp2,zp2,5,mod) ;
-                newPow5++ ;
+    int nbPow2 = 2 ;
+    int nbPow5 = 0 ;
+    mpz_set_ui(oldMod,0);
+    mpz_set_ui(mod,1<<nbPow2) ;
+    mpz_set_ui(q,1) ;
+    mpz_set_ui(Ephi,1) ;
+    mpz_powm (Ephi,z1777,Ephi,mod) ;
+    mpz_powm(rop,z1777,oldMod,mod) ;
+    gmp_fprintf(stdout,"(%d,%d) 1777**%Zd %% %Zd =%Zd  ; 1777**%Zd %% %Zd = %Zd \n",nbPow2,nbPow5,oldMod,mod,rop,q,mod,Ephi);
+   while(nbPow2 < PB188_EXP10 || nbPow5 < PB188_EXP10) {
+        nbPow5++ ;
+        mpz_mul_ui(q,mod,5);
+//        if((PB188_EXP10-nbPow2) >= 4*(PB188_EXP10-nbPow5))
+        {
+         if(nbPow2 < PB188_EXP10) {
+             int inc = (PB188_EXP10 - nbPow2 >= 4 ) ? 4 : PB188_EXP10 - nbPow2 ;
+             mpz_mul_ui(q,q,1<<inc) ;
+             nbPow2 += inc ;
+             /*
+             mpz_mul_ui(newMod,q,2) ;
+             while((nbPow2< PB188_EXP10) && (mpz_powm (rop,z1777,mod,newMod),mpz_cmp_ui(rop,1)==0)) {
+                mpz_set(q,newMod) ;
+                nbPow2++ ;
+                mpz_mul_ui(newMod,newMod,2) ;
             }
-            mpz_tdiv_r(zp2,z1777,mod) ;
-            mpz_ui_pow_ui(rop,5,newPow5) ;
-            mpz_powm(zp2,zp2,rop,mod);
-        } else {
-           mpz_tdiv_r(zp2,z1777,mod) ;
+            */
+         }
         }
-        while(mpz_cmp_ui(zp2,1)!=0) {
-            mpz_mul(zp2,zp2,zp2);
-            mpz_tdiv_r(zp2,zp2,mod) ;
-            newPow2++ ;
-        }
- 
-        
-        mpz_ui_pow_ui (zp2,2,nbPow2) ;
-        mpz_ui_pow_ui (Ephi,5,nbPow5) ;
-        mpz_mul(Ephi,Ephi,zp2) ;
- 
-        mpz_init(modEXP1[++nbMod]) ;
-        mpz_set(modEXP1[nbMod],Ephi) ;
-        mpz_set(mod,Ephi) ;
-        nbPow5 = newPow5 ;
-        nbPow2 = newPow2 ;
-        
-        gmp_fprintf(stdout,"(%d,%d)",nbPow2,nbPow5);
-//        gmp_fprintf(stdout,"(%d,%d) %Zd \n",nbPow2,nbPow5,Ephi);
-    }
-    int nbModMax = nbMod ;
-    for(mpz_set_ui(mod,0);--nbMod>=0;) {
         mpz_set(oldMod,mod) ;
-        mpz_powm(mod,z1777,oldMod,modEXP1[nbMod]) ;
-     }
-    
-    if(pbR->isVerbose) gmp_fprintf(stdout,"\t PB%s Exp=%d (%d)digits=%Zd \n",pbR->ident,nbModMax,PB188_EXP10,mod);
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lu",mpz_mod_ui(r,mod,100000000) ) ;
+        mpz_set(mod,q) ;
+        mpz_set(q,Ephi) ;
+        mpz_powm (Ephi,z1777,Ephi,mod) ;
+         nbMod++ ;
+        mpz_powm(rop,z1777,oldMod,mod) ;
+        gmp_fprintf(stdout,"(%d,%d) 1777**%Zd %% %Zd =%Zd  ; 1777**%Zd %% %Zd = %Zd \n",nbPow2,nbPow5,oldMod,mod,rop,q,mod,Ephi);
+//        gmp_fprintf(stdout,"(%d,%d)  %Zd \n",nbPow2,nbPow5,Ephi);
+    }
+    if(pbR->isVerbose) gmp_fprintf(stdout,"\t PB%s Exp=%d (%d)digits=%Zd \n",pbR->ident,nbMod,PB188_EXP10,Ephi);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lu",mpz_mod_ui(r,Ephi,100000000) ) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
