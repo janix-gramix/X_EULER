@@ -468,11 +468,7 @@ int PB187b(PB_RESULT *pbR) {
 
 #define PB188_VAL   1777
 #define PB188_EXP   1855
-
-#define PB188_MOD0  100000000
-#define PB188_MOD1  1250000
-#define PB188_MOD2  62500
-#define PB188_POW2  30 // 2**21 > PB188_MOD1
+#define PB188_EXP10 8
 
 // use Euler's totient function
 // if a^n = 1  a**(EPhi(n)) =1 Mod[n]
@@ -482,13 +478,13 @@ int PB187b(PB_RESULT *pbR) {
 // En suite on cherche le plus petit des diviseur de Ephi[125000] = 1250000 * 4/5 = 1000000
 // tel que a**m2=1 [m1]
 //
-int32_t modPow(int32_t exp,int32_t mod) {
+u_int64_t modPow(int64_t exp,u_int64_t mod) {
     u_int64_t modPOW2 = PB188_VAL ;
-    u_int32_t answer = (exp & 1) ? (PB188_VAL % mod) : 1 ;
+    u_int64_t answer = (exp & 1) ? (PB188_VAL % mod) : 1 ;
     int i ;
-    for(i=1;exp >= (1<<i) ;i++) {
+    for(i=1;exp >= (1LL<<i) ;i++) {
         modPOW2 = (modPOW2 * modPOW2) % mod ;
-        if( (1<<i) & exp) {
+        if( (1LL<<i) & exp) {
             answer = (answer * modPOW2 ) % mod  ;
         }
     }
@@ -496,33 +492,34 @@ int32_t modPow(int32_t exp,int32_t mod) {
 }
 int PB188(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    u_int32_t mod ,modEXP1[30];
     int nbMod =0 ;
-    modEXP1[nbMod] = PB188_MOD0 ;
-    for(mod=PB188_MOD0;mod > 1; ) {
-        int32_t Ephi = mod ;
-        if((Ephi % 2) == 0 ) Ephi /=2 ;
-        if((Ephi % 5) == 0 ) Ephi = (4*Ephi)/5 ;
+    u_int64_t Pn,Dn ;
+    u_int64_t Pn1,Dn1,rop ;
+    int nbPow2 = 2 ;
+    int nbPow5 = 0 ;
+    Pn1= 0 ;
+    Pn = 1<<nbPow2 ;
+    Dn1=1 ;
+    Dn= modPow (Dn1,Pn) ;
+    rop= modPow (Pn1,Pn) ;
+    fprintf(stdout,"(%d,%d) 1777**%lld %% %lld =%lld  ; 1777**%lld %% %lld = %lld \n",nbPow2,nbPow5,Pn1,Pn,rop,Dn1,Pn,Dn);
+
+    while(nbPow2 < PB188_EXP10 || nbPow5 < PB188_EXP10) {
+        Dn1=Dn ;
+        Pn1=Pn ;
+        nbPow5++ ;
+        int deltaPow2 = (nbPow2+4 < PB188_EXP10) ? 4 : PB188_EXP10-nbPow2 ;
+        nbPow2 += deltaPow2 ;
+        Pn = Pn * 5 * (1<<deltaPow2) ;
+        Dn=modPow(Dn,Pn) ;
+        nbMod++ ;
+        rop=modPow(Pn1,Pn) ;
+        fprintf(stdout,"(%d,%d) 1777**%lld %% %lld =%lld  ; 1777**%lld %% %lld = %lld \n",nbPow2,nbPow5,Pn1,Pn,rop,Dn1,Pn,Dn);
         
-        while ( (Ephi % 2) == 0 && modPow(Ephi/2,mod)== 1) {
-            Ephi /= 2 ;
-        }
-        while ( (Ephi % 5) == 0 && modPow(Ephi/5,mod)== 1) {
-            Ephi /= 5 ;
-        }
-       mod = modEXP1[++nbMod] = Ephi ;
     }
-    // maintenant on rembobine
-    for(mod=0;--nbMod>=0;) {
-        u_int32_t oldMod = mod ;
-        mod = modPow(oldMod,modEXP1[nbMod])  ;
-        if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1777**%d %% %d = %d ; 1777**%d %% %d = 1 ;  %d %% %d = %d ,\n",pbR->ident
-                                   ,oldMod,modEXP1[nbMod],mod
-                                   ,modEXP1[nbMod+1],modEXP1[nbMod]
-                                   ,mod,modEXP1[nbMod+1],oldMod) ;
-    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s Exp=%d (%d)digits=%lld \n",pbR->ident,nbMod,PB188_EXP10,Dn);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",Dn % 100000000 ) ;
     pbR->nbClock = clock() - pbR->nbClock ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",mod) ;
     return 1 ;
 }
 
