@@ -11,11 +11,185 @@
 #include <string.h>
 #include <time.h>
 
-
 #include "PB201_250.h"
+
+#define PB204_MAXP  100
+#define PB204_MAXN  2000000000
+
+int PB204(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+    int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
+    int32_t *ptnbM = tbPrime+nbPrime ;
+    int32_t *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8,*pt9 ;
+    int32_t nbHamm = 1 ; // for 1
+    int32_t p1,p2,p3,p4,p5,p6,p7,p8,p9 ;
+    int32_t P1,P2,P3,P4,P5,P6,P7,P8,P9 ;
+    for(pt1=tbPrime;pt1<ptnbM ;pt1++) {
+        p1 = *pt1 ; P1 = PB204_MAXN / p1 ;
+        for(P1 = PB204_MAXN / p1 ;P1>=1 ; P1 /= p1) {
+          nbHamm++ ;
+            for(pt2=pt1+1;pt2<ptnbM && (p2=*pt2) <= P1 ;pt2++) {
+              for(P2 = P1/ p2 ; P2>=1 ; P2 /= p2) {
+                nbHamm++ ;
+                for(pt3=pt2+1;pt3<ptnbM && (p3=*pt3) <= P2 ;pt3++) {
+                  for(P3 = P2/ p3 ; P3>=1 ; P3 /= p3) {
+                    nbHamm++ ;
+                    for(pt4=pt3+1;pt4<ptnbM && (p4=*pt4) <= P3 ;pt4++) {
+                      for(P4 = P3/ p4 ; P4>=1 ; P4 /= p4) {
+                        nbHamm++ ;
+                        for(pt5=pt4+1;pt5<ptnbM && (p5=*pt5) <= P4 ;pt5++) {
+                          for(P5 = P4/ p5 ; P5>=1 ; P5 /= p5) {
+                            nbHamm++ ;
+                            for(pt6=pt5+1;pt6<ptnbM && (p6=*pt6) <= P5 ;pt6++) {
+                              for(P6 = P5/p6 ; P6>=1 ; P6 /= p6) {
+                                nbHamm++ ;
+                                for(pt7=pt6+1;pt7<ptnbM && (p7=*pt7) <= P6 ;pt7++) {
+                                  for(P7 = P6/p7 ; P7>=1 ; P7 /= p7) {
+                                    nbHamm++ ;
+                                    for(pt8=pt7+1;pt8<ptnbM && (p8=*pt8) <= P7 ;pt8++) {
+                                      for(P8 = P7/p8 ; P8>=1 ; P8 /= p8) {
+                                        nbHamm++ ;
+                                        for(pt9=pt8+1;pt9<ptnbM && (p9=*pt9) <= P8 ;pt9++) {
+                                          for(P9 = P8/p9 ; P9>=1 ; P9 /= p9) {
+                                            nbHamm++ ;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }
+    
+    
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
+    return 1 ;
+ }
+
+int CmpHam(const void *el1,const void *el2) {
+    return ((int *)el1)[0] - ((int *)el2)[0] ;
+}
+int PB204b(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+    int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
+    int32_t *ptnbM = tbPrime+nbPrime ;
+    int iP[20] ;
+    int32_t P[20] ;
+    int32_t Px[20] ;
+    int32_t nbHamm = 1 ; // for 1
+    int is,ip ;
+    for(ip=0;ip<nbPrime;ip++) {
+        int32_t p = tbPrime[ip] ;
+        for(is=0,iP[is]=ip,P[is]=p, Px[is] = PB204_MAXN/p;is>=0;) {
+            if(Px[is]>=1) {
+                nbHamm++ ;
+                if(iP[is]<nbPrime-1 && tbPrime[iP[is]+1] <= Px[is] ) {
+                    iP[is+1] = iP[is]+1 ; is++ ;
+                    P[is] = tbPrime[iP[is]] ; Px[is] = Px[is-1]/P[is] ;
+                  continue ;
+                }
+                Px[is] /= P[is] ;
+                continue ;
+            }
+            ++iP[is] ;
+            if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]] <= Px[is-1]) {
+                P[is] = tbPrime[iP[is]] ;
+                Px[is] = Px[is-1]/P[is] ;
+                continue ;
+            }
+            if(--is >= 0) Px[is] /= P[is] ;
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
+    return 1 ;
+}
+
+
+int PB204a(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+    int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
+    double * logPrime = malloc(nbPrime*sizeof(logPrime[0])) ;
+    int i ;
+    for(i=0;i<nbPrime;i++) logPrime[i] = log(tbPrime[i]) ;
+    double *ptnbM = logPrime+nbPrime ;
+    double *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8,*pt9 ;
+    int32_t nbHamm = 1 ; // for 1
+    double p1,p2,p3,p4,p5,p6,p7,p8,p9 ;
+    double P1,P2,P3,P4,P5,P6,P7,P8,P9 ;
+    for(pt1=logPrime;pt1<ptnbM ;pt1++) {
+      p1 = *pt1 ;
+      for(P1 = log(PB204_MAXN+1) - p1 ;P1>0 ; P1 -= p1) {
+        nbHamm++ ;
+        for(pt2=pt1+1;pt2<ptnbM && (p2=*pt2) < P1 ;pt2++) {
+          for(P2 = P1 - p2 ; P2> 0 ; P2 -= p2) {
+            nbHamm++ ;
+            for(pt3=pt2+1;pt3<ptnbM && (p3=*pt3) < P2 ;pt3++) {
+              for(P3 = P2 - p3 ; P3>0 ; P3 -= p3) {
+                nbHamm++ ;
+                for(pt4=pt3+1;pt4<ptnbM && (p4=*pt4) < P3 ;pt4++) {
+                  for(P4 = P3 - p4 ; P4>0 ; P4 -= p4) {
+                    nbHamm++ ;
+                    for(pt5=pt4+1;pt5<ptnbM && (p5=*pt5) < P4 ;pt5++) {
+                      for(P5 = P4 - p5 ; P5> 0 ; P5 -= p5) {
+                        nbHamm++ ;
+                        for(pt6=pt5+1;pt6<ptnbM && (p6=*pt6) < P5 ;pt6++) {
+                          for(P6 = P5 - p6 ; P6> 0 ; P6 -= p6) {
+                            nbHamm++ ;
+                            for(pt7=pt6+1;pt7<ptnbM && (p7=*pt7) < P6 ;pt7++) {
+                              for(P7 = P6 - p7 ; P7>0 ; P7 -= p7) {
+                                nbHamm++ ;
+                                for(pt8=pt7+1;pt8<ptnbM && (p8=*pt8) < P7 ;pt8++) {
+                                  for(P8 = P7 -p8 ; P8> 0 ; P8 -= p8) {
+                                    nbHamm++ ;
+                                    for(pt9=pt8+1;pt9<ptnbM && (p9=*pt9) < P8 ;pt9++) {
+                                      for(P9 = P8 - p9 ; P9>0 ; P9 -= p9) {
+                                        nbHamm++ ;
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
+    return 1 ;
+}
+
+
+
+
+
 #define PB206_NBD   9
-
-
 
 int PB206(PB_RESULT *pbR) {
     pbR->nbClock = clock();
