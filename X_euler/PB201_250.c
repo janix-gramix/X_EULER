@@ -15,6 +15,7 @@
 
 #define PB204_MAXP  100
 #define PB204_MAXN  1000000000000000000LL
+// #define PB204_MAXN  100
 
 int PB204(PB_RESULT *pbR) {
     pbR->nbClock = clock();
@@ -97,6 +98,7 @@ int PB204b(PB_RESULT *pbR) {
     pbR->nbClock = clock();
     int32_t tbPrime[PB204_NBP] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
     u_int64_t MaxPx[PB204_NBP] ;
+ //   u_int64_t MaxSqPx[PB204_NBP] ;
    int nbPrime = PB204_NBP ;
     int iP[40] ;
      u_int64_t Px[40] ;
@@ -109,6 +111,7 @@ int PB204b(PB_RESULT *pbR) {
         is=0 ; iP[is]=ip ; Px[is] = p ;
        while(1) {
            nbHamm++ ;
+ //          { int j ; printf("("); for(j=0;j<=is;j++)printf("%d,",tbPrime[iP[j]]); printf("<%lld>)",Px[is]);}
            if(Px[is]<=MaxPx[iP[is]]) {
                  if(iP[is]<nbPrime-1 && Px[is]<=MaxPx[iP[is]+1] ) {
                     iP[is+1] = iP[is]+1 ; is++ ;
@@ -118,11 +121,19 @@ int PB204b(PB_RESULT *pbR) {
                 Px[is] *= tbPrime[iP[is]] ;
                 continue ;
             }
-            ++iP[is] ;
-            if(is > 0 && iP[is]<nbPrime && Px[is-1]<=MaxPx[iP[is]]) {
-                Px[is] = Px[is-1]*tbPrime[iP[is]] ;
-                continue ;
+
+           else if(is > 0) {
+                int isSquare = 0 ;
+                while (++iP[is] < nbPrime && Px[is-1]<=MaxPx[iP[is]]) {
+                    
+ //                   { int j ; printf("["); for(j=0;j<=is;j++)printf("%d,",tbPrime[iP[j]]); printf("<%lld>]",Px[is]);}
+                    if((Px[is] = Px[is-1]*tbPrime[iP[is]]) <= MaxPx[iP[is]]) { isSquare = 1; break  ;}
+//                    if( Px[is-1] <= MaxSqPx[iP[is]]) { Px[is] = Px[is-1]*tbPrime[iP[is]] ; isSquare = 1; break  ;}
+                    nbHamm++ ;
+                }
+                if(isSquare) continue ;
             }
+
            if(--is >= 0) Px[is] *= tbPrime[iP[is]] ;
            else break ;
         }
