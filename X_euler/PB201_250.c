@@ -92,41 +92,39 @@ int PB204(PB_RESULT *pbR) {
 int CmpHam(const void *el1,const void *el2) {
     return ((int *)el1)[0] - ((int *)el2)[0] ;
 }
+#define PB204_NBP   25
 int PB204b(PB_RESULT *pbR) {
     pbR->nbClock = clock();
-    int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
-    int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
-    int32_t *ptnbM = tbPrime+nbPrime ;
-    int iP[30] ;
-    int32_t P[30] ;
-    u_int64_t Px[30] ;
+    int32_t tbPrime[PB204_NBP] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+    u_int64_t MaxPx[PB204_NBP] ;
+   int nbPrime = PB204_NBP ;
+    int iP[40] ;
+     u_int64_t Px[40] ;
     int64_t nbHamm = 1 ; // for 1
     int is,ip ;
+    int i ;
+    for(i=0;i<nbPrime;i++) {MaxPx[i] = PB204_MAXN / tbPrime[i] ; }
     for(ip=0;ip<nbPrime;ip++) {
         int32_t p = tbPrime[ip] ;
-//        for(is=0,iP[is]=ip, Px[is] = PB204_MAXN/p;is>=0;) {
-       for(is=0,iP[is]=ip, Px[is] = p;is>=0;) {
- //          if(Px[is]>=1) {
-            if(Px[is]<=PB204_MAXN) {
-                nbHamm++ ;
-                if(iP[is]<nbPrime-1 && tbPrime[iP[is]+1]*Px[is]<=PB204_MAXN ) {
+        is=0 ; iP[is]=ip ; Px[is] = p ;
+       while(1) {
+           nbHamm++ ;
+           if(Px[is]<=MaxPx[iP[is]]) {
+                 if(iP[is]<nbPrime-1 && Px[is]<=MaxPx[iP[is]+1] ) {
                     iP[is+1] = iP[is]+1 ; is++ ;
-//                    Px[is] = Px[is-1]/tbPrime[iP[is]] ;
                     Px[is] = Px[is-1]*tbPrime[iP[is]] ;
-                  continue ;
+                    continue ;
                 }
                 Px[is] *= tbPrime[iP[is]] ;
                 continue ;
             }
             ++iP[is] ;
-//           if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]] <= Px[is-1]) {
-            if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]]*Px[is-1]<=PB204_MAXN) {
-//                Px[is] = Px[is-1]/tbPrime[iP[is]] ;
+            if(is > 0 && iP[is]<nbPrime && Px[is-1]<=MaxPx[iP[is]]) {
                 Px[is] = Px[is-1]*tbPrime[iP[is]] ;
                 continue ;
             }
-//           if(--is >= 0) Px[is] /= tbPrime[iP[is]] ;
            if(--is >= 0) Px[is] *= tbPrime[iP[is]] ;
+           else break ;
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
@@ -136,7 +134,42 @@ int PB204b(PB_RESULT *pbR) {
 }
 
 
+
+
+#if 0
+int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,0};
+
+u_int64_t H(const int32_t * p,u_int64_t n) {
+ //   if(n<= PB204_MAXN)
+    {
+        if(*p != 0) {
+//            return H(p, *p * n) + H(p+1,n) ;
+            int32_t P = *p ;
+            u_int64_t h ;
+            for(h=H(p+1,n),n=P * n ;n<= PB204_MAXN; n *= P ) h += H(p+1,n) ;
+//           return H(p, *p * n) + H(p+1,n) ;
+            return h ;
+        } else {
+            return 1 ;
+        }
+    }
+//    else return 0 ;
+ 
+}
+
+
 int PB204a(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    u_int64_t nbHamm = H(tbPrime,1) ;
+
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbHamm);
+    return 1 ;
+}
+#endif
+
+int PB204aa(PB_RESULT *pbR) {
     pbR->nbClock = clock();
     int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
     int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
