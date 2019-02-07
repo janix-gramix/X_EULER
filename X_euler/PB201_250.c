@@ -14,49 +14,54 @@
 #include "PB201_250.h"
 
 #define PB204_MAXP  100
-#define PB204_MAXN  1000000000000LL
+#define PB204_MAXN  1000000000000000000LL
 
 int PB204(PB_RESULT *pbR) {
     pbR->nbClock = clock();
     int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
     int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
     int32_t *ptnbM = tbPrime+nbPrime ;
-    int32_t *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8,*pt9,*pt10 ;
+    int32_t *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8,*pt9,*pt10,*pt11 ;
     int32_t nbHamm = 1 ; // for 1
-    int32_t p1,p2,p3,p4,p5,p6,p7,p8,p9,p10 ;
-    int64_t P1,P2,P3,P4,P5,P6,P7,P8,P9,P10 ;
+    int32_t p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11 ;
+    int64_t P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11 ;
     for(pt1=tbPrime;pt1<ptnbM ;pt1++) {
-        p1 = *pt1 ; P1 = PB204_MAXN / p1 ;
-        for(P1 = PB204_MAXN / p1 ;P1>=1 ; P1 /= p1) {
+        p1 = *pt1 ; P1 = p1 ;
+        for(P1 =  p1 ;P1<=PB204_MAXN ; P1 *= p1) {
           nbHamm++ ;
-            for(pt2=pt1+1;pt2<ptnbM && (p2=*pt2) <= P1 ;pt2++) {
-              for(P2 = P1/ p2 ; P2>=1 ; P2 /= p2) {
+            for(pt2=pt1+1;pt2<ptnbM && (p2=*pt2)* P1 <=PB204_MAXN ;pt2++) {
+              for(P2 = P1 * p2 ; P2<=PB204_MAXN ; P2 *= p2) {
                 nbHamm++ ;
-                for(pt3=pt2+1;pt3<ptnbM && (p3=*pt3) <= P2 ;pt3++) {
-                  for(P3 = P2/ p3 ; P3>=1 ; P3 /= p3) {
+                for(pt3=pt2+1;pt3<ptnbM && (p3=*pt3)* P2<=PB204_MAXN ;pt3++) {
+                  for(P3 = P2 * p3 ; P3<=PB204_MAXN ; P3 *= p3) {
                     nbHamm++ ;
-                    for(pt4=pt3+1;pt4<ptnbM && (p4=*pt4) <= P3 ;pt4++) {
-                      for(P4 = P3/ p4 ; P4>=1 ; P4 /= p4) {
+                    for(pt4=pt3+1;pt4<ptnbM && (p4=*pt4)* P3 <=PB204_MAXN ;pt4++) {
+                      for(P4 = P3 * p4 ; P4<=PB204_MAXN ; P4 *= p4) {
                         nbHamm++ ;
-                        for(pt5=pt4+1;pt5<ptnbM && (p5=*pt5) <= P4 ;pt5++) {
-                          for(P5 = P4/ p5 ; P5>=1 ; P5 /= p5) {
+                        for(pt5=pt4+1;pt5<ptnbM && (p5=*pt5) * P4<=PB204_MAXN ;pt5++) {
+                          for(P5 = P4 * p5 ; P5<=PB204_MAXN ; P5 *= p5) {
                             nbHamm++ ;
-                            for(pt6=pt5+1;pt6<ptnbM && (p6=*pt6) <= P5 ;pt6++) {
-                              for(P6 = P5/p6 ; P6>=1 ; P6 /= p6) {
+                            for(pt6=pt5+1;pt6<ptnbM && (p6=*pt6)* P5 <=PB204_MAXN ;pt6++) {
+                              for(P6 = P5 * p6 ; P6<=PB204_MAXN ; P6 *= p6) {
                                 nbHamm++ ;
-                                for(pt7=pt6+1;pt7<ptnbM && (p7=*pt7) <= P6 ;pt7++) {
-                                  for(P7 = P6/p7 ; P7>=1 ; P7 /= p7) {
+                                for(pt7=pt6+1;pt7<ptnbM && (p7=*pt7) * P6 <=PB204_MAXN;pt7++) {
+                                  for(P7 = P6 * p7 ; P7<=PB204_MAXN ; P7 *= p7) {
                                     nbHamm++ ;
-                                    for(pt8=pt7+1;pt8<ptnbM && (p8=*pt8) <= P7 ;pt8++) {
-                                      for(P8 = P7/p8 ; P8>=1 ; P8 /= p8) {
+                                    for(pt8=pt7+1;pt8<ptnbM && (p8=*pt8)* P7<=PB204_MAXN ;pt8++) {
+                                      for(P8 = P7 * p8 ; P8<=PB204_MAXN ; P8 *= p8) {
                                         nbHamm++ ;
-                                        for(pt9=pt8+1;pt9<ptnbM && (p9=*pt9) <= P8 ;pt9++) {
-                                          for(P9 = P8/p9 ; P9>=1 ; P9 /= p9) {
+                                        for(pt9=pt8+1;pt9<ptnbM && (p9=*pt9)* P8 <=PB204_MAXN;pt9++) {
+                                          for(P9 = P8 * p9 ; P9<=PB204_MAXN ; P9 *= p9) {
                                             nbHamm++ ;
-                                              for(pt10=pt9+1;pt10<ptnbM && (p10=*pt10) <= P9 ;pt10++) {
-                                                  for(P10 = P9/p10 ; P10>=1 ; P10 /= p10) {
+                                              for(pt10=pt9+1;pt10<ptnbM && (p10=*pt10)* P9<=PB204_MAXN ;pt10++) {
+                                                  for(P10 = P9 * p10 ; P10<=PB204_MAXN ; P10 *= p10) {
                                                       nbHamm++ ;
-                                                  }
+                                                      for(pt11=pt10+1;pt11<ptnbM && (p11=*pt11)* P10<=PB204_MAXN ;pt11++) {
+                                                          for(P11 = P10 * p11 ; P11<=PB204_MAXN ; P11 *= p11) {
+                                                              nbHamm++ ;
+                                                          }
+                                                      }
+                                                 }
                                               }
                                           }
                                         }
@@ -92,36 +97,41 @@ int PB204b(PB_RESULT *pbR) {
     int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
     int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
     int32_t *ptnbM = tbPrime+nbPrime ;
-    int iP[20] ;
-    int32_t P[20] ;
-    int64_t Px[20] ;
-    int32_t nbHamm = 1 ; // for 1
+    int iP[30] ;
+    int32_t P[30] ;
+    u_int64_t Px[30] ;
+    int64_t nbHamm = 1 ; // for 1
     int is,ip ;
     for(ip=0;ip<nbPrime;ip++) {
         int32_t p = tbPrime[ip] ;
-        for(is=0,iP[is]=ip, Px[is] = PB204_MAXN/p;is>=0;) {
-            if(Px[is]>=1) {
+//        for(is=0,iP[is]=ip, Px[is] = PB204_MAXN/p;is>=0;) {
+       for(is=0,iP[is]=ip, Px[is] = p;is>=0;) {
+ //          if(Px[is]>=1) {
+            if(Px[is]<=PB204_MAXN) {
                 nbHamm++ ;
-                if(iP[is]<nbPrime-1 && tbPrime[iP[is]+1] <= Px[is] ) {
+                if(iP[is]<nbPrime-1 && tbPrime[iP[is]+1]*Px[is]<=PB204_MAXN ) {
                     iP[is+1] = iP[is]+1 ; is++ ;
-                     ; Px[is] = Px[is-1]/tbPrime[iP[is]] ;
+//                    Px[is] = Px[is-1]/tbPrime[iP[is]] ;
+                    Px[is] = Px[is-1]*tbPrime[iP[is]] ;
                   continue ;
                 }
-                Px[is] /= tbPrime[iP[is]] ;
+                Px[is] *= tbPrime[iP[is]] ;
                 continue ;
             }
             ++iP[is] ;
-            if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]] <= Px[is-1]) {
-  //              P[is] = tbPrime[iP[is]] ;
-                Px[is] = Px[is-1]/tbPrime[iP[is]] ;
+//           if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]] <= Px[is-1]) {
+            if(is > 0 && iP[is]<nbPrime && tbPrime[iP[is]]*Px[is-1]<=PB204_MAXN) {
+//                Px[is] = Px[is-1]/tbPrime[iP[is]] ;
+                Px[is] = Px[is-1]*tbPrime[iP[is]] ;
                 continue ;
             }
-            if(--is >= 0) Px[is] /= tbPrime[iP[is]] ;
+//           if(--is >= 0) Px[is] /= tbPrime[iP[is]] ;
+           if(--is >= 0) Px[is] *= tbPrime[iP[is]] ;
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbHamm);
     return 1 ;
 }
 
