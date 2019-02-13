@@ -129,7 +129,15 @@ int Is_Prime32(uint32_t N, const T_prime *tbPrime) ;
 int Is_Prime2(uint64_t N1,uint64_t N2,const T_prime *tbPrime) ;
 
 
+typedef struct FractCont64 {
+    uint64_t N0 ;
+    uint64_t D0 ;
+    uint64_t N1 ;
+    uint64_t D1 ;
+    
+} FractCont64 ;
 
+void NextFract(FractCont64 * F, int a) ; // compute next continued fraction
 
 
 #endif /* euler_utils_h */

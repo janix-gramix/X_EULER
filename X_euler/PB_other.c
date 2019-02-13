@@ -13,6 +13,107 @@
 
 #include "PB_other.h"
 
+#define PB495_NCOLOR    2
+#define PB495_NELBYCOL  1
+#define PB495_NPACKET  2
+
+typedef union CONF495 {
+    u_int8_t  P[PB495_NPACKET] ;
+    u_int64_t N ;
+} CONF495 ;
+
+int Cmp_P(const void *el1,const void *el2) {
+    return (int)((u_int8_t *)el1)[0] - (int)((u_int8_t *)el2)[0] ;
+}
+int Cmp_N(const void *el1,const void *el2) {
+    if(((u_int64_t *)el1)[0] > ((u_int64_t *)el2)[0]) {
+        return 1 ;
+    } else if(((u_int64_t *)el1)[0] == ((u_int64_t *)el2)[0]) {
+        return 0 ;
+    } else return -1 ;
+}
+int PB495(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nbConf = 1;
+    int i ;
+    for(i=0;i<PB495_NCOLOR;i++) {
+        nbConf *= PB495_NPACKET ;
+    }
+    CONF495 *CF = calloc(nbConf,sizeof(CF[0])) ;
+    int i0,i1,i2,i3,i4,i5 ;
+    CONF495 C0,C1,C2,C3,C4,C5 ;
+    int N0,N1,N2,N3,N4,N5 ;
+    for(i0=0;i0<PB495_NPACKET;i0++) {
+        C0.N=0 ; C0.P[i0] = 1 ;
+        N0 = i0 ;
+        for(i1=0;i1<PB495_NPACKET;i1++) {
+            C1=C0 ; C1.P[i1] |=2 ;
+            N1=PB495_NPACKET*N0+i1 ;
+            if(PB495_NCOLOR == 2) {
+                qsort(C1.P,PB495_NPACKET,sizeof(C1.P[0]),Cmp_P) ;
+                CF[N1] = C1 ;
+                continue ;
+            }
+           for(i2=0;i2<PB495_NPACKET;i2++) {
+                C2=C1 ; C2.P[i2] |= 4 ;
+                N2=PB495_NPACKET*N1+i2 ;
+                if(PB495_NCOLOR == 3) {
+                    qsort(C2.P,PB495_NPACKET,sizeof(C2.P[0]),Cmp_P) ;
+                    CF[N2] = C2 ;
+                    continue ;
+                }
+                for(i3=0;i3<PB495_NPACKET;i3++) {
+                    C3=C2 ; C3.P[i3] |= 8 ;
+                    N3=PB495_NPACKET*N2+i3 ;
+                    if(PB495_NCOLOR == 4) {
+                        qsort(C3.P,PB495_NPACKET,sizeof(C3.P[0]),Cmp_P) ;
+                        CF[N3] = C3 ;
+                        continue ;
+                    }
+                    for(i4=0;i4<PB495_NPACKET;i4++) {
+                        C4=C3 ; C4.P[i4] |= 16 ;
+                        N4=PB495_NPACKET*N3+i4 ;
+                        if(PB495_NCOLOR == 5) {
+                            qsort(C4.P,PB495_NPACKET,sizeof(C4.P[0]),Cmp_P) ;
+                            CF[N4] = C4 ;
+                            continue ;
+                        }
+                        for(i5=0;i5<PB495_NPACKET;i5++) {
+                            C5=C4 ; C5.P[i5] |= 32 ;
+                            N5=PB495_NPACKET*N4+i5 ;
+                            if(PB495_NCOLOR == 6) {
+                                qsort(C5.P,PB495_NPACKET,sizeof(C5.P[0]),Cmp_P) ;
+                                CF[N5] = C5 ;
+                                continue ;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    qsort(CF,nbConf,sizeof(CF[0]),Cmp_N) ;
+    u_int64_t ant = CF[0].N  ;
+    int nb = 1 ;
+    int nbDiff = 1 ;
+    for(i=1;i<nbConf;i++) {
+        if(CF[i].N == ant) nb++ ;
+        else {
+            printf(" %d x %llx -",nb,ant) ;
+            nb = 1 ;
+            ant = CF[i].N ;
+            nbDiff++ ;
+        }
+    }
+    printf(" %d x %llx \n NbDiff=%d\n",nb,ant,nbDiff) ;
+
+    
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbConf);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
 #define PB579_SIZE  5000
 #define PB579_MOD   1000000000
 

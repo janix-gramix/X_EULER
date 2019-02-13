@@ -601,3 +601,11 @@ int Is_Prime2(uint64_t N1,uint64_t N2,const T_prime *tbPrime) {
 }
 
 
+void NextFract(FractCont64 * F, int a) {
+    uint64_t tmp = F->N0 ;
+    F->N0 = F->N1 ;
+    F->N1 = a * F->N0 + tmp ;
+    tmp = F->D0 ;
+    F->D0 = F->D1 ;
+    F->D1 = a * F->D0 + tmp ;
+}

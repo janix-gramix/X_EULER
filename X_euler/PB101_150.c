@@ -10,6 +10,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 
 
@@ -2652,6 +2653,38 @@ int PB137(PB_RESULT *pbR) {
     return 1 ;
 }
 
+// triangle pythoricien L**2 = h**2 + b**2 /4
+// m**2-n**2 = b ± 1  b = 4mn
+// m**2 -4mn -n**2 ± 1 = 0
+// d**2 = 4n**2 -(-n**2 ± 1)
+//      = 5n**2 ± 1
+// donc d/n fraction continue qui approche sqrt(5)
+// m=2n+d
+int PB138(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    // continuous fraction for 1/sqrt(5) => 0 2 4 4 ...
+
+    FractCont64 Fsqrt5 = {0,1,1,0} ;
+    NextFract(&Fsqrt5,2);
+    uint64_t sumP = 0;
+    int i ;
+    for(i=0;i<12;i++){
+        int64_t d = Fsqrt5.N1 ;
+        int64_t n = Fsqrt5.D1 ;
+        assert(d*d - 5*n*n == 1 || d*d - 5*n*n == -1 ) ;
+        int64_t m = 2*n+d ;
+        int64_t b = 4*m*n ;
+        int64_t L = m*m+n*n ;
+        int64_t h = m*m-n*n ;
+        sumP += L ;
+        if(pbR->isVerbose)fprintf(stdout,"\t PB%s (d=%lld,n=%lld) ,L=%lld,h=%lld b=%lld  \n"
+                                  ,pbR->ident,d,n,L,h,b ) ;
+        NextFract(&Fsqrt5,4);
+   }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",sumP);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
 
 
 // donc on cherche a decomposer un triangle Pythagoricien primaire (m,n) m>n premiers m**m - n**2 , 2mn

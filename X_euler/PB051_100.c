@@ -3125,22 +3125,6 @@ int PB093(PB_RESULT *pbR) {
     }
 }
 
-typedef struct FractCont64 {
-    uint64_t N0 ;
-    uint64_t D0 ;
-    uint64_t N1 ;
-    uint64_t D1 ;
-   
-} FractCont64 ;
-
-void NextFract(FractCont64 * F, int a) {
-    uint64_t tmp = F->N0 ;
-    F->N0 = F->N1 ;
-    F->N1 = a * F->N0 + tmp ;
-    tmp = F->D0 ;
-    F->D0 = F->D1 ;
-    F->D1 = a * F->D0 + tmp ;
-}
 // Isocele triangle ,
 // For parity reason in pythagore, the base is the even length
 //  B) Length 2N+1,2N+1,2N

@@ -14,8 +14,48 @@
 #include "PB201_250.h"
 
 #define PB204_MAXP  100
-#define PB204_MAXN  1000000000000000000LL
-// #define PB204_MAXN  100
+//#define PB204_MAXN  1000000000000LL
+#define PB204_MAXN  1000000000LL
+#define PB204_NBP   25
+int PB204b(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    int32_t tbPrime[PB204_NBP] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+    u_int64_t MaxPx[PB204_NBP] ;
+    int nbPrime = PB204_NBP ;
+    int iP[40] ;
+    u_int64_t Px[40] ;
+    int64_t nbHamm = 1 ; // for 1
+    int i ;
+    for(i=0;i<nbPrime;i++) {MaxPx[i] = PB204_MAXN / tbPrime[i] ; }
+    int is=0; Px[is]=1 ;
+    is++ ; iP[is] = 0 ; Px[is] = tbPrime[iP[is] ] ;
+    while(is>0) {
+        nbHamm++ ;
+        if(Px[is]<=MaxPx[iP[is]]) {
+            if(iP[is]<nbPrime-1 && Px[is]<=MaxPx[iP[is]+1] ) {
+                iP[is+1] = iP[is]+1 ; is++ ;
+                Px[is] = Px[is-1]*tbPrime[iP[is]] ;
+                continue ;
+            }
+            Px[is] *= tbPrime[iP[is]] ;
+            continue ;
+        }
+        int isSquare = 0 ;
+        while (++iP[is] < nbPrime && Px[is-1]<=MaxPx[iP[is]]) {
+            if((Px[is] = Px[is-1]*tbPrime[iP[is]]) <= MaxPx[iP[is]]) {
+                isSquare = 1; break  ;
+            }
+            nbHamm++ ;
+        }
+        if(isSquare) continue ;
+        if(--is > 0) Px[is] *= tbPrime[iP[is]] ;
+        else break ;
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld hamm(%d) <= %lld\n",pbR->ident,nbHamm,PB204_MAXP,PB204_MAXN) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbHamm);
+    return 1 ;
+}
 
 int PB204(PB_RESULT *pbR) {
     pbR->nbClock = clock();
@@ -85,87 +125,27 @@ int PB204(PB_RESULT *pbR) {
     
     
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld hamm(%d) <= %lld\n",pbR->ident,nbHamm,PB204_MAXP,PB204_MAXN) ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
     return 1 ;
  }
 
-int CmpHam(const void *el1,const void *el2) {
-    return ((int *)el1)[0] - ((int *)el2)[0] ;
-}
-#define PB204_NBP   25
-int PB204b(PB_RESULT *pbR) {
-    pbR->nbClock = clock();
-    int32_t tbPrime[PB204_NBP] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
-    u_int64_t MaxPx[PB204_NBP] ;
- //   u_int64_t MaxSqPx[PB204_NBP] ;
-   int nbPrime = PB204_NBP ;
-    int iP[40] ;
-     u_int64_t Px[40] ;
-    int64_t nbHamm = 1 ; // for 1
-    int is,ip ;
-    int i ;
-    for(i=0;i<nbPrime;i++) {MaxPx[i] = PB204_MAXN / tbPrime[i] ; }
-    for(ip=0;ip<nbPrime;ip++) {
-        int32_t p = tbPrime[ip] ;
-        is=0 ; iP[is]=ip ; Px[is] = p ;
-       while(1) {
-           nbHamm++ ;
- //          { int j ; printf("("); for(j=0;j<=is;j++)printf("%d,",tbPrime[iP[j]]); printf("<%lld>)",Px[is]);}
-           if(Px[is]<=MaxPx[iP[is]]) {
-                 if(iP[is]<nbPrime-1 && Px[is]<=MaxPx[iP[is]+1] ) {
-                    iP[is+1] = iP[is]+1 ; is++ ;
-                    Px[is] = Px[is-1]*tbPrime[iP[is]] ;
-                    continue ;
-                }
-                Px[is] *= tbPrime[iP[is]] ;
-                continue ;
-            }
-
-           else if(is > 0) {
-                int isSquare = 0 ;
-                while (++iP[is] < nbPrime && Px[is-1]<=MaxPx[iP[is]]) {
-                    
- //                   { int j ; printf("["); for(j=0;j<=is;j++)printf("%d,",tbPrime[iP[j]]); printf("<%lld>]",Px[is]);}
-                    if((Px[is] = Px[is-1]*tbPrime[iP[is]]) <= MaxPx[iP[is]]) { isSquare = 1; break  ;}
-//                    if( Px[is-1] <= MaxSqPx[iP[is]]) { Px[is] = Px[is-1]*tbPrime[iP[is]] ; isSquare = 1; break  ;}
-                    nbHamm++ ;
-                }
-                if(isSquare) continue ;
-            }
-
-           if(--is >= 0) Px[is] *= tbPrime[iP[is]] ;
-           else break ;
-        }
-    }
-    pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbHamm);
-    return 1 ;
-}
 
 
 
 
-#if 0
+// recursive solution not efficient
 int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,0};
 
 u_int64_t H(const int32_t * p,u_int64_t n) {
- //   if(n<= PB204_MAXN)
-    {
-        if(*p != 0) {
-//            return H(p, *p * n) + H(p+1,n) ;
-            int32_t P = *p ;
-            u_int64_t h ;
-            for(h=H(p+1,n),n=P * n ;n<= PB204_MAXN; n *= P ) h += H(p+1,n) ;
-//           return H(p, *p * n) + H(p+1,n) ;
-            return h ;
-        } else {
-            return 1 ;
-        }
+    if(*p != 0) {
+        int32_t P = *p ;
+        u_int64_t h ;
+        for(h=H(p+1,n),n=P * n ;n<= PB204_MAXN; n *= P ) h += H(p+1,n) ;
+        return h ;
+    } else {
+        return 1 ;
     }
-//    else return 0 ;
- 
 }
 
 
@@ -174,96 +154,10 @@ int PB204a(PB_RESULT *pbR) {
     u_int64_t nbHamm = H(tbPrime,1) ;
 
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
+    if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld hamm(%d) <= %lld\n",pbR->ident,nbHamm,PB204_MAXP,PB204_MAXN) ;
      snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbHamm);
     return 1 ;
 }
-#endif
-
-int PB204aa(PB_RESULT *pbR) {
-    pbR->nbClock = clock();
-    int32_t tbPrime[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
-    int nbPrime = sizeof(tbPrime)/sizeof(tbPrime[0]) ;
-    double * logPrime = malloc(nbPrime*sizeof(logPrime[0])) ;
-    int i ;
-    for(i=0;i<nbPrime;i++) logPrime[i] = log(tbPrime[i]) ;
-    double *ptnbM = logPrime+nbPrime ;
-    double *pt1,*pt2,*pt3,*pt4,*pt5,*pt6,*pt7,*pt8,*pt9,*pt10,*pt11,*pt12,*pt13 ;
-    int32_t nbHamm = 1 ; // for 1
-    double p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13 ;
-    double P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13 ;
-    for(pt1=logPrime;pt1<ptnbM ;pt1++) {
-      p1 = *pt1 ;
-      for(P1 = log(PB204_MAXN+1) - p1 ;P1>0 ; P1 -= p1) {
-        nbHamm++ ;
-        for(pt2=pt1+1;pt2<ptnbM && (p2=*pt2) < P1 ;pt2++) {
-          for(P2 = P1 - p2 ; P2> 0 ; P2 -= p2) {
-            nbHamm++ ;
-            for(pt3=pt2+1;pt3<ptnbM && (p3=*pt3) < P2 ;pt3++) {
-              for(P3 = P2 - p3 ; P3>0 ; P3 -= p3) {
-                nbHamm++ ;
-                for(pt4=pt3+1;pt4<ptnbM && (p4=*pt4) < P3 ;pt4++) {
-                  for(P4 = P3 - p4 ; P4>0 ; P4 -= p4) {
-                    nbHamm++ ;
-                    for(pt5=pt4+1;pt5<ptnbM && (p5=*pt5) < P4 ;pt5++) {
-                      for(P5 = P4 - p5 ; P5> 0 ; P5 -= p5) {
-                        nbHamm++ ;
-                        for(pt6=pt5+1;pt6<ptnbM && (p6=*pt6) < P5 ;pt6++) {
-                          for(P6 = P5 - p6 ; P6> 0 ; P6 -= p6) {
-                            nbHamm++ ;
-                            for(pt7=pt6+1;pt7<ptnbM && (p7=*pt7) < P6 ;pt7++) {
-                              for(P7 = P6 - p7 ; P7>0 ; P7 -= p7) {
-                                nbHamm++ ;
-                                for(pt8=pt7+1;pt8<ptnbM && (p8=*pt8) < P7 ;pt8++) {
-                                  for(P8 = P7 -p8 ; P8> 0 ; P8 -= p8) {
-                                    nbHamm++ ;
-                                    for(pt9=pt8+1;pt9<ptnbM && (p9=*pt9) < P8 ;pt9++) {
-                                      for(P9 = P8 - p9 ; P9>0 ; P9 -= p9) {
-                                        nbHamm++ ;
-                                          for(pt10=pt9+1;pt10<ptnbM && (p10=*pt10) < P9 ;pt10++) {
-                                              for(P10 = P9 - p10 ; P10>0 ; P10 -= p10) {
-                                                  nbHamm++ ;
-                                                  for(pt11=pt10+1;pt11<ptnbM && (p11=*pt11) < P10 ;pt11++) {
-                                                      for(P11 = P10 - p11 ; P11>0 ; P11 -= p11) {
-                                                          nbHamm++ ;
-                                                          for(pt12=pt11+1;pt12<ptnbM && (p12=*pt12) < P11 ;pt12++) {
-                                                              for(P12 = P11 - p12 ; P12>0 ; P12 -= p12) {
-                                                                  nbHamm++ ;
-                                                                  for(pt13=pt12+1;pt13<ptnbM && (p13=*pt13) < P12 ;pt13++) {
-                                                                      for(P13 = P12 - p13 ; P13>0 ; P13 -= p13) {
-                                                                          nbHamm++ ;
-                                                                      }
-                                                                  }
-                                                              }
-                                                          }
-                                                      }
-                                                  }
-                                             }
-                                          }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose) fprintf(stdout,"\tPB%s \n",pbR->ident) ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbHamm);
-    return 1 ;
-}
-
 
 
 
@@ -368,6 +262,114 @@ int PB206a(PB_RESULT *pbR) {
         }
     }
     return 0 ;
+}
+
+ //#define PB234_MAX   ((int64_t)1000)
+#define PB234_MAX   ((u_int64_t)999966663333LL)
+
+int PB234(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+    CTX_PRIMETABLE * ctxP  ;
+    pbR->nbClock = clock();
+    u_int32_t pbMax=(u_int32_t) (1+Sqrt64(PB234_MAX)) ;
+    if((ctxP = Gen_tablePrime(pbMax)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int i ;
+    u_int64_t S=0 ;
+    u_int32_t N =0 ;
+    int32_t p1 ;
+    int32_t p2=2 ;
+    int32_t n1,n2 ;
+    int64_t SQ1,SQ2=4, plow , phig ;
+    for(i=0;i<nbPrime-1;i++) {
+        p1 = p2 ;
+        SQ1 = SQ2 ;
+        p2 = tbPrime[i+1] ;
+        SQ2 = p2 *(u_int64_t)p2 ;
+        if(p2 * (int64_t)p2 > PB234_MAX ) break ;
+        n1 = (SQ2 - SQ1)/p1 ;
+        n2 = (SQ2 - SQ1)/p2 ;
+        plow = SQ1 + p1 ;
+  //      S += ((plow+plow+(n1-1)*p1)*n1)/2 ;
+        S += ((2*p1+n1+1)*(u_int64_t)p1*n1)/2 ;
+//        printf("S=%lld" ,S) ;
+        phig = SQ2 - p2 ;
+//        S += ((phig+phig-(n2-1)*p2)*(n2))/2  ;
+        S += ((2*p2-1-n2)*(u_int64_t)p2*n2)/2  ;
+        S -= 2*p1*(int64_t)p2 ;
+        int j ;
+ //       printf("(%d,%d) ->(%d,%d)" , p1,p2,n1,n2);
+//      for(j=0;j<n1;j++) printf("%d ",plow+j*p1 ) ;
+        N += n1+n2 -2 ;
+//        for(j=0;j<n2;j++) printf("%d ",phig-j*p2 ) ;
+//       printf(" -2x%d S=%lld\n",p1*p2,S) ;
+    }
+    p1 = p2 ;
+    for(p2=p1+2;;p2 += 2) {
+        int p ;
+        for(i=1;;i++) {
+            p = tbPrime[i] ;
+            if(p*p > p2) break ;
+            if((p2 %p) == 0) break ;
+        }
+        if(p*p > p2) break ;
+    }
+    n1 = PB234_MAX/p1 - p1 ;
+    plow = p1*(u_int64_t)(p1 + 1) ;
+    if(n1 > 0) {
+        S += ((plow+plow+(n1-1)*p1)*n1)/2 ;
+        if(p1*(u_int64_t)p2 <= PB234_MAX) {
+            S -= p1*(u_int64_t)p2  ;
+            N += n1 -1 ;
+        } else {
+            N += n1 ;
+        }
+    }
+    phig = PB234_MAX - (PB234_MAX % p2) ;
+    n2 = (phig -p1*(u_int64_t)p1)/p2  ;
+    if(n2>=0) {
+        S += ((phig+phig-(n2)*(u_int64_t)p2)*(n2+1))/2  ;
+        if(p1*(int64_t)p2 <= PB234_MAX) {
+            S -= p1*(u_int64_t)p2  ;
+            N += n2 ;
+        } else {
+            N += n2 +1;
+        }
+
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    printf("N=%d %lld\n",N,S) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.lld",S);
+    return 1 ;
+}
+
+int PB235(PB_RESULT *pbR) {
+    pbR->nbClock = clock();
+//    double sol = 1.002322108633 ; // by mathematica manually(can be implement in C by dichotomi
+    double xl = 1.002 ;
+    double delta = 0.0005 ;
+    double xh = xl + 2 * delta ;
+    double x ;
+    do {
+        x = xl + delta ;
+        double x5000 =pow(x,5000);
+        double Sx = - (5001 * x5000) / (x-1) + 300 * (x5000-1)/(x-1) + (x5000 * x - 1) / (x*x-2*x+1) + 200000000000 ;
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s %.14f ->%.12f\n",pbR->ident ,x,Sx) ;
+        if(Sx > 0) {
+            xl = x ;
+        }else {
+            xh = x ;
+        }
+        delta /= 2 ;
+            
+    } while (delta > 0.00000000000001) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.12f",x);
+    return 1 ;
 }
 
 

@@ -67,6 +67,7 @@ void Execute(TotalRun *ttr, PB_CALL *pbCall) {
  Liens
  173->174->179
  76->181 (decompostion en partition et nombre pentagonaux)
+ 64 -> 94 -> 138 (fraction continue (Sqrt(n) n=3 pour 94, 138)
  
 */
 static PB_CALL ALL_calls[] = {
@@ -267,6 +268,9 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(187a,17427258,'Semiprimes')
 //    ,PROTO_CALL(187b,17427258,'Semiprimes')
     
+    ,PROTO_CALL(188,95962097,'The hyperexponentiation of a number')
+//    ,PROTO_CALL(188_gmp,95962097,'The hyperexponentiation of a number')
+
 //    ,PROTO_CALL(191,1918080160,'Prize Strings')
     ,PROTO_CALL(191a,1918080160,'Prize Strings')
 
@@ -289,11 +293,16 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(198g,52374425,'Ambiguous Numbers')
     ,PROTO_CALL(199,0.00396087,'Iterative Circle Packing')
 
+    ,PROTO_CALL(204b,2944730,'Generalised Hamming Numbers')
+//    ,    PROTO_CALL(204a,2944730,'Generalised Hamming Numbers')
+//    ,    PROTO_CALL(204,2944730,'Generalised Hamming Numbers')
 
 
     ,PROTO_CALL(206,1389019170,'Concealed Square')
     ,PROTO_CALL(206a,1389019170,'Concealed Square')
-
+    
+    ,PROTO_CALL(234,1259187438574927161,'Semidivisible numbers')
+    ,PROTO_CALL(235,1.002322108633,'An Arithmetic Geometric sequence')
 
     // a revoir beaucoup trop lent
     //    ,{100,  PB100,756872327473,'XX')
@@ -333,8 +342,8 @@ static PB_CALL CUR_calls[] = {
 //    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
 //    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
 
-    PROTO_CALL(188,95962097,'The hyperexponentiation of a number')
-    ,PROTO_CALL(188_gmp,95962097,'The hyperexponentiation of a number')
+    PROTO_CALL(138,1118049290473932,'Special isosceles triangles')
+//    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')
 
 
 
