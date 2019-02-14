@@ -15,6 +15,296 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
+// #define PB152_MAXN  45
+#define PB152_MAXN  95
+
+int PB152a(PB_RESULT *pbR) {
+    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97} ;
+    u_int64_t den_ppcm = 1  ;
+    int nbSol = 0 ;
+    pbR->nbClock = clock() ;
+    int i,ip,p ;
+    int64_t invSqare[100],candidate[100],powCand[100],retainCandidate[100], sumInv[2048] ;
+    int nbCand = 0 ;
+//    retainCandidate[nbCand++] = 2;
+   for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
+    for(;--ip >=0;) {
+        p = Primes[ip] ;
+        int powp ;
+        for(powp=p;powp*p<=PB152_MAXN/2;) {
+            powp = powp * p ;
+        }
+        int nbS0 = 0 ;
+        int np ;
+        while(powp>1) {
+            np = PB152_MAXN/powp ;
+            int nbInv = 0 ;
+             int sqp = p*p ;
+            if(np>= powp-1) np = powp-1 ;
+            for(i=1;i<=np;i++) {
+                if(i != 0 && (i % p) == 0) continue ;
+                int64_t i2 = (i*i) % sqp ;
+                int64_t inv_i2, ninv ; ;
+                for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp ) !=1;inv_i2=ninv) ;
+ //               candidate[nbInv] = i*powp ;
+                invSqare[nbInv++] = inv_i2 ;
+            }
+            sumInv[0] = 0 ;
+            for(i=0;i<nbInv;i++) {
+                int j,jmax = 1 << i ; ;
+                for(j=0;j<jmax;j++) {
+                    sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
+                    if(sumInv[j+jmax]==0){
+                        nbS0++ ;
+ /*                       {
+                            int index = j + jmax ;
+                            int l ;
+                            for(l=0;index !=0;l++) {
+                                if(index & (1<<l)) {
+                                    index ^= 1<<l ;
+                                    int ic ;
+                                    int cand = candidate[l] ;
+                                    for(ic=0;ic<nbCand;ic++) {
+                                        if(retainCandidate[ic] == cand) break ;
+                                    }
+                                    if(ic==nbCand){
+                                        retainCandidate[nbCand++] = cand ;
+                                        printf("+%d ",cand);
+                                    }
+                                }
+                            }
+                        }
+*/                      break ;
+                    }
+                }
+                if(nbS0) {
+                  break ;
+                }
+            }
+            if(nbS0) break ;
+            else powp /= p ;
+        }
+        if(nbS0) {
+            den_ppcm *= powp ;
+            powCand[nbCand] = powp ;
+            candidate[nbCand++] = p ;
+            printf("x%d",powp) ;
+        }
+    }
+    int64_t Num[PB152_MAXN] ;
+    int indNum[PB152_MAXN] ;
+    int64_t cumNum[PB152_MAXN] ;
+    int k ;
+    int nbNum = 0 ;
+    int ic ;
+    int level[100] ;
+    int nbLevel = 0 ;
+    int64_t powLevel[100] ;
+    Num[nbNum] = (den_ppcm / 2)*(den_ppcm / 2)  ;
+    indNum[nbNum++] = 2 ;
+ /*   for(ic=0;ic<nbCand;ic++) {
+        Num[nbNum] = (den_ppcm / retainCandidate[ic])*(den_ppcm / retainCandidate[ic]) ;
+        indNum[nbNum++] = retainCandidate[ic] ;
+    }
+*/
+   for(ic=0;ic<nbCand;ic++) {
+ //  for(ic=nbCand;--ic>=0;) {
+        int p = candidate[ic] ;
+        int powp = powCand[ic] ;
+       int askPowp = p;
+        while(powp > 1) {
+            for(k=powp;k<=PB152_MAXN;k+=powp) {
+                int l ;
+                for(l=0;l<nbNum;l++) {
+                    if(indNum[l] == k) break ;
+                }
+                if(l<nbNum) continue ;
+                if((den_ppcm % k) == 0 ) {
+                    Num[nbNum] = (den_ppcm / k)*(den_ppcm / k) ;
+                    indNum[nbNum++] = k ; printf("+%d ",k);
+                }
+            }
+            level[nbLevel] = nbNum ;
+            powLevel[nbLevel++] = askPowp*askPowp ;
+            askPowp *= p ;
+            powp /= p ;
+        }
+    }
+    int64_t cum = 0 ;
+    for(k=nbNum-1;k>=0;k--) {
+        cum += Num[k] ;
+        cumNum[k] = cum ;
+    }
+    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbNum );
+    int64_t Sum[PB152_MAXN] ;
+    int Ind[PB152_MAXN] ;
+    int is,curLevel ;
+    is =0 ; Sum[is] = den_ppcm*den_ppcm/2 - Num[0] ;  // car 2 obligatoire
+    Ind[is] = 0 ;
+    is++ ;
+    Sum[is] = Sum[is-1] - Num[1] ;
+    Ind[1] = 1  ;
+    curLevel=0 ;
+    while(is>=1) {
+        if (Sum[is] > 0) {
+            is++ ;
+            if(is==level[curLevel]) {
+                if((Sum[is-1] % powLevel[curLevel]) != 0) {
+                    is-- ;
+                    while (is > 0) {
+                        Sum[is] += Num[Ind[is]] ;
+                        int i ;
+//                        for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
+                        for(i=Ind[is]+1;i<nbNum;i++) {
+                            if( Num[i] <= Sum[is]) break ;
+                        }
+                        if(i<nbNum && cumNum[i]>= Sum[is] ) {
+                            Ind[is] = i ;
+                            Sum[is] -= Num[i] ;
+                            break ;
+                        } else {
+                            if(curLevel > 0 && is==level[curLevel-1]) curLevel-- ;
+                            is-- ;
+                        }
+                    }
+                    continue ;
+                } else {
+                    curLevel++ ;
+                }
+            }
+ 
+            Ind[is] = Ind[is-1]+1 ;
+            Sum[is] = Sum[is-1] - Num[Ind[is]] ;
+
+        } else {
+            if(Sum[is] == 0) {
+  //              int j ; for(j=0;j<=is;j++) printf("%d ",indNum[Ind[j]]);
+  //              printf("\n") ;
+                nbSol++ ;
+            }
+            while (is > 0) {
+                Sum[is] += Num[Ind[is]] ;
+                int i ;
+ //               for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
+                for(i=Ind[is]+1;i<nbNum;i++) {
+                    if( Num[i] <= Sum[is]) break ;
+                }
+                if(i<nbNum && cumNum[i]>= Sum[is] ) {
+                    Ind[is] = i ;
+                    Sum[is] -= Num[i] ;
+                    break ;
+                } else {
+                    if(curLevel > 0 && is==level[curLevel-1]) curLevel-- ;
+                   is-- ;
+                }
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
+    return 1 ;
+}
+
+
+int PB152(PB_RESULT *pbR) {
+    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97} ;
+    u_int64_t den_ppcm = 1  ;
+    int nbSol = 0 ;
+    pbR->nbClock = clock() ;
+    int i,ip,p ;
+    int64_t invSqare[100], sumInv[2048] ;
+    for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) {
+        int powp ;
+        for(powp=p;powp*p<=PB152_MAXN/2;) {
+            powp = powp * p ;
+        }
+      int nbS0 = 0 ;
+      while(powp>1) {
+            int np = PB152_MAXN/powp ;
+            int nbInv = 0 ;
+           int sqp = p*p ;
+            for(i=1;i<=np;i++) {
+                if((i % p) == 0) continue ;
+                int64_t i2 = (i*i) % sqp ;
+                int64_t inv_i2, ninv ; ;
+                for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp ) !=1;inv_i2=ninv) ;
+                invSqare[nbInv++] = inv_i2 ;
+            }
+            sumInv[0] = 0 ;
+              for(i=0;i<nbInv;i++) {
+                int j,jmax = 1 << i ; ;
+                for(j=0;j<jmax;j++) {
+                    sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
+                    if(sumInv[j+jmax]==0){ nbS0++ ; break ; }
+                }
+                if(nbS0) break ;
+            }
+            if(nbS0) break ;
+            else powp /= p ;
+        }
+        if(nbS0) {
+            den_ppcm *= powp ;
+            printf("x%d",powp) ;
+        }
+    }
+    int64_t Num[PB152_MAXN] ;
+    int indNum[PB152_MAXN] ;
+    int64_t cumNum[PB152_MAXN] ;
+    int k ;
+    int nbNum = 0 ;
+    for(k=2;k<=PB152_MAXN;k++) {
+        if((den_ppcm % k) == 0 ) {
+            Num[nbNum] = (den_ppcm / k)*(den_ppcm / k) ;
+            indNum[nbNum++] = k ;
+        }
+    }
+    int64_t cum = 0 ;
+    for(k=nbNum-1;k>=0;k--) {
+        cum += Num[k] ;
+        cumNum[k] = cum ;
+    }
+    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbNum );
+    int64_t Sum[PB152_MAXN] ;
+    int Ind[PB152_MAXN] ;
+    int is ;
+    is =0 ; Sum[is] = den_ppcm*den_ppcm/2 - Num[0] ;  // car 2 obligatoire
+    Ind[is] = 0 ;
+    is++ ;
+    Sum[is] = Sum[is-1] - Num[1] ;
+    Ind[1] = 1  ;
+    while(is>=1) {
+        if (Sum[is] > 0) {
+            is++ ;
+            Ind[is] = Ind[is-1]+1 ;
+            Sum[is] = Sum[is-1] - Num[Ind[is]] ;
+        } else {
+            if(Sum[is] == 0) {
+ //               int j ; for(j=0;j<=is;j++) printf("%d ",indNum[Ind[j]]);
+ //               printf("\n") ;
+                nbSol++ ;
+            }
+            while (is > 0) {
+                Sum[is] += Num[Ind[is]] ;
+                int i ;
+                for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
+                    if( Num[i] <= Sum[is]) break ;
+                }
+                if(i<nbNum && cumNum[i]>= Sum[is] ) {
+                    Ind[is] = i ;
+                    Sum[is] -= Num[i] ;
+                    break ;
+                } else {
+                    is-- ;
+                }
+            }
+        }
+    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
+    return 1 ;
+}
+
+
 // nb(tiles) = 4*n*p with n>p
 // so count multiples k*p from k=p+1 to k<= N/p
 #define PB173_NB    1000000
