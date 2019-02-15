@@ -16,7 +16,7 @@
 #include "PB151_200.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN  95
+#define PB152_MAXN  80
 
 typedef struct Element152 {
     int val ;               // int for denominator
@@ -40,27 +40,25 @@ int PB152a(PB_RESULT *pbR) {
     int ip,p ;
     int64_t invSqare[100],candidate[100],powCand[100], sumInv[2048] ;
     int nbCand = 0 ;
-   for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
+    for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
     for(;--ip >=0;) {
         p = Primes[ip] ;
         int powp ;
-        for(powp=p;powp*p<=PB152_MAXN/2;) {
-            powp = powp * p ;
-        }
+        for(powp=p;powp*p<=PB152_MAXN/2;) powp = powp * p ;
         int nbS0 = 0 ;
         int np ;
         while(powp>1) {
             np = PB152_MAXN/powp ;
             int nbInv = 0 ;
-             int sqp = p*p ;
+            int sqp = p*p ;
             if(p != 2 && np>= powp-1) np = powp-1 ;
             if(p==2 && np>= 2*powp-1) np =2*powp -1 ;
             int i ;
             for(i=1;i<=np;i++) {
                 if(i != 0 && (i % p) == 0) continue ;
-                int64_t i2 = (i*i) % sqp ;
-                int64_t inv_i2, ninv ; ;
-                for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp ) !=1;inv_i2=ninv) ;
+                int i2 = (i*i) % sqp ;
+                int inv_i2, ninv ; ;
+                for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp )!=1;inv_i2=ninv) ;
                 invSqare[nbInv++] = inv_i2 ;
             }
             sumInv[0] = 0 ;
@@ -68,14 +66,9 @@ int PB152a(PB_RESULT *pbR) {
                 int j,jmax = 1 << i ; ;
                 for(j=0;j<jmax;j++) {
                     sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
-                    if(sumInv[j+jmax]==0){
-                        nbS0++ ;
-                     break ;
-                    }
+                    if(sumInv[j+jmax]==0){  nbS0++ ;     break ;  }
                 }
-                if(nbS0) {
-                  break ;
-                }
+                if(nbS0) {  break ; }
             }
             if(nbS0) break ;
             else powp /= p ;
@@ -84,7 +77,6 @@ int PB152a(PB_RESULT *pbR) {
             den_ppcm *= powp ;
             powCand[nbCand] = powp ;
             candidate[nbCand++] = p ;
-            printf("x%d",powp) ;
         }
     }
     Element152 Elem[PB152_MAXN] ;
@@ -93,16 +85,15 @@ int PB152a(PB_RESULT *pbR) {
     int ic ;
     int lastElemByLevel[100] ;
     int nbLevel = 0 ;
-    int64_t powLevel[100] ;
-    int levelInd[100] ;
-    Elem[nbElem].val = 2;
+     Elem[nbElem].val = 2;
     Elem[nbElem].weight = (den_ppcm / 2)*(den_ppcm / 2)  ;
     Elem[nbElem].level = nbLevel ; // mandatory
     Elem[nbElem].constraint  = 1 ; // no constraint
     Elem[nbElem].LevelEndElem = nbElem ; // no other element
     nbElem++ ;
    lastElemByLevel[nbLevel++] = 1 ;
-   for(ic=0;ic<nbCand;ic++) {
+    for(ic=0;ic<nbCand;ic++) {
+//  for(ic=nbCand;--ic>=0;) {
         int p = candidate[ic] ;
         int powp = powCand[ic] ;
        int askPowp = p;
@@ -117,11 +108,11 @@ int PB152a(PB_RESULT *pbR) {
                     Elem[nbElem].weight = (den_ppcm / k)*(den_ppcm / k) ;
                     Elem[nbElem].constraint = askPowp*askPowp  ;
                     Elem[nbElem].level = nbLevel ;
-                    Elem[nbElem++].val = k ; printf("+%d ",k);
+                    Elem[nbElem++].val = k ;
                 }
             }
             lastElemByLevel[nbLevel] = nbElem-1 ;
-            powLevel[nbLevel++] = askPowp*askPowp ;
+            nbLevel++ ;
             askPowp *= p ;
             powp /= p ;
         }
@@ -137,12 +128,11 @@ int PB152a(PB_RESULT *pbR) {
         Elem[k].cumWtoEnd = cum ;
         Elem[k].LevelEndElem = lastElemByLevel[Elem[k].level] ;
     }
-    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbElem );
+  //  printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbElem );
     Node152 nod[PB152_MAXN] ;
     int is ;
     is =0 ; nod[is].sum = den_ppcm*den_ppcm/2 - Elem[0].weight ;  // car 2 obligatoire
-    nod[is].elem = 0 ;
-    is++ ;
+    nod[is++].elem = 0 ;
     nod[is].sum = nod[is-1].sum - Elem[1].weight ;
     nod[is].elem = 1  ;
     nod[is+1].elem = nod[is].elem+1 ;
@@ -151,8 +141,6 @@ int PB152a(PB_RESULT *pbR) {
         if(nod[is-1].sum == 0) {
  //               int j ; for(j=0;j<is;j++) printf("%d ",Elem[nod[j].elem].val);  printf("\n") ;
             nbSol++ ; is-- ; nod[is].elem++ ;
-//       } else if (nod[is].elem >=nbElem-1) { // no use with cumWtoEnd test
-//          is-- ; nod[is].elem++ ;
         }
  //     int j ; for(j=0;j<is;j++) printf("%d ",Elem[nod[j].elem].val); printf("[%d] .\n",Elem[nod[is].elem].level) ;
         while (is > 0) {
@@ -173,12 +161,10 @@ int PB152a(PB_RESULT *pbR) {
                 }
             }
             if(isOk) {
-                if(ie < Elem[ie].LevelEndElem || (nod[is].sum % Elem[nod[is].elem].constraint) == 0) {
-                    is++ ; nod[is].elem = nod[is-1].elem+1 ;
-                    break ;
-                } else if(ie == Elem[ie].LevelEndElem && (nod[is-1].sum % Elem[nod[is-1].elem].constraint) == 0){
-                    nod[is].elem = Elem[nod[is].elem].LevelEndElem+1;
-                    break ;
+                if(ie < Elem[ie].LevelEndElem || (nod[is].sum % Elem[nod[is].elem].constraint) == 0)  {
+                    is++ ; nod[is].elem = nod[is-1].elem+1 ;   break ;
+                } else if((nod[is-1].sum % Elem[nod[is-1].elem].constraint) == 0){
+                    nod[is].elem = Elem[nod[is].elem].LevelEndElem+1;   break ;
                 }
             } else if(isCumOk && (nod[is-1].sum % Elem[nod[is-1].elem].constraint) == 0 )  {
                 nod[is].elem = Elem[nod[is].elem].LevelEndElem+1;
@@ -189,6 +175,8 @@ int PB152a(PB_RESULT *pbR) {
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %d sol \n",pbR->ident,PB152_MAXN,nbSol);
+
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
 }
