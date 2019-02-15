@@ -15,18 +15,31 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
-// #define PB152_MAXN  45
+//#define PB152_MAXN  45
 #define PB152_MAXN  95
+
+typedef struct Element152 {
+    int val ;               // int for denominator
+    int level ;             // level for modulus constraint
+    int LevelEndElem  ;     // the last element for the level
+    int64_t weight ;        // contribution to 1/2
+    int64_t cumWtoEnd ;     // cumulated weight por remaning elments
+    int64_t constraint ;    // modulus constraint
+} Element152 ;
+
+typedef struct Node152 {
+    int elem ;              // element for the node
+    int64_t sum ;           // cumulated sum from the beginning
+} Node152 ;
 
 int PB152a(PB_RESULT *pbR) {
     int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97} ;
     u_int64_t den_ppcm = 1  ;
     int nbSol = 0 ;
     pbR->nbClock = clock() ;
-    int i,ip,p ;
-    int64_t invSqare[100],candidate[100],powCand[100],retainCandidate[100], sumInv[2048] ;
+    int ip,p ;
+    int64_t invSqare[100],candidate[100],powCand[100], sumInv[2048] ;
     int nbCand = 0 ;
-//    retainCandidate[nbCand++] = 2;
    for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
     for(;--ip >=0;) {
         p = Primes[ip] ;
@@ -40,13 +53,14 @@ int PB152a(PB_RESULT *pbR) {
             np = PB152_MAXN/powp ;
             int nbInv = 0 ;
              int sqp = p*p ;
-            if(np>= powp-1) np = powp-1 ;
+            if(p != 2 && np>= powp-1) np = powp-1 ;
+            if(p==2 && np>= 2*powp-1) np =2*powp -1 ;
+            int i ;
             for(i=1;i<=np;i++) {
                 if(i != 0 && (i % p) == 0) continue ;
                 int64_t i2 = (i*i) % sqp ;
                 int64_t inv_i2, ninv ; ;
                 for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp ) !=1;inv_i2=ninv) ;
- //               candidate[nbInv] = i*powp ;
                 invSqare[nbInv++] = inv_i2 ;
             }
             sumInv[0] = 0 ;
@@ -56,25 +70,7 @@ int PB152a(PB_RESULT *pbR) {
                     sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
                     if(sumInv[j+jmax]==0){
                         nbS0++ ;
- /*                       {
-                            int index = j + jmax ;
-                            int l ;
-                            for(l=0;index !=0;l++) {
-                                if(index & (1<<l)) {
-                                    index ^= 1<<l ;
-                                    int ic ;
-                                    int cand = candidate[l] ;
-                                    for(ic=0;ic<nbCand;ic++) {
-                                        if(retainCandidate[ic] == cand) break ;
-                                    }
-                                    if(ic==nbCand){
-                                        retainCandidate[nbCand++] = cand ;
-                                        printf("+%d ",cand);
-                                    }
-                                }
-                            }
-                        }
-*/                      break ;
+                     break ;
                     }
                 }
                 if(nbS0) {
@@ -91,119 +87,112 @@ int PB152a(PB_RESULT *pbR) {
             printf("x%d",powp) ;
         }
     }
-    int64_t Num[PB152_MAXN] ;
-    int indNum[PB152_MAXN] ;
-    int64_t cumNum[PB152_MAXN] ;
+    Element152 Elem[PB152_MAXN] ;
     int k ;
-    int nbNum = 0 ;
+    int nbElem = 0 ;
     int ic ;
-    int level[100] ;
+    int lastElemByLevel[100] ;
     int nbLevel = 0 ;
     int64_t powLevel[100] ;
-    Num[nbNum] = (den_ppcm / 2)*(den_ppcm / 2)  ;
-    indNum[nbNum++] = 2 ;
- /*   for(ic=0;ic<nbCand;ic++) {
-        Num[nbNum] = (den_ppcm / retainCandidate[ic])*(den_ppcm / retainCandidate[ic]) ;
-        indNum[nbNum++] = retainCandidate[ic] ;
-    }
-*/
+    int levelInd[100] ;
+    Elem[nbElem].val = 2;
+    Elem[nbElem].weight = (den_ppcm / 2)*(den_ppcm / 2)  ;
+    Elem[nbElem].level = nbLevel ; // mandatory
+    Elem[nbElem].constraint  = 1 ; // no constraint
+    Elem[nbElem].LevelEndElem = nbElem ; // no other element
+    nbElem++ ;
+   lastElemByLevel[nbLevel++] = 1 ;
    for(ic=0;ic<nbCand;ic++) {
- //  for(ic=nbCand;--ic>=0;) {
         int p = candidate[ic] ;
         int powp = powCand[ic] ;
        int askPowp = p;
         while(powp > 1) {
             for(k=powp;k<=PB152_MAXN;k+=powp) {
                 int l ;
-                for(l=0;l<nbNum;l++) {
-                    if(indNum[l] == k) break ;
+                for(l=0;l<nbElem;l++) {
+                    if(Elem[l].val == k) break ;
                 }
-                if(l<nbNum) continue ;
+                if(l<nbElem) continue ;
                 if((den_ppcm % k) == 0 ) {
-                    Num[nbNum] = (den_ppcm / k)*(den_ppcm / k) ;
-                    indNum[nbNum++] = k ; printf("+%d ",k);
+                    Elem[nbElem].weight = (den_ppcm / k)*(den_ppcm / k) ;
+                    Elem[nbElem].constraint = askPowp*askPowp  ;
+                    Elem[nbElem].level = nbLevel ;
+                    Elem[nbElem++].val = k ; printf("+%d ",k);
                 }
             }
-            level[nbLevel] = nbNum ;
+            lastElemByLevel[nbLevel] = nbElem-1 ;
             powLevel[nbLevel++] = askPowp*askPowp ;
             askPowp *= p ;
             powp /= p ;
         }
     }
+    lastElemByLevel[nbLevel] = nbElem ;
+    Elem[nbElem].val = 0 ;
+    Elem[nbElem].weight = 0 ;
+    Elem[nbElem].level = 0 ;
+    Elem[nbElem++].val = 0 ;
     int64_t cum = 0 ;
-    for(k=nbNum-1;k>=0;k--) {
-        cum += Num[k] ;
-        cumNum[k] = cum ;
+    for(k=nbElem-1;k>=0;k--) {
+        cum += Elem[k].weight ;
+        Elem[k].cumWtoEnd = cum ;
+        Elem[k].LevelEndElem = lastElemByLevel[Elem[k].level] ;
     }
-    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbNum );
-    int64_t Sum[PB152_MAXN] ;
-    int Ind[PB152_MAXN] ;
-    int is,curLevel ;
-    is =0 ; Sum[is] = den_ppcm*den_ppcm/2 - Num[0] ;  // car 2 obligatoire
-    Ind[is] = 0 ;
+    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbElem );
+    Node152 nod[PB152_MAXN] ;
+    int is ;
+    is =0 ; nod[is].sum = den_ppcm*den_ppcm/2 - Elem[0].weight ;  // car 2 obligatoire
+    nod[is].elem = 0 ;
     is++ ;
-    Sum[is] = Sum[is-1] - Num[1] ;
-    Ind[1] = 1  ;
-    curLevel=0 ;
+    nod[is].sum = nod[is-1].sum - Elem[1].weight ;
+    nod[is].elem = 1  ;
+    nod[is+1].elem = nod[is].elem+1 ;
+    is++ ;
     while(is>=1) {
-        if (Sum[is] > 0) {
-            is++ ;
-            if(is==level[curLevel]) {
-                if((Sum[is-1] % powLevel[curLevel]) != 0) {
-                    is-- ;
-                    while (is > 0) {
-                        Sum[is] += Num[Ind[is]] ;
-                        int i ;
-//                        for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
-                        for(i=Ind[is]+1;i<nbNum;i++) {
-                            if( Num[i] <= Sum[is]) break ;
-                        }
-                        if(i<nbNum && cumNum[i]>= Sum[is] ) {
-                            Ind[is] = i ;
-                            Sum[is] -= Num[i] ;
-                            break ;
-                        } else {
-                            if(curLevel > 0 && is==level[curLevel-1]) curLevel-- ;
-                            is-- ;
-                        }
-                    }
-                    continue ;
-                } else {
-                    curLevel++ ;
+        if(nod[is-1].sum == 0) {
+ //               int j ; for(j=0;j<is;j++) printf("%d ",Elem[nod[j].elem].val);  printf("\n") ;
+            nbSol++ ; is-- ; nod[is].elem++ ;
+//       } else if (nod[is].elem >=nbElem-1) { // no use with cumWtoEnd test
+//          is-- ; nod[is].elem++ ;
+        }
+ //     int j ; for(j=0;j<is;j++) printf("%d ",Elem[nod[j].elem].val); printf("[%d] .\n",Elem[nod[is].elem].level) ;
+        while (is > 0) {
+//          int j ; for(j=0;j<=is;j++) printf("%d ",Elem[nod[j].elem].val); printf(" *\n") ;
+            int ie ;
+            int curLevel = Elem[nod[is].elem].level ;
+            int isOk = 0 ;
+            int isCumOk = 1 ;
+            for(ie=nod[is].elem; Elem[ie].level == curLevel ; ie++) {
+                if(Elem[ie].cumWtoEnd < nod[is-1].sum) {
+                     isCumOk= 0 ; break ;
                 }
-            }
- 
-            Ind[is] = Ind[is-1]+1 ;
-            Sum[is] = Sum[is-1] - Num[Ind[is]] ;
-
-        } else {
-            if(Sum[is] == 0) {
-  //              int j ; for(j=0;j<=is;j++) printf("%d ",indNum[Ind[j]]);
-  //              printf("\n") ;
-                nbSol++ ;
-            }
-            while (is > 0) {
-                Sum[is] += Num[Ind[is]] ;
-                int i ;
- //               for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
-                for(i=Ind[is]+1;i<nbNum;i++) {
-                    if( Num[i] <= Sum[is]) break ;
-                }
-                if(i<nbNum && cumNum[i]>= Sum[is] ) {
-                    Ind[is] = i ;
-                    Sum[is] -= Num[i] ;
+               if( Elem[ie].weight <= nod[is-1].sum ) {
+                    nod[is].elem = ie ;
+                    nod[is].sum = nod[is-1].sum-Elem[ie].weight ;
+                    isOk = 1 ;
                     break ;
-                } else {
-                    if(curLevel > 0 && is==level[curLevel-1]) curLevel-- ;
-                   is-- ;
                 }
             }
+            if(isOk) {
+                if(ie < Elem[ie].LevelEndElem || (nod[is].sum % Elem[nod[is].elem].constraint) == 0) {
+                    is++ ; nod[is].elem = nod[is-1].elem+1 ;
+                    break ;
+                } else if(ie == Elem[ie].LevelEndElem && (nod[is-1].sum % Elem[nod[is-1].elem].constraint) == 0){
+                    nod[is].elem = Elem[nod[is].elem].LevelEndElem+1;
+                    break ;
+                }
+            } else if(isCumOk && (nod[is-1].sum % Elem[nod[is-1].elem].constraint) == 0 )  {
+                nod[is].elem = Elem[nod[is].elem].LevelEndElem+1;
+                break ; // next lvel
+            }
+            is-- ;
+            nod[is].elem++ ;
         }
     }
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
 }
+
 
 
 int PB152(PB_RESULT *pbR) {
