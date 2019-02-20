@@ -14,9 +14,10 @@
 #include "euler_utils.h"
 #include "faray_utils.h"
 #include "PB151_200.h"
+#include "tavl.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN 240
+#define PB152_MAXN 80
 
 typedef __int128    sumType ;
 //typedef int64_t    sumType ;
@@ -49,6 +50,10 @@ int CmpHisto(const void *el1,const void *el2){
     } else if (h1->sum < h2->sum) {
         return -1 ;
     } else return 0 ;
+}
+
+int CmpHistoAvl(const void *el1,const void *el2,void *param){
+    return CmpHisto(el1,el2) ;
 }
 
 
@@ -134,13 +139,15 @@ int PB152c(PB_RESULT *pbR) {
     int64_t invSqare[200],candidate[200],powCand[200], sumInv[65536] ;
     int nbCand = 0 ;
     for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
+    Powp152 orderP[50] ;
+    int nbOrder = 0 ;
     for(;--ip >=0;) {
         p = Primes[ip] ;
         int powp ;
         for(powp=p;powp*p<=PB152_MAXN/2;) powp = powp * p ;
-        int nbS0 = 0 ;
+        int notFound = 1 ;
         int np ;
-        while(powp>1) {
+        for(;powp>1 && notFound; powp /= p) {
             np = PB152_MAXN/powp ;
             int nbInv = 0 ;
             int sqp = p*p ;
@@ -155,19 +162,23 @@ int PB152c(PB_RESULT *pbR) {
                 invSqare[nbInv++] = inv_i2 ;
             }
             sumInv[0] = 0 ;
-            for(i=0;i<nbInv;i++) {
+            for(i=0;i<nbInv && notFound ;i++) {
                 int j,jmax = 1 << i ;
-                for(j=0;j<jmax;j++) {
+                for(j=0;j<jmax && notFound;j++) {
                     sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
-                    if(sumInv[j+jmax]==0){  nbS0++ ;     break ;  }
+                    if(sumInv[j+jmax]==0) notFound = 0 ;
                 }
-                if(nbS0) {  break ; }
             }
-            if(nbS0) break ;
-            else powp /= p ;
+            
         }
-        if(nbS0) {
+        if(!notFound) {
+            powp *= p ;
             den_ppcm *= powp ; printf("x%d",powp) ;
+            constraintType constraint = p ;
+            for(;powp > 1;powp /= p) {
+                orderP[nbOrder].powp = powp ;
+                orderP[nbOrder++].constraint = constraint ; constraint *= p ;
+            }
             powCand[nbCand] = powp ;
             candidate[nbCand++] = p ;
         }
@@ -190,32 +201,10 @@ int PB152c(PB_RESULT *pbR) {
     level[nbLevel++].lastElem =nbElem ;
     nbElem++ ;
  
-//    int listCand[] = {0,1,2,3,4,5,6,7,-1} ;
-//    int listCand[] = {0,1,2,4,3,6,5,7,8,-1} ; // for 180
-//    int listCand[] = {0,1,5,2,3,4,7,6,8,-1} ; // for 200
-   int listCand[] = {0,1,5,2,3,4,7,6,8,-1} ; // for 200
-    int nc ;
- 
- //   int listFinal[] = { 49,37,32,31,27,25,23,19,17,16,13,11,9, 8, 7, 5, 3, 4,0} ;
- //   int askFinal[] =   { 7,37,2 ,31 ,3 ,5,23,19,17 ,4,13,11,9, 8,49,25,27,16,0} ;
-//    for(nc=0; (ic=listCand[nc])>=0 && ic < nbCand;nc++) {
-    int * final ;
+     int * final ;
     int powp  ;
     int listDelayed[] = { 9,7,5,3,4,2,0} ;
-    Powp152 orderP[50] ;
-    int nbOrder = 0 ;
-    for(ic=0;ic<nbCand;ic++) {
-        int p = candidate[ic] ;
-        powp = powCand[ic] ;
-        int askPowp = p;
-        while(powp > 1) {
-            orderP[nbOrder].powp =powp ;
-            orderP[nbOrder++].constraint= askPowp ;
-            askPowp *= p ;
-            powp /= p ;
-        }
-    }
-    int i0,i1,i2 ;
+     int i0,i1,i2 ;
     for(i0=i1=i2=0;i0<nbOrder;i0++) {
         int *delay ;
         for(delay = listDelayed; *delay != 0 && *delay != orderP[i0].powp;delay++) ;
@@ -284,8 +273,10 @@ int PB152c(PB_RESULT *pbR) {
                ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
                ,nbElem,level[curLevel].firstElem,Lv->nbSum ,Lv->nbDiffMod, nbHisto) ;
         int nbHistoMerge, nxtNbHisto = 0 ;
+        int nbHistoRed = 0 ;
         sumType cumLevel = Elem[level[curLevel].lastElem].cumWtoEnd ;
         int ih ;
+ //       struct tavl_table * Tavl = tavl_create (CmpHistoAvl, NULL, NULL);
         for(ih=0;ih<nbHisto;ih++) {
             sumType sum = histo[ih].sum ;
             countType count = histo[ih].count ;
@@ -298,10 +289,21 @@ int PB152c(PB_RESULT *pbR) {
                     if( cumLevel < nxtHisto[nxtNbHisto].sum) continue ;
                     if(nxtHisto[nxtNbHisto].sum < 0) break ; // too many cumulatives
                     nxtHisto[nxtNbHisto].count = count ;
+ /*                 hist152**  ptHisto = (hist152 ** ) tavl_probe (Tavl, nxtHisto+nxtNbHisto) ;
+                if(ptHisto == NULL) printf("NULL") ;
+                    else
+                    {
+ //                       printf("%c(%lld)",(*ptHisto == nxtHisto+nxtNbHisto) ? '.' : 'E' , (*ptHisto)[0].count) ;
+                        if(*ptHisto == nxtHisto+nxtNbHisto) nxtNbHisto++ ;
+                        else (*ptHisto)[0].count += count ;
+                    }
+ */
                        nxtNbHisto++ ;
+                    
                 }
             }
-            if(nxtNbHisto > 10000000 || ih==nbHisto-1) {
+            if(nxtNbHisto > 10000000 || ih==nbHisto-1)
+            {
                 qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
                 int ih1;
                 hist152 *sortHisto = nxtHisto ;
@@ -315,17 +317,19 @@ int PB152c(PB_RESULT *pbR) {
                     ih1 = j ;
                     nbHistoMerge++ ;
                 }
-                printf("(%d->%d)",nxtNbHisto,nbHistoMerge);
+                nbHistoRed += nxtNbHisto - nbHistoMerge ;
+   //             printf("(%d->%d)",nxtNbHisto,nbHistoMerge);
                 nxtNbHisto = nbHistoMerge ;
            }
+ 
         }
 
  //       nbHisto = i2 ;
         nbHisto = nxtNbHisto ;
         histo =nxtHisto ;
-        printf(" => %d Sc[%lld->%lld]\n",nxtNbHisto,(u_int64_t)(histo[0].sum>>0),(u_int64_t)(histo[nbHisto-1].sum>>0)) ;
- //       for(ih=0;ih<nbHisto ;ih++) printf("(%llx%llx,%lld)",(u_int64_t)(histo[ih].sum>>64),(u_int64_t)(histo[ih].sum),histo[ih].count) ;
- //       printf("\n");
+        printf(" %d => %d \n",nbHistoRed+nxtNbHisto,nxtNbHisto) ;
+        for(ih=0;ih<nbHisto ;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count) ;
+       printf("\n");
     }
     int i ;
     for(i=0;i<nbHisto;i++) {
