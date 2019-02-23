@@ -17,7 +17,7 @@
 #include "tavl.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN 240
+#define PB152_MAXN 200
 
 // typedef __int128    sumType ;
 typedef int64_t    sumType ;
@@ -320,77 +320,81 @@ int PB152c(PB_RESULT *pbR) {
        nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum+1) ;
        if(nbHestim-1 > histoMax) nbHestim = histoMax+1 ;
        deltaSum1 = histoMax - nbHestim+1 ;
-      if(isBascule >=1) {
-             countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-       }
        if(isBascule == 0 && nbHestim < 2 * nbHisto - 10  ) {
            isBascule = 1 ; printf(" Bascule au debut du niveau %d\n",curLevel) ;
+       }
+      if(isBascule >=1) {
+             countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
        }
        printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d],nbEl=%d,HMax=%lld ExpHout=%lld Hin=%d"
               ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
               ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
               ,nbElem ,histoMax,nbHestim , ihMax) ;
 
+       
        u_int64_t nout = 0 ;
-      for(ih=0;ih<ihMax;ih++) {
-            sumType sum  ;
-            countType count ;
-             if(isBascule >= 2) {
-                count = countH0[ih] ;
-                if(count==0) { nbNul++ ; continue ; }
-                sum = (deltaSum0+ih) * factS;
-            } else {
-                sum = histo[ih].sum * factS;
-                count = histo[ih].count ;
-            }
-            sumType intSum = sum / constraint ;
-            constraintType modSum = (constraintType) (sum - intSum * constraint) ;
-            if(Lv->indMod[modSum]>0) {
-                int32_t ind ;
-                for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
-                    sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-                    if(newSum < 0) break ; // too many cumulatives
-                    nout++ ;
-                    if(isBascule) {
-                        int nc = newSum - deltaSum1 ;
-                        countH1[nc]  += count ;
-                    } else {
-                        nxtHisto[nxtNbHisto].sum = newSum ;
-                        nxtHisto[nxtNbHisto].count = count ;
-                        nxtNbHisto++ ;
-                    }
-                }
-            }
-            if(isBascule == 0 && nxtNbHisto > nbHestim ) {
-                isBascule = 1 ; ih=-1; nout=0 ;
-                printf("***");
-                countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-                continue ;
-            }
-            if(!isBascule && (nxtNbHisto > 10000000 || ih==nbHisto-1))
-            {
-                qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
-                int ih1;
-                hist152 *sortHisto = nxtHisto ;
-                for(ih1=0,nbHistoMerge=0;ih1<nxtNbHisto;) {
-                    int j ;
-                    sumType sum = nxtHisto[ih1].sum ;
-                    sortHisto[nbHistoMerge] = nxtHisto[ih1] ;
-                    for(j=ih1+1;j<nxtNbHisto && nxtHisto[j].sum == sum;j++) {
-                        sortHisto[nbHistoMerge].count += nxtHisto[j].count ;
-                      }
-                    ih1 = j ;
-                    nbHistoMerge++ ;
-                }
-                nbHistoRed += nxtNbHisto - nbHistoMerge ;
-                nxtNbHisto = nbHistoMerge ;
+       for(ih=0;ih<ihMax;ih++) {
+           sumType sum  ;
+           countType count ;
+           if(isBascule >= 2) {
+               count = countH0[ih] ;
+               if(count==0) { nbNul++ ; continue ; }
+               sum = (deltaSum0+ih) * factS;
+           } else {
+               sum = histo[ih].sum * factS;
+               count = histo[ih].count ;
            }
-        }
+           sumType intSum = sum / constraint ;
+           constraintType modSum = (constraintType) (sum - intSum * constraint) ;
+           if(Lv->indMod[modSum]>0) {
+               int32_t ind ;
+               for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
+                   sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
+                   if(newSum < 0) break ; // too many cumulatives
+                   nout++ ;
+                   if(isBascule) {
+                       int nc = newSum - deltaSum1 ;
+                       countH1[nc]  += count ;
+                   } else {
+                       nxtHisto[nxtNbHisto].sum = newSum ;
+                       nxtHisto[nxtNbHisto].count = count ;
+                       nxtNbHisto++ ;
+                   }
+               }
+           }
+           if(isBascule == 0 && nxtNbHisto > nbHestim ) {
+               isBascule = 1 ; ih=-1; nout=0 ;
+               printf("***");
+               countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
+               continue ;
+           }
+           if(!isBascule && (nxtNbHisto > 10000000 || ih==nbHisto-1))
+           {
+               qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
+               int ih1;
+               hist152 *sortHisto = nxtHisto ;
+               for(ih1=0,nbHistoMerge=0;ih1<nxtNbHisto;) {
+                   int j ;
+                   sumType sum = nxtHisto[ih1].sum ;
+                   sortHisto[nbHistoMerge] = nxtHisto[ih1] ;
+                   for(j=ih1+1;j<nxtNbHisto && nxtHisto[j].sum == sum;j++) {
+                       sortHisto[nbHistoMerge].count += nxtHisto[j].count ;
+                   }
+                   ih1 = j ;
+                   nbHistoMerge++ ;
+               }
+               nbHistoRed += nxtNbHisto - nbHistoMerge ;
+               nxtNbHisto = nbHistoMerge ;
+           }
+       }
+       
+       
         if(isBascule==0) {
             nbHisto = nxtNbHisto ;
-             histo =nxtHisto ;
+            if(curLevel==0) { nbHisto = 1 ; }
+            histo =nxtHisto ;
             printf(" Hout=%lld/->%d \n",nout,nxtNbHisto) ;
-  //          printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
+            printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
             if(nbHisto < 0) {
                 for(ih=0;ih<nbHisto;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count);
                 printf("\n");
@@ -425,6 +429,7 @@ int PB152c(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld%lld",nbHig,nbSolTot) ;
     return 1 ;
 }
+
 
 
 
@@ -609,8 +614,6 @@ int PB152a(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
 }
-
-
 
 
 
