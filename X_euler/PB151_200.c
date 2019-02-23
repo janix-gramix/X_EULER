@@ -75,12 +75,9 @@ typedef struct Level {
     indexType   firstElem ;
     indexType   lastElem ;
     constraintType  constraint ;
-    int64_t             ppcm ;
-    int64_t     askPowp ;
+    int64_t     ppcm ;
     int64_t     p ;
     int64_t     fact ;
-//    sumType cumWtoEnd ;                 // cumulated weight por remaning elments
-
 } Level ;
 int CmpSumL(const void *el1,const void *el2){
     sumLevel * sumL1 = (sumLevel *)el1 ;
@@ -103,7 +100,7 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
     LevelDev * Lv = calloc(1,sizeof(Lv[0])) ;
     Lv->nbSum = nbSum ;
     Lv->constraint = modConstraint ;
-    Lv->sumL = malloc(nbSum * sizeof(Lv->sumL[0])) ;
+    Lv->sumL = malloc((nbSum+1) * sizeof(Lv->sumL[0])) ;
     Lv->indMod = calloc(modConstraint,sizeof(Lv->indMod[0])) ;
     int i ;
     Lv->sumL[0].intSum = 0 ;
@@ -124,6 +121,8 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
             if(sumL[j+jmax].intSum  > MaxSum) MaxSum = sumL[j+jmax].intSum ;
          }
     }
+    Lv->sumL[nbSum].intSum = 0 ;
+    Lv->sumL[nbSum].modSum = modConstraint ;
     Lv->maxSum = MaxSum ;
     qsort(sumL,nbSum,sizeof(sumL[0]),CmpSumL) ;
     Lv->nbDiffMod = 0 ;
@@ -208,7 +207,7 @@ int PB152c(PB_RESULT *pbR) {
     Elem[nbElem].val = 2;
      Elem[nbElem].weight = 1  ;
     level[nbLevel].constraint = 1 ;
-    level[nbLevel].askPowp = 1 ;
+//    level[nbLevel].askPowp = 1 ;
     level[nbLevel].ppcm = 2 ;
     level[nbLevel].p = 1 ;
     level[nbLevel++].lastElem =nbElem ;
@@ -243,68 +242,32 @@ int PB152c(PB_RESULT *pbR) {
             }
             if(l<nbElem) continue ;
             if((den_ppcm % k) == 0) {
-                ppcm = ppcm * k  / PGCD(ppcm,k) ;
-//                Elem[nbElem].weight = (den_ppcm / k)*(den_ppcm / k) ;
- //               Elem[nbElem].constraint = askPowp*askPowp  ;
+                ppcm = ppcm * k  / PGCD64(ppcm,k) ;
                 Elem[nbElem++].val = k ; printf("+%d ",k) ;
             }
         }
         if(nbElem-1 >= level[nbLevel].firstElem) {
-            level[nbLevel].askPowp = askPowp ;
- //           level[nbLevel].constraint = askPowp*askPowp ;
-            level[nbLevel].constraint = orderP[i0].p * orderP[i0].p ;
-
+             level[nbLevel].constraint = orderP[i0].p * orderP[i0].p ;
             level[nbLevel].lastElem = nbElem-1 ;
             level[nbLevel].ppcm = ppcm ;
             level[nbLevel].p = orderP[i0].p ;
             int ie ;
             for(ie=level[nbLevel].firstElem;ie<=level[nbLevel].lastElem;ie++) { Elem[ie].weight = (ppcm / Elem[ie].val)*(ppcm / Elem[ie].val) ; }
-//            level[nbLevel-1].fact = (ppcm * level[nbLevel-1].askPowp)/ level[nbLevel-1].ppcm;
             level[nbLevel].fact = (ppcm * level[nbLevel-1].p)/ level[nbLevel-1].ppcm;
             antPpcm = ppcm/PGCD64(askPowp,ppcm) ;
             nbLevel++ ;
         }
     }
- //   level[0].ppcm = level[1].ppcm ;
     level[0].fact = 1 ;
- //   Elem[0].weight = (level[0].ppcm*level[0].ppcm)/4 ;
-    
- //    level[nbLevel-1].fact = (1 * level[nbLevel-1].askPowp)/ level[nbLevel-1].ppcm;
-    sumType cum = 0 ;
-    /*
-    for(k=nbElem-1;k>=0;k--) {
-       Elem[k].cumWtoEnd = cum ;
-       cum += Elem[k].weight ;
-    }
-    */
-
+ 
     level[nbLevel].lastElem = nbElem ;
     level[nbLevel].fact = 1 ;
     level[nbLevel].ppcm = 1;
- //   level[nbLevel].cumWtoEnd = 0 ;
-    level[nbLevel].constraint = 1 ;
+     level[nbLevel].constraint = 1 ;
     Elem[nbElem].val = 0 ;
-    //    Elem[nbElem].cumWtoEnd = 0 ;
     Elem[nbElem].weight = 0 ;
     Elem[nbElem++].val = 0 ;
 
-/*
-    int nl ;
-    for(nl=nbLevel;--nl>=0;) {
-        sumType cumL = 0 ;
-//2        level[nl].cumWtoEnd = (cum * level[nl].ppcm *  level[nl].ppcm) / (level[nl+1].ppcm *  level[nl+1].ppcm * level[nl].constraint) ;
-        cum = (cum * level[nl].ppcm *  level[nl].ppcm) / (level[nl+1].ppcm *  level[nl+1].ppcm  * level[nl].constraint) ;
-        level[nl].cumWtoEnd = cum ;
-        for(k=level[nl].firstElem;k<=level[nl].lastElem;k++) {
-            cumL += Elem[k].weight ;
-        }
-//1     level[nl-1].cumWtoEnd = (cum * level[nl].ppcm *  level[nl].ppcm) / (level[nl+1].ppcm *  level[nl+1].ppcm) +cumL ;
-//1      cum = level[nl-1].cumWtoEnd ;
-        cum = cum * level[nl].constraint +cumL ;
- }
- */
-//    sumType sumFinal = den_ppcm*den_ppcm/2 ;
-  //  sumType sumFinal = (level[0].ppcm*level[0].ppcm)/2 ;
     sumType sumFinal = 2 ;
     printf("=%llu [%llu] nbNum=%d\n",(u_int64_t)den_ppcm,(u_int64_t)(den_ppcm*den_ppcm/2),nbElem );
     int curLevel ;
@@ -314,56 +277,97 @@ int PB152c(PB_RESULT *pbR) {
     int64_t nbHestim ;
     sumType histoMax ;
     LevelDev * Lv ;
-    int nbInd ;
- //   sumType cumLevel  ;
+//    int nbInd ;
     constraintType constraint ;
-    for(curLevel=0;curLevel<nbLevel;curLevel++) {
+   int isBascule = 0 ;
+    countType * countH1=NULL ;
+    sumType deltaSum1  ;
+    int nbHestim0  ;
+    sumType deltaSum0 = 0 ;
+    countType * countH0 = NULL ;
+    
+   for(curLevel=0;curLevel<nbLevel ;curLevel++) {
+       hist152 * nxtHisto ;
         constraint = level[curLevel].constraint;
         int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
         Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
-        nbInd = Lv->nbSum ;
-  //      cumLevel = level[curLevel].cumWtoEnd ;
-        hist152 * nxtHisto =  histo + nbHisto ;
-//        sumType fact = (den_ppcm/level[curLevel].ppcm) * (den_ppcm/level[curLevel].ppcm) ;
-        int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-//1        histoMax =  (histo[nbHisto-1].sum*factS)/constraint +1 ;
-        histoMax =  (histo[nbHisto-1].sum*factS)/constraint ;
-//1        histoMax++ ;
-//1        nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+Lv->maxSum)+1 ;
-        nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+1+Lv->maxSum) ;
-
-        printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d], nbEl=%d, beg=%d nbSum/diff=%d/%d nbHisto=%d  MaxVal=%lld HistoMax=%lld EstimDelta=%lld"
-               ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
-               ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
-               ,nbElem,level[curLevel].firstElem,Lv->nbSum ,Lv->nbDiffMod, nbHisto
- //               ,(int64_t)level[curLevel].cumWtoEnd,(int64_t)((histo[nbHisto-1].sum*factS-histo[0].sum*factS+factS)/constraint+Lv->maxSum)+1 );
-  //           ,(int64_t)level[curLevel].cumWtoEnd,
-             ,(level[curLevel].ppcm/level[curLevel].p)*(level[curLevel].ppcm/level[curLevel].p)/4
-             ,histoMax,nbHestim) ;
-        if(nbHestim < 2 * nbHisto - 10  ) break ;
-        int nbHistoMerge, nxtNbHisto = 0 ;
+         int64_t factS = level[curLevel].fact*level[curLevel].fact ;
+  
+          int nbHistoMerge, nxtNbHisto = 0 ;
         int nbHistoRed = 0 ;
-        int ih ;
-        int isBascule = 0 ;
-        for(ih=0;ih<nbHisto;ih++) {
-            sumType sum = histo[ih].sum * factS;
-            countType count = histo[ih].count ;
+        int ih,ihMax ;
+        int nbNul = 0 ;
+       if(isBascule >= 2) {
+           nbHestim0 = nbHestim ;
+          deltaSum0 = deltaSum1 ;
+           free(countH0);
+          countH0 = countH1 ;
+           ihMax = nbHestim0 ;
+           histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint  ;
+ /*          printf("%.3f  Level=%d , nbC %d->%lld , DeltaSum=%lld HistoMax=%lld MaxVal=%lld "
+                  ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
+                  ,curLevel,nbHestim0,nbHestim,(int64_t)deltaSum1,histoMax
+                  ,(level[curLevel].ppcm/level[curLevel].p)*(level[curLevel].ppcm/level[curLevel].p)/4) ;
+*/
+       } else {
+           nxtHisto =  histo + nbHisto ;
+           deltaSum0 = histo[0].sum ;
+           ihMax = nbHisto ;
+           histoMax =  (histo[nbHisto-1].sum*factS)/constraint ;
+//           nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+1+Lv->maxSum) ;
+ 
+      }
+       nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum+1) ;
+       if(nbHestim-1 > histoMax) nbHestim = histoMax+1 ;
+       deltaSum1 = histoMax - nbHestim+1 ;
+      if(isBascule >=1) {
+             countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
+       }
+       if(isBascule == 0 && nbHestim < 2 * nbHisto - 10  ) {
+           isBascule = 1 ; printf(" Bascule au debut du niveau %d\n",curLevel) ;
+       }
+       printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d],nbEl=%d,HMax=%lld ExpHout=%lld Hin=%d"
+              ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
+              ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
+              ,nbElem ,histoMax,nbHestim , ihMax) ;
+
+       u_int64_t nout = 0 ;
+      for(ih=0;ih<ihMax;ih++) {
+            sumType sum  ;
+            countType count ;
+             if(isBascule >= 2) {
+                count = countH0[ih] ;
+                if(count==0) { nbNul++ ; continue ; }
+                sum = (deltaSum0+ih) * factS;
+            } else {
+                sum = histo[ih].sum * factS;
+                count = histo[ih].count ;
+            }
             sumType intSum = sum / constraint ;
             constraintType modSum = (constraintType) (sum - intSum * constraint) ;
             if(Lv->indMod[modSum]>0) {
                 int32_t ind ;
-                for(ind = Lv->indMod[modSum] - 1 ;ind < nbInd && Lv->sumL[ind].modSum == modSum;ind++) {
-                    nxtHisto[nxtNbHisto].sum = (intSum - Lv->sumL[ind].intSum) ;
-       ////           if( cumLevel < nxtHisto[nxtNbHisto].sum) continue ;
-                    if(nxtHisto[nxtNbHisto].sum < 0) break ; // too many cumulatives
-                    nxtHisto[nxtNbHisto].count = count ;
-                       nxtNbHisto++ ;
+                for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
+                    sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
+                    if(newSum < 0) break ; // too many cumulatives
+                    nout++ ;
+                    if(isBascule) {
+                        int nc = newSum - deltaSum1 ;
+                        countH1[nc]  += count ;
+                    } else {
+                        nxtHisto[nxtNbHisto].sum = newSum ;
+                        nxtHisto[nxtNbHisto].count = count ;
+                        nxtNbHisto++ ;
+                    }
                 }
             }
-            if(nxtNbHisto > nbHestim ) {
-                isBascule = 1 ; break ;
+            if(isBascule == 0 && nxtNbHisto > nbHestim ) {
+                isBascule = 1 ; ih=-1; nout=0 ;
+                printf("***");
+                countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
+                continue ;
             }
-           if(nxtNbHisto > 30000000 || ih==nbHisto-1)
+            if(!isBascule && (nxtNbHisto > 10000000 || ih==nbHisto-1))
             {
                 qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
                 int ih1;
@@ -379,118 +383,36 @@ int PB152c(PB_RESULT *pbR) {
                     nbHistoMerge++ ;
                 }
                 nbHistoRed += nxtNbHisto - nbHistoMerge ;
-   //             printf("(%d->%d)",nxtNbHisto,nbHistoMerge);
                 nxtNbHisto = nbHistoMerge ;
            }
         }
-        if(isBascule) break ;
-        
- //       nbHisto = i2 ;
-        nbHisto = nxtNbHisto ;
-        if(curLevel==0) { nbHisto = 1 ; }
-        histo =nxtHisto ;
-        printf(" %d => %d ppcm=%lld delta<%lld\n",nbHistoRed+nxtNbHisto,nxtNbHisto,level[curLevel].ppcm
-//              ,(int64_t)((den_ppcm/4*den_ppcm)/fact),(int64_t)(histo[nbHisto-1].sum/fact-histo[0].sum/fact+1)) ;
-        ,(int64_t)(histo[nbHisto-1].sum-histo[0].sum+1)) ;
-//       printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum/fact),histo[0].count,(u_int64_t)(histo[nbHisto-1].sum/fact),histo[nbHisto-1].count);
-        printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
-        if(nbHisto < 0) {
-            for(ih=0;ih<nbHisto;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count);
-            printf("\n");
-        }
-   }
-    if(curLevel==nbLevel) {
-        int i ;
-        for(i=0;i<nbHisto;i++) {
-            if(histo[i].sum == 0 ) nbSolTot += histo[i].count ;
-        }
-
-    } else {
-        countType * countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-        int ih ;
-        sumType deltaSum1 = histoMax - nbHestim+1 ;
-        int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-        int64_t nh = 0;
-        for(ih=0;ih<nbHisto;ih++) {
-            sumType sum = histo[ih].sum * factS;
-            countType count = histo[ih].count ;
-            sumType intSum = sum / constraint ;
-            constraintType modSum = (constraintType) (sum - intSum * constraint) ;
-            if(Lv->indMod[modSum]>0) {
-                int32_t ind ;
-                for(ind = Lv->indMod[modSum] - 1 ;ind < nbInd && Lv->sumL[ind].modSum == modSum;ind++) {
-                    sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-  //                  if( cumLevel < newSum) continue ;
-                    if(newSum < 0) break ; // too many cumulatives
-  //                  int nc = newSum - histoMax + nbHestim ;
-                    int nc = newSum - deltaSum1 ;
-                    countH1[nc]  += count ; nh++ ;
-                }
-            }
-        }
-        printf("Compressed(%lld)\n",nh);
-        curLevel++ ;
-        for(;curLevel<nbLevel;curLevel++) {
-            int nbHestim0 = nbHestim ;
-            sumType deltaSum0 = deltaSum1 ;
-            countType * countH0 = countH1 ;
-            int histoMax0 = histoMax ;
-            constraint = level[curLevel].constraint;
-            int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
-            Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
-            nbInd = Lv->nbSum ;
-  //          cumLevel = level[curLevel].cumWtoEnd ;
-            sumType fact = (den_ppcm/level[curLevel].ppcm) * (den_ppcm/level[curLevel].ppcm) ;
-            int64_t factS = level[curLevel].fact*level[curLevel].fact ;
- //1           histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint +1 ;
-            histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint  ;
- //           if(histoMax > cumLevel) histoMax = cumLevel ;
- //           histoMax++ ;
-//1            nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum)+1 ;
-            nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum+1) ;
-            if(nbHestim-1 > histoMax) nbHestim = histoMax+1 ;
-            deltaSum1 = histoMax - nbHestim+1 ;
-            countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-            printf("%.3f  Level=%d , nbC %d->%lld , DeltaSum=%lld HistoMax=%lld MaxVal=%lld\n"
-                   ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
-                   ,curLevel,nbHestim0,nbHestim,(int64_t)deltaSum1,histoMax
-                   ,(level[curLevel].ppcm/level[curLevel].p)*(level[curLevel].ppcm/level[curLevel].p)/4) ;
-            int nc ;
-            int nbNul = 0 ;
-            if(nbHestim0 < 0) {
-                int i ;
-                for(i=0;i<nbHestim0;i++) { printf("(%d,%lld)",i,countH0[i]); }
+        if(isBascule==0) {
+            nbHisto = nxtNbHisto ;
+             histo =nxtHisto ;
+            printf(" Hout=%lld/->%d \n",nout,nxtNbHisto) ;
+  //          printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
+            if(nbHisto < 0) {
+                for(ih=0;ih<nbHisto;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count);
                 printf("\n");
-           }
-            
-           for(nc=0;nc<nbHestim0;nc++) {
-              countType count = countH0[nc] ;
-             if(count==0) { nbNul++ ; continue ; }
-              sumType sum = (deltaSum0+nc) * factS;
-                  sumType intSum = sum / constraint ;
-                constraintType modSum = (constraintType) (sum - intSum * constraint) ;
-                if(Lv->indMod[modSum]>0) {
-                    int32_t ind ;
-                    for(ind = Lv->indMod[modSum] - 1 ;ind < nbInd && Lv->sumL[ind].modSum == modSum;ind++) {
-                        sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-  //                      if( cumLevel < newSum) continue ;
-                        if(newSum < 0) break ; // too many cumulatives
- //                       int nc1 = newSum - histoMax + nbHestim ;
-                        int nc1 = newSum - deltaSum1 ;
-                        countH1[nc1]  += count ;
-                    }
-                }
             }
-            printf("%d => %d + %d null\n",nbHestim0,nbHestim0-nbNul,nbNul);
-            free(countH0);
+        } else {
+            isBascule = 2 ;
+            printf("=%d+%d(0)  Hout=%lld/%d\n",nbHestim0-nbNul,nbNul,nout,nbHestim);
             if(nbHestim < 0) {
                 int i ;
                 for(i=0;i<nbHestim;i++) { printf("[%d,%lld]",i,countH1[i]); }
                 printf("\n");
             }
-      }
-        nbSolTot = countH1[(int64_t)-deltaSum1] ;
-    }
+        }
+   }
+       if(isBascule==0) {
+            int i ;
+            for(i=0;i<nbHisto;i++) {
+                if(histo[i].sum == 0 ) nbSolTot += histo[i].count ;
+            }
+        } else {
+           nbSolTot = countH1[(int64_t)-deltaSum1] ;
+        }
     
     pbR->nbClock = clock() - pbR->nbClock ;
     int64_t nbHig = 0 ;
