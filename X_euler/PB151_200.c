@@ -17,11 +17,12 @@
 #include "tavl.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN 120
+#define PB152_MAXN 240
 
 // typedef __int128    sumType ;
 typedef int64_t    sumType ;
 typedef u_int64_t   countType ;
+// typedef __int128   countType ;
 typedef int32_t     constraintType ;
 typedef int         indexType ;
 
@@ -78,7 +79,7 @@ typedef struct Level {
     int64_t     askPowp ;
     int64_t     p ;
     int64_t     fact ;
-    sumType cumWtoEnd ;                 // cumulated weight por remaning elments
+//    sumType cumWtoEnd ;                 // cumulated weight por remaning elments
 
 } Level ;
 int CmpSumL(const void *el1,const void *el2){
@@ -140,7 +141,7 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
 
 
 int PB152c(PB_RESULT *pbR) {
-    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131} ;
+    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131,137,139,149} ;
     int64_t den_ppcm = 1  ;
     int nbSol = 0 ;
     pbR->nbClock = clock() ;
@@ -200,7 +201,7 @@ int PB152c(PB_RESULT *pbR) {
     int nbElem = 0 ;
     int ic ;
      int nbLevel = 0 ;
-    u_int64_t nbSolTot = 0 ;
+    countType nbSolTot = 0 ;
     int nbHisto = 0 ;
     histo = malloc(100000000*sizeof(histo[0])) ;
     level[nbLevel].firstElem = nbElem ;
@@ -280,14 +281,14 @@ int PB152c(PB_RESULT *pbR) {
     level[nbLevel].lastElem = nbElem ;
     level[nbLevel].fact = 1 ;
     level[nbLevel].ppcm = 1;
-    level[nbLevel].cumWtoEnd = 0 ;
+ //   level[nbLevel].cumWtoEnd = 0 ;
     level[nbLevel].constraint = 1 ;
     Elem[nbElem].val = 0 ;
     //    Elem[nbElem].cumWtoEnd = 0 ;
     Elem[nbElem].weight = 0 ;
     Elem[nbElem++].val = 0 ;
 
-
+/*
     int nl ;
     for(nl=nbLevel;--nl>=0;) {
         sumType cumL = 0 ;
@@ -301,7 +302,7 @@ int PB152c(PB_RESULT *pbR) {
 //1      cum = level[nl-1].cumWtoEnd ;
         cum = cum * level[nl].constraint +cumL ;
  }
-    
+ */
 //    sumType sumFinal = den_ppcm*den_ppcm/2 ;
   //  sumType sumFinal = (level[0].ppcm*level[0].ppcm)/2 ;
     sumType sumFinal = 2 ;
@@ -314,32 +315,36 @@ int PB152c(PB_RESULT *pbR) {
     sumType histoMax ;
     LevelDev * Lv ;
     int nbInd ;
-    sumType cumLevel  ;
+ //   sumType cumLevel  ;
     constraintType constraint ;
     for(curLevel=0;curLevel<nbLevel;curLevel++) {
         constraint = level[curLevel].constraint;
         int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
         Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
         nbInd = Lv->nbSum ;
-        cumLevel = level[curLevel].cumWtoEnd ;
+  //      cumLevel = level[curLevel].cumWtoEnd ;
         hist152 * nxtHisto =  histo + nbHisto ;
 //        sumType fact = (den_ppcm/level[curLevel].ppcm) * (den_ppcm/level[curLevel].ppcm) ;
         int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-        histoMax =  (histo[nbHisto-1].sum*factS)/constraint +1 ;
-  //      if(histoMax > cumLevel) histoMax = cumLevel ;
-        histoMax++ ;
-        nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+Lv->maxSum)+1 ;
-        printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d], nbEl=%d, beg=%d nbSum/diff=%d/%d nbHisto=%d CumToEnd=%lld EstimDelta=%lld"
+//1        histoMax =  (histo[nbHisto-1].sum*factS)/constraint +1 ;
+        histoMax =  (histo[nbHisto-1].sum*factS)/constraint ;
+//1        histoMax++ ;
+//1        nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+Lv->maxSum)+1 ;
+        nbHestim = (int64_t)(histoMax-histo[0].sum*factS/constraint+1+Lv->maxSum) ;
+
+        printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d], nbEl=%d, beg=%d nbSum/diff=%d/%d nbHisto=%d  MaxVal=%lld HistoMax=%lld EstimDelta=%lld"
                ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
                ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
                ,nbElem,level[curLevel].firstElem,Lv->nbSum ,Lv->nbDiffMod, nbHisto
  //               ,(int64_t)level[curLevel].cumWtoEnd,(int64_t)((histo[nbHisto-1].sum*factS-histo[0].sum*factS+factS)/constraint+Lv->maxSum)+1 );
-             ,(int64_t)level[curLevel].cumWtoEnd,
-             nbHestim) ;
-        if(nbHestim < 2 * nbHisto - 10) break ;
+  //           ,(int64_t)level[curLevel].cumWtoEnd,
+             ,(level[curLevel].ppcm/level[curLevel].p)*(level[curLevel].ppcm/level[curLevel].p)/4
+             ,histoMax,nbHestim) ;
+        if(nbHestim < 2 * nbHisto - 10  ) break ;
         int nbHistoMerge, nxtNbHisto = 0 ;
         int nbHistoRed = 0 ;
         int ih ;
+        int isBascule = 0 ;
         for(ih=0;ih<nbHisto;ih++) {
             sumType sum = histo[ih].sum * factS;
             countType count = histo[ih].count ;
@@ -355,7 +360,10 @@ int PB152c(PB_RESULT *pbR) {
                        nxtNbHisto++ ;
                 }
             }
-            if(nxtNbHisto > 10000000 || ih==nbHisto-1)
+            if(nxtNbHisto > nbHestim ) {
+                isBascule = 1 ; break ;
+            }
+           if(nxtNbHisto > 30000000 || ih==nbHisto-1)
             {
                 qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
                 int ih1;
@@ -375,7 +383,7 @@ int PB152c(PB_RESULT *pbR) {
                 nxtNbHisto = nbHistoMerge ;
            }
         }
-        
+        if(isBascule) break ;
         
  //       nbHisto = i2 ;
         nbHisto = nxtNbHisto ;
@@ -386,10 +394,10 @@ int PB152c(PB_RESULT *pbR) {
         ,(int64_t)(histo[nbHisto-1].sum-histo[0].sum+1)) ;
 //       printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum/fact),histo[0].count,(u_int64_t)(histo[nbHisto-1].sum/fact),histo[nbHisto-1].count);
         printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
- /*       if(nbHisto < 150) {
+        if(nbHisto < 0) {
             for(ih=0;ih<nbHisto;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count);
             printf("\n");
-        }*/
+        }
    }
     if(curLevel==nbLevel) {
         int i ;
@@ -400,7 +408,7 @@ int PB152c(PB_RESULT *pbR) {
     } else {
         countType * countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
         int ih ;
-        sumType deltaSum1 = histoMax - nbHestim ;
+        sumType deltaSum1 = histoMax - nbHestim+1 ;
         int64_t factS = level[curLevel].fact*level[curLevel].fact ;
         int64_t nh = 0;
         for(ih=0;ih<nbHisto;ih++) {
@@ -414,7 +422,8 @@ int PB152c(PB_RESULT *pbR) {
                     sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
   //                  if( cumLevel < newSum) continue ;
                     if(newSum < 0) break ; // too many cumulatives
-                    int nc = newSum - histoMax + nbHestim ;
+  //                  int nc = newSum - histoMax + nbHestim ;
+                    int nc = newSum - deltaSum1 ;
                     countH1[nc]  += count ; nh++ ;
                 }
             }
@@ -430,18 +439,22 @@ int PB152c(PB_RESULT *pbR) {
             int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
             Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
             nbInd = Lv->nbSum ;
-            cumLevel = level[curLevel].cumWtoEnd ;
+  //          cumLevel = level[curLevel].cumWtoEnd ;
             sumType fact = (den_ppcm/level[curLevel].ppcm) * (den_ppcm/level[curLevel].ppcm) ;
             int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-            histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint +1 ;
+ //1           histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint +1 ;
+            histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint  ;
  //           if(histoMax > cumLevel) histoMax = cumLevel ;
-            histoMax++ ;
-            nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum)+1 ;
-            deltaSum1 = histoMax - nbHestim ;
+ //           histoMax++ ;
+//1            nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum)+1 ;
+            nbHestim = (int64_t)(histoMax-deltaSum0*factS/constraint+Lv->maxSum+1) ;
+            if(nbHestim-1 > histoMax) nbHestim = histoMax+1 ;
+            deltaSum1 = histoMax - nbHestim+1 ;
             countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-            printf("%.3f  Level=%d , nbC %d->%lld , DeltaSum=%lld HistoMax=%lld\n"
+            printf("%.3f  Level=%d , nbC %d->%lld , DeltaSum=%lld HistoMax=%lld MaxVal=%lld\n"
                    ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
-                   ,curLevel,nbHestim0,nbHestim,(int64_t)deltaSum1,histoMax) ;
+                   ,curLevel,nbHestim0,nbHestim,(int64_t)deltaSum1,histoMax
+                   ,(level[curLevel].ppcm/level[curLevel].p)*(level[curLevel].ppcm/level[curLevel].p)/4) ;
             int nc ;
             int nbNul = 0 ;
             if(nbHestim0 < 0) {
@@ -460,9 +473,10 @@ int PB152c(PB_RESULT *pbR) {
                     int32_t ind ;
                     for(ind = Lv->indMod[modSum] - 1 ;ind < nbInd && Lv->sumL[ind].modSum == modSum;ind++) {
                         sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-                        if( cumLevel < newSum) continue ;
+  //                      if( cumLevel < newSum) continue ;
                         if(newSum < 0) break ; // too many cumulatives
-                        int nc1 = newSum - histoMax + nbHestim ;
+ //                       int nc1 = newSum - histoMax + nbHestim ;
+                        int nc1 = newSum - deltaSum1 ;
                         countH1[nc1]  += count ;
                     }
                 }
@@ -479,9 +493,14 @@ int PB152c(PB_RESULT *pbR) {
     }
     
     pbR->nbClock = clock() - pbR->nbClock ;
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %d ,%lld sol \n",pbR->ident,PB152_MAXN,nbSol,nbSolTot);
+    int64_t nbHig = 0 ;
+    if(nbSolTot > 1000000000000000000LL) {
+        nbHig = nbSolTot / 1000000000000000000LL ;
+        nbSolTot -= nbHig * 1000000000000000000LL  ;
+    }
+    if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %d ,%lld%lld sol \n",pbR->ident,PB152_MAXN,nbSol,nbHig,nbSolTot);
     
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSolTot) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld%lld",nbHig,nbSolTot) ;
     return 1 ;
 }
 
