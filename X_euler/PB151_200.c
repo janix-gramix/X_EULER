@@ -17,7 +17,7 @@
 #include "tavl.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN 280
+#define PB152_MAXN 260
 
 // typedef __int128    sumType ;
 typedef int64_t    sumType ;
@@ -31,11 +31,6 @@ typedef struct Element152 {
     sumType weight ;                    // contribution to 1/2
 } Element152 ;
 
-typedef struct Powp152 {
-    int powp ;
-    int p ;
-    constraintType constraint ;
-} Powp152 ;
 
 typedef struct hist152 {
     sumType sum ;
@@ -71,12 +66,21 @@ typedef struct LevelDev {
     sumType     maxSum ;
 } LevelDev ;
 
+typedef struct Powp152 {
+    int32_t p ;
+    int64_t powp ;
+    constraintType ppcmPowp ;
+} Powp152 ;
+
 typedef struct Level {
     indexType   firstElem ;
     indexType   lastElem ;
     constraintType  constraint ;
     int64_t     ppcm ;
-    int64_t     p ;
+    Powp152     PP ;
+ //   int64_t     p ;
+ //   int64_t     powp ;
+ //   constraintType     ppcmPowp ;
     int64_t     fact ;
 } Level ;
 int CmpSumL(const void *el1,const void *el2){
@@ -139,8 +143,65 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
 }
 
 
+void REORDER152 (Level *level,Element152 *Elem,int firstLevel, int endLevel,int64_t den_ppcm  ) {
+    Powp152 orderP[50] ;
+    int nbl,nbo,i0 ;
+    for(nbo=0,nbl=firstLevel;nbl<endLevel;nbl++) {
+        orderP[nbo++] = level[nbl].PP ;
+    }
+    
+    for(i0=0;i0<nbo;i0++) {
+        int64_t maxPowp = orderP[i0].powp ;
+        int jOpt = i0 ;
+        int j ;
+        for(j=i0;j<nbo;j++) {
+            if(orderP[j].powp > maxPowp) { jOpt = j ; maxPowp =  orderP[j].powp ; }
+        }
+        if(jOpt != i0) {
+             Powp152 tmpOrder = orderP[jOpt] ;
+             orderP[jOpt] = orderP[i0] ;
+             orderP[i0] = tmpOrder ;
+             printf("(%d<->%d)",orderP[i0].powp,orderP[jOpt].powp) ;
+        }
+    }
+    int64_t antPpcm = level[firstLevel-1].ppcm/level[firstLevel-1].PP.p ;
+    int nbElem = level[firstLevel].firstElem ;
+    nbl = firstLevel ;
+    for(i0=0;i0<nbo;i0++) {
+        int64_t powp = orderP[i0].powp ;
+        int ppcmPowp = orderP[i0].ppcmPowp ;
+        int k ;
+        int64_t ppcm = antPpcm ;
+        level[nbl].firstElem = nbElem ;
+        for(k=(int)powp;k<=PB152_MAXN;k+=powp) {
+            int l ;
+            for(l=0;l<nbElem;l++) {
+                if(Elem[l].val == k) break ;
+            }
+            if(l<nbElem) continue ;
+            if((den_ppcm % k) == 0) {
+                ppcm = ppcm * k  / PGCD64(ppcm,k) ;
+                Elem[nbElem++].val = k ; printf("#%d ",k) ;
+            }
+        }
+        if(nbElem-1 >= level[nbl].firstElem) {
+            level[nbl].constraint = orderP[i0].p * orderP[i0].p ;
+            level[nbl].lastElem = nbElem-1 ;
+            level[nbl].ppcm = ppcm ;
+            level[nbl].PP = orderP[i0] ;
+            int ie ;
+            for(ie=level[nbl].firstElem;ie<=level[nbl].lastElem;ie++) { Elem[ie].weight = (ppcm / Elem[ie].val)*(ppcm / Elem[ie].val) ; }
+            level[nbl].fact = (ppcm * level[nbl-1].PP.p)/ level[nbl-1].ppcm;
+            antPpcm = ppcm/PGCD64(ppcmPowp,ppcm) ;
+            nbl++ ;
+        }
+    }
+    if(nbl != endLevel) printf("STRANGE REODER *****\n") ;
+    
+}
+
 int PB152c(PB_RESULT *pbR) {
-    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131,137,139,149} ;
+    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131,137,139,149,151} ;
     int64_t den_ppcm = 1  ;
     int nbSol = 0 ;
     pbR->nbClock = clock() ;
@@ -183,11 +244,11 @@ int PB152c(PB_RESULT *pbR) {
         if(!notFound) {
             powp *= p ;
             den_ppcm *= powp ; printf("x%d",powp) ;
-            constraintType constraint = p ;
+            constraintType ppcmPowp = p ;
             for(;powp > 1;powp /= p) {
                 orderP[nbOrder].powp = powp ;
                 orderP[nbOrder].p = p ;
-                orderP[nbOrder++].constraint = constraint ; constraint *= p ;
+                orderP[nbOrder++].ppcmPowp = ppcmPowp ; ppcmPowp *= p ;
             }
             powCand[nbCand] = powp ;
             candidate[nbCand++] = p ;
@@ -208,36 +269,22 @@ int PB152c(PB_RESULT *pbR) {
     Elem[nbElem].weight = 1  ;
     level[nbLevel].constraint = 1 ;
     level[nbLevel].ppcm = 2 ;
-    level[nbLevel].p = 1 ;
+    level[nbLevel].PP.ppcmPowp = 2 ;
+    level[nbLevel].PP.p = 1 ;
     level[nbLevel++].lastElem =nbElem ;
     nbElem++ ;
  
      int * final ;
-    int powp  ;
-    int listDelayed[] = { 9,7,5,3,4,2,0} ;
-  //  int listDelayed[] = { 11,9,7,5,3,4,2,0} ; // 66s
-//   int listDelayed[] = { 7,5,3,4,2,0} ; // 11s
-//   int listDelayed[] = { 49,25,27,13,32,11,16,8,9,7,5,3,4,2,0} ;
-     int i0,i1,i2 ;
-    for(i0=i1=i2=0;i0<nbOrder;i0++) {
-        int *delay ;
-        for(delay = listDelayed; *delay != 0 && *delay != orderP[i0].powp;delay++) ;
-        if(*delay == 0) {
-            orderP[i1++] = orderP[i0] ;
-        } else {
-            orderP[nbOrder+i2++] = orderP[i0] ;
-        }
-    }
-    if(i2) {
-        memcpy(orderP+i1,orderP+nbOrder,i2*sizeof(orderP[0])) ;
-   }
+    int64_t powp  ;
+
+    int i0 ;
     int64_t antPpcm = 1 ;
     for(i0=0;i0<nbOrder;i0++) {
         powp = orderP[i0].powp ;
-        int askPowp = orderP[i0].constraint ;
+        constraintType ppcmPowp = orderP[i0].ppcmPowp ;
         int64_t ppcm = antPpcm ;
         level[nbLevel].firstElem = nbElem ;
-        for(k=powp;k<=PB152_MAXN;k+=powp) {
+        for(k=(int)powp;k<=PB152_MAXN;k+=powp) {
             int l ;
             for(l=0;l<nbElem;l++) {
                 if(Elem[l].val == k) break ;
@@ -252,14 +299,38 @@ int PB152c(PB_RESULT *pbR) {
              level[nbLevel].constraint = orderP[i0].p * orderP[i0].p ;
             level[nbLevel].lastElem = nbElem-1 ;
             level[nbLevel].ppcm = ppcm ;
-            level[nbLevel].p = orderP[i0].p ;
+            level[nbLevel].PP = orderP[i0] ;
             int ie ;
             for(ie=level[nbLevel].firstElem;ie<=level[nbLevel].lastElem;ie++) { Elem[ie].weight = (ppcm / Elem[ie].val)*(ppcm / Elem[ie].val) ; }
-            level[nbLevel].fact = (ppcm * level[nbLevel-1].p)/ level[nbLevel-1].ppcm;
-            antPpcm = ppcm/PGCD64(askPowp,ppcm) ;
+            level[nbLevel].fact = (ppcm * level[nbLevel-1].PP.p)/ level[nbLevel-1].ppcm;
+            antPpcm = ppcm/PGCD64(ppcmPowp,ppcm) ;
             nbLevel++ ;
         }
     }
+  
+    {
+        int curLevel ;
+        for(curLevel=0;curLevel<nbLevel;curLevel++) {
+            printf("Level=%d,Elems=[%d...%d] Mod[%d],ppcm=%lld,ppcmPowp=%d nbEl=%d fact=%lld\n"
+                   ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,level[curLevel].constraint
+                   ,level[curLevel].ppcm,level[curLevel].PP.ppcmPowp,level[curLevel].lastElem-level[curLevel].firstElem+1,level[curLevel].fact) ;
+
+        }
+    }
+ /*
+    REORDER152 (level,Elem,8, 20,den_ppcm  );
+
+    {
+        int curLevel ;
+        for(curLevel=0;curLevel<nbLevel;curLevel++) {
+            printf("Level=%d,Elems=[%d...%ld] Mod[%d],ppcm=%lld,nbEl=%d fact=%lld\n"
+                   ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,level[curLevel].constraint
+                   ,level[curLevel].ppcm,level[curLevel].lastElem-level[curLevel].firstElem+1,level[curLevel].fact) ;
+            
+        }
+    }
+*/
+    
     level[0].fact = 1 ;
  
     level[nbLevel].lastElem = nbElem ;
@@ -294,7 +365,7 @@ int PB152c(PB_RESULT *pbR) {
         int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
         Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
          int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-  
+       sumType maxLv = Lv->maxSum ;
           int nbHistoMerge, nxtNbHisto = 0 ;
         int nbHistoRed = 0 ;
         int ih,ihMax ;
@@ -328,10 +399,10 @@ int PB152c(PB_RESULT *pbR) {
       if(isBascule >=1) {
              countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
        }
-       printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d],ppcm=%d,nbEl=%d,HMax=%lld ExpHout=%lld Hin=%d"
+       printf("%.3f Level=%d,Elems=[%d...%d] Mod[%d],ppcm=%lld,nbEl=%d,MaxLv=%lld,HMax=%lld ExpHout=%lld Hin=%d"
               ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
               ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
-              ,level[curLevel].ppcm,nbElem ,histoMax,nbHestim , ihMax) ;
+              ,level[curLevel].ppcm,nbElem,maxLv ,histoMax,nbHestim , ihMax) ;
 
        
        u_int64_t nout = 0 ;
@@ -403,6 +474,7 @@ int PB152c(PB_RESULT *pbR) {
                 printf("\n");
             }
         } else {
+            if(isBascule == 1) { REORDER152 (level,Elem,curLevel+1,nbLevel,den_ppcm  ); }
             isBascule = 2 ;
             printf("=%d+%d(0)  Hout=%lld/%d\n",nbHestim0-nbNul,nbNul,nout,nbHestim);
             if(nbHestim < 0) {
