@@ -17,7 +17,7 @@
 #include "tavl.h"
 
 //#define PB152_MAXN  45
-#define PB152_MAXN 200
+#define PB152_MAXN 280
 
 // typedef __int128    sumType ;
 typedef int64_t    sumType ;
@@ -205,9 +205,8 @@ int PB152c(PB_RESULT *pbR) {
     histo = malloc(100000000*sizeof(histo[0])) ;
     level[nbLevel].firstElem = nbElem ;
     Elem[nbElem].val = 2;
-     Elem[nbElem].weight = 1  ;
+    Elem[nbElem].weight = 1  ;
     level[nbLevel].constraint = 1 ;
-//    level[nbLevel].askPowp = 1 ;
     level[nbLevel].ppcm = 2 ;
     level[nbLevel].p = 1 ;
     level[nbLevel++].lastElem =nbElem ;
@@ -216,6 +215,9 @@ int PB152c(PB_RESULT *pbR) {
      int * final ;
     int powp  ;
     int listDelayed[] = { 9,7,5,3,4,2,0} ;
+  //  int listDelayed[] = { 11,9,7,5,3,4,2,0} ; // 66s
+//   int listDelayed[] = { 7,5,3,4,2,0} ; // 11s
+//   int listDelayed[] = { 49,25,27,13,32,11,16,8,9,7,5,3,4,2,0} ;
      int i0,i1,i2 ;
     for(i0=i1=i2=0;i0<nbOrder;i0++) {
         int *delay ;
@@ -234,7 +236,7 @@ int PB152c(PB_RESULT *pbR) {
         powp = orderP[i0].powp ;
         int askPowp = orderP[i0].constraint ;
         int64_t ppcm = antPpcm ;
-      level[nbLevel].firstElem = nbElem ;
+        level[nbLevel].firstElem = nbElem ;
         for(k=powp;k<=PB152_MAXN;k+=powp) {
             int l ;
             for(l=0;l<nbElem;l++) {
@@ -268,7 +270,7 @@ int PB152c(PB_RESULT *pbR) {
     Elem[nbElem].weight = 0 ;
     Elem[nbElem++].val = 0 ;
 
-    sumType sumFinal = 2 ;
+    sumType sumFinal = 1 ;
     printf("=%llu [%llu] nbNum=%d\n",(u_int64_t)den_ppcm,(u_int64_t)(den_ppcm*den_ppcm/2),nbElem );
     int curLevel ;
     nbHisto = 0 ;
@@ -286,7 +288,7 @@ int PB152c(PB_RESULT *pbR) {
     sumType deltaSum0 = 0 ;
     countType * countH0 = NULL ;
     
-   for(curLevel=0;curLevel<nbLevel ;curLevel++) {
+   for(curLevel=1;curLevel<nbLevel ;curLevel++) {
        hist152 * nxtHisto ;
         constraint = level[curLevel].constraint;
         int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
@@ -326,10 +328,10 @@ int PB152c(PB_RESULT *pbR) {
       if(isBascule >=1) {
              countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
        }
-       printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d],nbEl=%d,HMax=%lld ExpHout=%lld Hin=%d"
+       printf("%.3f Level=%d,Elems=[%d...%ld] Mod[%d],ppcm=%d,nbEl=%d,HMax=%lld ExpHout=%lld Hin=%d"
               ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
               ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
-              ,nbElem ,histoMax,nbHestim , ihMax) ;
+              ,level[curLevel].ppcm,nbElem ,histoMax,nbHestim , ihMax) ;
 
        
        u_int64_t nout = 0 ;
@@ -362,13 +364,14 @@ int PB152c(PB_RESULT *pbR) {
                    }
                }
            }
-           if(isBascule == 0 && nxtNbHisto > nbHestim ) {
+//           if(isBascule == 0 && nxtNbHisto > nbHestim ) {
+          if(isBascule == 0 && nout > nbHestim ) {
                isBascule = 1 ; ih=-1; nout=0 ;
                printf("***");
                countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
                continue ;
            }
-           if(!isBascule && (nxtNbHisto > 10000000 || ih==nbHisto-1))
+           if(!isBascule && (nxtNbHisto >30000000 || ih==nbHisto-1))
            {
                qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
                int ih1;
