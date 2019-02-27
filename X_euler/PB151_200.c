@@ -14,29 +14,54 @@
 #include "euler_utils.h"
 #include "faray_utils.h"
 #include "PB151_200.h"
-#include "tavl.h"
 
-//#define PB152_MAXN  45
-#define PB152_MAXN 260
+#define PB152_ASK 280
 
-// typedef __int128    sumType ;
+int PB152c_n(PB_RESULT *pbR,int max_n) ;
+int PB152c(PB_RESULT *pbR) {
+   return PB152c_n(pbR,PB152_ASK) ;
+}
+
+
+#define PB152_MAXN 320
+
 typedef int64_t    sumType ;
-typedef u_int64_t   countType ;
-// typedef __int128   countType ;
 typedef int32_t     constraintType ;
 typedef int         indexType ;
 
+
+
+#if !defined(INT128)
+   typedef struct countType {
+      u_int64_t   h ;
+      u_int64_t l ;
+   } countType ;
+#define addCount(dst,src)   if( ( (dst).l = (dst).l + (src).l ) >= (src).l ) (dst).h += (src).h ; else (dst).h += (src).h + 1
+#define int2count(low)   ((countType){0,(low)})
+   #define l_count(c)       ((c).l)
+   #define h_count(c)       ((c).h)
+   #define isCountNull(c)     ((c).l==0  && (c).h==0 )
+#  else
+   typedef __int128   countType ;
+   #define addCount(dst,src)  (dst) += (src)
+   #define int2count(low)   ((countType)(low))
+   #define l_count(c)       ((u_int64_t)(c))
+   #define h_count(c)       ((int64_t)((c)>>64))
+   #define isCountNull(c)     ((c)==0)
+#endif
+// ppcm*ppcm/k**2
 typedef struct Element152 {
-    int val ;                           // int for denominator
-    sumType weight ;                    // contribution to 1/2
+    int     val ;           // k
+    sumType weight ;        // contribution to 1/2 pondered by ppcm
 } Element152 ;
 
 
 typedef struct hist152 {
-    sumType sum ;
-    countType count ;
+    sumType     sum ;   // sigma(1/k**2) pondered
+    countType count ;   // times sum has been observed
 } hist152 ;
 
+// comparison on sum
 int CmpHisto(const void *el1,const void *el2){
     hist152 * h1 = (hist152 *)el1 ;
     hist152 * h2 = (hist152 *)el2 ;
@@ -47,39 +72,74 @@ int CmpHisto(const void *el1,const void *el2){
     } else return 0 ;
 }
 
-int CmpHistoAvl(const void *el1,const void *el2,void *param){
-    return CmpHisto(el1,el2) ;
+// compress array of histos by merging histo with same sum (add counts)
+int CompressHisto(hist152 *Histo, int nbHisto) {
+    int nbHistoMerge = 0 ;
+    qsort(Histo,nbHisto,sizeof(Histo[0]),CmpHisto);
+    int ih,j;
+    hist152 *sortHisto = Histo ;
+    for(ih=0,nbHistoMerge=0;ih<nbHisto;) {
+        sumType sum = Histo[ih].sum ;
+        sortHisto[nbHistoMerge] = Histo[ih] ;
+        for(j=ih+1;j<nbHisto && Histo[j].sum == sum;j++) {
+ //          sortHisto[nbHistoMerge].count += Histo[j].count ;
+            addCount(sortHisto[nbHistoMerge].count , Histo[j].count) ;
+        }
+        ih = j ;
+        nbHistoMerge++ ;
+    }
+    return nbHistoMerge ;
 }
 
-
-typedef struct sumLevel {
-    sumType intSum ;
-    constraintType modSum ;
-} sumLevel ;
-
-typedef struct LevelDev {
-    indexType           nbSum ;
-    constraintType      constraint ;
-     indexType           nbDiffMod ;
-    sumLevel *          sumL ;
-    indexType *         indMod ;
-    sumType     maxSum ;
-} LevelDev ;
-
+// Power of p (prime) admissible for a development
+// np design the max n  with p**n admissible
 typedef struct Powp152 {
-    constraintType p ;
-    constraintType powp ;
-    constraintType ppcmPowp ;
+    constraintType p ;  // prime p
+    constraintType powp ;   // p**n
+    constraintType ppcmPowp ; // p**(np+1-n) usefull to cumulate ppcm
 } Powp152 ;
 
-typedef struct Level {
-    indexType   firstElem ;
-    indexType   lastElem ;
-    constraintType  constraint ;
-    int64_t     ppcm ;
-    Powp152     PP ;
-    int32_t     fact ;
-} Level ;
+// list of Powp for the maxValue of k
+typedef struct ListPowp {
+   int      max_n ;     // max value for ceofficient
+    Powp152 Powp[100];
+    int     nbPowp ;    // number of Powp
+    int64_t den_ppcm ;  // ppcm of the whole powp (not square)
+    int curPowp ;       // current powp to treat.
+} listPowp ;
+
+// for development for the set of elements(coefficients) corresponding to the same Powp
+// As the sum must comply to modulus, the sum is decomposed in quotient (intSum) and remainder (modSum)
+typedef struct sumLevel {
+    sumType        intSum ;
+    constraintType modSum ;
+} sumLevel ;
+// results of the development for  Powp
+typedef struct LevelDev {
+    indexType           nbSum ;     // number of resulting sums
+    constraintType      constraint ;    // constraint (modulus = p*p)
+    indexType           nbDiffMod ;     // number of different remainder
+    sumLevel *          sumL ;      // array of resulting sums
+    indexType *         indMod ;    // for each possible remainder index+1 in sumL for the first
+                                    // sumL with this remainder. (so 0 <=> remainder not present)
+    sumType             maxSum ;    // max intSum obtain for the development
+} LevelDev ;
+
+// current context of development
+typedef struct levelState {
+    int         numLevel ;  // index of treated powp (with nb elements > 0)
+    Element152  Elem[50] ;  // coefficients for current powp
+    int         nbElem ;    // number of coefficients
+    constraintType  constraint ;    // current constraint for the level (= p*p)
+    int64_t     ppcm ;  // ppcm of elements for the level
+    Powp152     PP ;    // current Powp
+    int32_t     fact ;  // coefficient factor to convert sum from the precedent level (must apply fact*fact)
+    int     computVal[PB152_MAXN] ; // history of k precedently used (to filter coefficients and use only once)
+    int     nbComputVal ;   // number of k precedently used
+    int64_t cumPpcm ;       // ppcm of precedent level ppcm's. (used to compute ppcm for the current level)
+} levelState ;
+
+// comparison of sumL, first by remainder modSum, secondly by increasing quotient
 int CmpSumL(const void *el1,const void *el2){
     sumLevel * sumL1 = (sumLevel *)el1 ;
     sumLevel * sumL2 = (sumLevel *)el2 ;
@@ -96,6 +156,17 @@ int CmpSumL(const void *el1,const void *el2){
     }
 }
 
+LevelDev * Free_levelDev(LevelDev * Lv) {
+    if(Lv) {
+        free(Lv->sumL) ;
+        free(Lv->indMod) ;
+        free(Lv) ;
+    }
+    return NULL ;
+}
+// Compute all the partial sums for a powp.
+// For nbElem (coefficients) => 2**nbElem partial sums.
+// The sum are sorted and indexed by remainder (mod[constraint]) for faster access.
 LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstraint) {
     indexType nbSum = 1 << nbElem ;
     LevelDev * Lv = calloc(1,sizeof(Lv[0])) ;
@@ -108,14 +179,14 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
     Lv->sumL[0].modSum = 0 ;
     sumType MaxSum = 0 ;
     sumLevel * sumL = Lv->sumL ;
-    for(i=0;i<nbElem;i++) {
+    for(i=0;i<nbElem;i++) { // add element by Element
         sumType intSum = Elem[i].weight / modConstraint ;
         constraintType modSum = (constraintType) (Elem[i].weight - intSum * modConstraint) ;
         int j,jmax = 1 << i ;
         for(j=0;j<jmax;j++) {
             sumL[j+jmax].intSum = sumL[j].intSum+intSum ;
             sumL[j+jmax].modSum = sumL[j].modSum+modSum ;
-            if(sumL[j+jmax].modSum-modConstraint >= 0 ) {
+            if(sumL[j+jmax].modSum-modConstraint >= 0 ) { // avoid division
                 sumL[j+jmax].modSum = sumL[j+jmax].modSum-modConstraint ;
                 sumL[j+jmax].intSum++ ;
             }
@@ -125,108 +196,101 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
     Lv->sumL[nbSum].intSum = 0 ;
     Lv->sumL[nbSum].modSum = modConstraint ;
     Lv->maxSum = MaxSum ;
-    qsort(sumL,nbSum,sizeof(sumL[0]),CmpSumL) ;
+    qsort(sumL,nbSum,sizeof(sumL[0]),CmpSumL) ; // sort by remainder,quotient
     Lv->nbDiffMod = 0 ;
-    for(i=0;i<nbSum;) {
+    for(i=0;i<nbSum;) { // compute access index for each remainder present
         int j ;
         constraintType mod = sumL[i].modSum ;
         Lv->indMod[mod] = i+1 ;
         Lv->nbDiffMod++ ;
         for(j=i+1;j<nbSum && sumL[j].modSum== mod;j++) ;
         i = j ;
-
     }
     return Lv ;
 }
 
-int OrderToLevel(Powp152 *orderP, Level *level,Element152 *Elem,int firstLevel, int nbo,int64_t den_ppcm) {
-    int64_t antPpcm = level[firstLevel-1].ppcm/level[firstLevel-1].PP.p ;
-    int nbElem = level[firstLevel-1].lastElem+1 ;
-    int nbl = firstLevel ;
-    int i0 ;
-    for(i0=0;i0<nbo;i0++) {
-        int64_t powp = orderP[i0].powp ;
-        int ppcmPowp = orderP[i0].ppcmPowp ;
-        int k ;
-        int64_t ppcm = antPpcm ;
-        level[nbl].firstElem = nbElem ;
-        for(k=(int)powp;k<=PB152_MAXN;k+=powp) {
+// update context levelState for the next Powp with nbElement (coef) > 0
+// return 0 if last level
+int nextLevelState(levelState *LS,listPowp *LP) {
+    int k ;
+    int oldLevel = LS->numLevel ;
+    int nbElem=0 ;
+    while(nbElem==0 && LP->curPowp < LP->nbPowp) { // loop on remaining powp
+        Powp152 * newPowp = LP->Powp + LP->curPowp++ ;
+        int64_t powp = newPowp->powp ;
+        int64_t ppcm = LS->cumPpcm ;
+        for(k=(int)powp;k<=LP->max_n;k+=powp) { // search element k multiple of powp
             int l ;
-            for(l=0;l<nbElem;l++) {
-                if(Elem[l].val == k) break ;
+            for(l=0;l<LS->nbComputVal;l++) { // verify if k not precendently used.
+                if(LS->computVal[l] == k) break ;
             }
-            if(l<nbElem) continue ;
-            if((den_ppcm % k) == 0) {
-                ppcm = ppcm * k  / PGCD64(ppcm,k) ;
-                Elem[nbElem++].val = k ; printf("+%d ",k) ;
+            if(l<LS->nbComputVal) continue ;
+            if((LP->den_ppcm % k) == 0) {   // check if k is admissible
+                ppcm = ppcm * k  / PGCD64(ppcm,k) ; // update ppcm
+                LS->Elem[nbElem++].val = k ; // store k
             }
         }
-        if(nbElem-1 >= level[nbl].firstElem) {
-            level[nbl].constraint = orderP[i0].p * orderP[i0].p ;
-            level[nbl].lastElem = nbElem-1 ;
-            level[nbl].ppcm = ppcm ;
-            level[nbl].PP = orderP[i0] ;
+        if(nbElem > 0) { // powp has one admissible element
+            // update the levelState
+            LS->constraint = newPowp->p * newPowp->p ;  // constraint
+           
+            LS->fact = (int32_t)(ppcm * LS->PP.p)/ LS->ppcm;    // fact from precedent level
+            LS->cumPpcm = ppcm/PGCD64(newPowp->ppcmPowp,ppcm) ; // update cumulative ppcm
+            LS->nbElem = nbElem ;
+            LS->ppcm = ppcm ;   // ppcm for the level
+            LS->PP = *newPowp ; // valid powp
             int ie ;
-            for(ie=level[nbl].firstElem;ie<=level[nbl].lastElem;ie++) { Elem[ie].weight = (ppcm / Elem[ie].val)*(ppcm / Elem[ie].val) ; }
-            level[nbl].fact = (int32_t)(ppcm * level[nbl-1].PP.p)/ level[nbl-1].ppcm;
-            antPpcm = ppcm/PGCD64(ppcmPowp,ppcm) ;
-            nbl++ ;
+            for(ie=0;ie<nbElem;ie++) {  // compute weight of each element with ppcm
+                LS->Elem[ie].weight = (ppcm / LS->Elem[ie].val)*(ppcm / LS->Elem[ie].val) ;
+                LS->computVal[LS->nbComputVal++] = LS->Elem[ie].val ;
+            }
+            LS->numLevel++ ; // increment level number (can be decorralated qith powp number, due to powp with no new lement
         }
-    }
-    return nbl ;
+    }  ;
+    return LS->numLevel-oldLevel ;
 }
 
 // decreasing order
 int CmpOrderByPowp(const void *el1,const void *el2) {
     return (int) ((Powp152 *)el2)[0].powp - (int) ((Powp152 *)el1)[0].powp ;
 }
-void REORDER152 (Level *level,Element152 *Elem,int firstLevel, int endLevel,int64_t den_ppcm  ) {
-    Powp152 orderP[50] ;
-    int nbl,nbo;
-    for(nbo=0,nbl=firstLevel;nbl<endLevel;nbl++) {
-        orderP[nbo++] = level[nbl].PP ;
-    }
-    
-    qsort(orderP,nbo,sizeof(orderP[0]),CmpOrderByPowp) ;
-    nbl = OrderToLevel(orderP,level,Elem,firstLevel,nbo,den_ppcm) ;
-
-
- 
+// reoder powp by decreasing powp (and not p,pwop )
+void REORDER152 (listPowp *LP) {
+     qsort(LP->Powp+LP->curPowp,LP->nbPowp-LP->curPowp,sizeof(LP->Powp[0]),CmpOrderByPowp) ;
 }
-
-int PB152c(PB_RESULT *pbR) {
-    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131,137,139,149,151} ;
-    int64_t den_ppcm = 1  ;
-    int nbSol = 0 ;
-    pbR->nbClock = clock() ;
+// construct the list of admissible powp's for maxvalue for k
+int ComputeListPowP(listPowp *LP, int maxValue){
+    // maxValue must be <= 300
+    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,119,127,131,137,139,149,151,157,161} ;
+    LP->den_ppcm = 1 ;
+    LP->max_n = maxValue ;
     int ip,p ;
-    int64_t invSqare[200],candidate[200],powCand[200], sumInv[65536] ;
-    int nbCand = 0 ;
-    for(ip=0;(p=Primes[ip])<=PB152_MAXN/2;ip++) ;
-    Powp152 orderP[50] ;
-    int nbOrder = 0 ;
+#define MAX152_NP   16
+    int64_t invSqare[MAX152_NP], sumInv[1<<MAX152_NP] ;
+    for(ip=0;(p=Primes[ip])<=maxValue/2;ip++) ; // seach first prime above maxValue/2 (other not admissible)
+    int nbPowp = 0 ;
     for(;--ip >=0;) {
         p = Primes[ip] ;
-        int powp ;
-        for(powp=p;powp*p<=PB152_MAXN/2;) powp = powp * p ;
+        int powp,np ;
+        for(powp=p;powp*p<=maxValue/2;) powp = powp * p ; // search max power of p candidate
         int notFound = 1 ;
-        int np ;
-        for(;powp>1 && notFound; powp /= p) {
-            np = PB152_MAXN/powp ;
+        for(;powp>1 && notFound; powp /= p) {// search by decreasing power of the first admissible
+            np = maxValue/powp ;
             int nbInv = 0 ;
             int sqp = p*p ;
             if(p != 2 && np>= powp-1) np = powp-1 ;
             if(p==2 && np>= 2*powp-1) np =2*powp -1 ;
+            if(np>MAX152_NP) { printf("FATAL ERROR np=%d too big for powp=%d\n",np,powp) ; }
             int i ;
-            for(i=1;i<=np;i++) {
-                if(i != 0 && (i % p) == 0) continue ;
+            for(i=1;i<=np;i++) { // for each i (k=i) search inverse for k*k mod[p*p]
+                if((i % p) == 0) continue ;
                 int i2 = (i*i) % sqp ;
-                int inv_i2, ninv ; ;
+                int inv_i2, ninv ; // search 1/(i*i) with if a power of i*i
                 for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp )!=1;inv_i2=ninv) ;
-                invSqare[nbInv++] = inv_i2 ;
+                invSqare[nbInv++] = inv_i2 ; // store 1/(i*i) mod[p*p]
             }
             sumInv[0] = 0 ;
-            for(i=0;i<nbInv && notFound ;i++) {
+            for(i=0;i<nbInv && notFound ;i++) { // search a combinaison sum of inverse == 0 mod[p*p]
                 int j,jmax = 1 << i ;
                 for(j=0;j<jmax && notFound;j++) {
                     sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
@@ -235,214 +299,195 @@ int PB152c(PB_RESULT *pbR) {
             }
             
         }
-        if(!notFound) {
-            powp *= p ;
-            den_ppcm *= powp ; printf("x%d",powp) ;
+        if(!notFound) { // existing combinaison sum
+            powp *= p ; // add p*powp and all divisor to list of admissible powp
+            LP->den_ppcm *= powp ; printf("x%d",powp) ;
             constraintType ppcmPowp = p ;
             for(;powp > 1;powp /= p) {
-                orderP[nbOrder].powp = powp ;
-                orderP[nbOrder].p = p ;
-                orderP[nbOrder++].ppcmPowp = ppcmPowp ; ppcmPowp *= p ;
+                LP->Powp[nbPowp].powp = powp ;
+                LP->Powp[nbPowp].p = p ;
+                LP->Powp[nbPowp++].ppcmPowp = ppcmPowp ; ppcmPowp *= p ;
             }
-            powCand[nbCand] = powp ;
-            candidate[nbCand++] = p ;
         }
     }
-    Element152 Elem[PB152_MAXN] ;
-    hist152 * histo ;
-    Level   level[30] ;
-    int nbElem = 0 ;
-     int nbLevel = 0 ;
-    countType nbSolTot = 0 ;
-    int nbHisto = 0 ;
-    histo = malloc(100000000*sizeof(histo[0])) ;
-    level[nbLevel].firstElem = nbElem ;
-    Elem[nbElem].val = 2;
-    Elem[nbElem].weight = 1  ;
-    level[nbLevel].constraint = 1 ;
-    level[nbLevel].ppcm = 2 ;
-    level[nbLevel].PP.powp = 2 ;
-    level[nbLevel].PP.ppcmPowp = 2 ;
-    level[nbLevel].PP.p = 1 ;
-    level[nbLevel].fact = 1 ;
+    LP->curPowp = 0 ;
+    LP->nbPowp = nbPowp ;
+    printf("=%llu [%llu] \n",(u_int64_t)LP->den_ppcm,(u_int64_t)(LP->den_ppcm *  LP->den_ppcm/2) );
+    return LP->nbPowp ;
+}
 
-    level[nbLevel++].lastElem =nbElem ;
-    nbElem++ ;
-   
-    nbLevel = OrderToLevel(orderP,level,Elem,nbLevel,nbOrder,den_ppcm) ;
-    nbElem = level[nbLevel-1].lastElem + 1 ;
-    {
-        int curLevel ;
-        for(curLevel=0;curLevel<nbLevel;curLevel++) {
-            printf("Level=%d,Elems=[%d...%d] Mod[%d],ppcm=%lld,ppcmPowp=%d nbEl=%d fact=%d\n"
-                   ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,level[curLevel].constraint
-                   ,level[curLevel].ppcm,level[curLevel].PP.ppcmPowp,level[curLevel].lastElem-level[curLevel].firstElem+1,level[curLevel].fact) ;
+#define PB152_SIZE_HISTO    20480000
 
-        }
-    }
- 
- 
+int PB152c_n(PB_RESULT *pbR,int max_n) {
+    int nbSol = 0 ;
+    pbR->nbClock = clock() ;
+    listPowp LP ;
+    ComputeListPowP(&LP, max_n) ;
+    levelState LS ;
+    LS.nbComputVal = 0 ; LS.numLevel = 0 ;
+    LS.computVal[LS.nbComputVal++] = 2 ; // 1/2**2 is mandatory, so remove it
+    LS.constraint = 1; LS.ppcm = 2 ;   LS.PP.p = 1;    LS.PP.powp = 2;
+    LS.PP.ppcmPowp = 2;  LS.cumPpcm = 1; LS.fact = 1 ;
+   countType nbSolTot = int2count(0) ;
     sumType sumFinal = 1 ;
-    printf("=%llu [%llu] nbNum=%d\n",(u_int64_t)den_ppcm,(u_int64_t)(den_ppcm*den_ppcm/2),nbElem );
-    int curLevel ;
-    nbHisto = 0 ;
-    histo[nbHisto].sum = sumFinal ;
-    histo[nbHisto++].count = 1 ;
-    int64_t nbHestim ;
-    sumType histoMax ;
-    LevelDev * Lv ;
-//    int nbInd ;
-    constraintType constraint ;
-   int isBascule = 0 ;
-    countType * countH1=NULL ;
-    sumType deltaSum1  ;
-    int64_t nbHestim0  ;
-    sumType deltaSum0 = 0 ;
-    countType * countH0 = NULL ;
-    
-   for(curLevel=1;curLevel<nbLevel ;curLevel++) {
-       hist152 * nxtHisto ;
-        constraint = level[curLevel].constraint;
-        int nbElem = level[curLevel].lastElem - level[curLevel].firstElem +1 ;
-        Lv = Cmp52_level(Elem+level[curLevel].firstElem,nbElem,constraint) ;
-         int64_t factS = level[curLevel].fact*level[curLevel].fact ;
-       sumType maxLv = Lv->maxSum ;
-          int nbHistoMerge, nxtNbHisto = 0 ;
-        int nbHistoRed = 0 ;
-        int ih,ihMax ;
-        int nbNul = 0 ;
-       if(isBascule >= 2) {
-           nbHestim0 = nbHestim ;
-          deltaSum0 = deltaSum1 ;
-           free(countH0);
-          countH0 = countH1 ;
-           ihMax = (indexType) nbHestim0 ;
-           histoMax =  ((deltaSum0+nbHestim0-1)*factS)/constraint  ;
-       } else {
-           nxtHisto =  histo + nbHisto ;
-           deltaSum0 = histo[0].sum ;
-           ihMax = nbHisto ;
-           histoMax =  (histo[nbHisto-1].sum*factS)/constraint ;
-      }
-       nbHestim =(histoMax-deltaSum0*factS/constraint+Lv->maxSum+1) ;
-       if(nbHestim-1 > histoMax) nbHestim =  histoMax+1 ;
-       deltaSum1 = histoMax - nbHestim+1 ;
- 
-       if(isBascule == 0 && nbHestim < 2 * nbHisto - 10  ) {
-           isBascule = 1 ; printf(" Bascule au debut du niveau %d\n",curLevel) ;
-       }
-  
-      if(isBascule >=1) {
-             countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-       }
-       printf("%.3f Level=%d,Elems=[%d...%d] Mod[%d],ppcm=%lld,nbEl=%d,MaxLv=%lld,HMax=%lld ExpHout=%lld Hin=%d"
-              ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
-              ,curLevel,Elem[level[curLevel].firstElem].val, Elem[level[curLevel].lastElem].val,constraint
-              ,level[curLevel].ppcm,nbElem,maxLv ,histoMax,nbHestim , ihMax) ;
 
-       
-       u_int64_t nout = 0 ;
-       for(ih=0;ih<ihMax;ih++) {
-           sumType sum  ;
-           countType count ;
-           if(isBascule >= 2) {
-               count = countH0[ih] ;
-               if(count==0) { nbNul++ ; continue ; }
-               sum = (deltaSum0+ih) * factS;
-           } else {
-               sum = histo[ih].sum * factS;
-               count = histo[ih].count ;
-           }
-           sumType intSum = sum / constraint ;
-           constraintType modSum = (constraintType) (sum - intSum * constraint) ;
-           if(Lv->indMod[modSum]>0) {
-               int32_t ind ;
-               for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
-                   sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-                   if(newSum < 0) break ; // too many cumulatives
-                   nout++ ;
-                   if(isBascule) {
-                       int nc = (indexType)(newSum - deltaSum1) ;
-                       countH1[nc]  += count ;
-                   } else {
-                       nxtHisto[nxtNbHisto].sum = newSum ;
-                       nxtHisto[nxtNbHisto].count = count ;
-                       nxtNbHisto++ ;
-                   }
-               }
-           }
-//           if(isBascule == 0 && nxtNbHisto > nbHestim ) {
- 
-           if(isBascule == 0 && nout > nbHestim ) {
-               isBascule = 1 ; ih=-1; nout=0 ;
-               printf("***");
-               countH1 = calloc(nbHestim,sizeof(countH1[0])) ;
-               continue ;
-           }
-  
-           if(!isBascule && (nxtNbHisto >30000000 || ih==nbHisto-1))
-           {
-               qsort(nxtHisto,nxtNbHisto,sizeof(nxtHisto[0]),CmpHisto);
-               int ih1;
-               hist152 *sortHisto = nxtHisto ;
-               for(ih1=0,nbHistoMerge=0;ih1<nxtNbHisto;) {
-                   int j ;
-                   sumType sum = nxtHisto[ih1].sum ;
-                   sortHisto[nbHistoMerge] = nxtHisto[ih1] ;
-                   for(j=ih1+1;j<nxtNbHisto && nxtHisto[j].sum == sum;j++) {
-                       sortHisto[nbHistoMerge].count += nxtHisto[j].count ;
-                   }
-                   ih1 = j ;
-                   nbHistoMerge++ ;
-               }
-               nbHistoRed += nxtNbHisto - nbHistoMerge ;
-               nxtNbHisto = nbHistoMerge ;
-           }
-       }
-       
-       
-        if(isBascule==0) {
-            nbHisto = nxtNbHisto ;
-            if(curLevel==0) { nbHisto = 1 ; }
-            histo =nxtHisto ;
-            printf(" Hout=%lld/->%d \n",nout,nxtNbHisto) ;
-            printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(histo[0].sum),histo[0].count,(u_int64_t)histo[nbHisto-1].sum,histo[nbHisto-1].count);
-            if(nbHisto < 0) {
-                for(ih=0;ih<nbHisto;ih++) printf("(%lld,%lld)",(u_int64_t)(histo[ih].sum),histo[ih].count);
+    int nbHisto0 = 0 ;
+    hist152 * Histo0 = malloc(1*sizeof(Histo0[0])) ;
+    Histo0[nbHisto0].sum = sumFinal ;
+   Histo0[nbHisto0++].count = int2count(1);
+    int64_t nbCountS0 = 0 ;
+    sumType sumMax ;
+    LevelDev * Lv ;
+    countType * countS0 = NULL ;
+    sumType offsetS0 = 0 ;
+#define M_IN_COUNT   1
+#define M_OUT_COUNT  2
+#define M_OUT_HISTO  0
+    int mode = 0 ; // in and out by histo
+
+    while(nextLevelState(&LS, &LP)) {
+        int curLevel = LS.numLevel ;
+        countType * countS1 = NULL ;
+        hist152 * Histo1 = NULL ;
+        constraintType constraint = LS.constraint ;
+        int nbElem = LS.nbElem ;
+        Lv = Cmp52_level(LS.Elem,nbElem,constraint) ;
+        int64_t factS = LS.fact*LS.fact ;
+        sumType maxLv = Lv->maxSum ;
+        int nbHisto1 = 0 , nbNul = 0 ;
+        int ih,ihMax ;
+        if(mode & M_OUT_COUNT ) {
+             ihMax = (indexType) nbCountS0 ;
+        } else {
+            Histo1 = malloc(PB152_SIZE_HISTO*sizeof(Histo1[0])) ;
+               offsetS0 = Histo0[0].sum ;
+               ihMax = nbHisto0 ;
+               sumMax =  Histo0[nbHisto0-1].sum ;
+        }
+        sumMax =  (sumMax*factS)/constraint  ;
+        int64_t nbCountS1 =(sumMax-offsetS0*factS/constraint+Lv->maxSum+1) ;
+        if(nbCountS1-1 > sumMax) nbCountS1 =  sumMax+1 ;
+        sumType offsetS1 = sumMax - (nbCountS1-1) ;
+        if((mode == M_OUT_HISTO)  && nbCountS1 < 2 * nbHisto0 - 10  ) {
+            mode = M_OUT_COUNT ; printf("Swap to mode OUT_COUNT at level %d\n",curLevel) ;
+        }
+        printf("%.3f Level=%d,Elems=[%d...%d] Mod[%d],ppcm=%lld,nbEl=%d,MaxLv=%lld,fact=%d HMax=%lld ExpHout=%lld Hin=%d"
+              ,(clock() - pbR->nbClock) / (float) CLOCKS_PER_SEC
+              ,curLevel,LS.Elem[0].val,LS.Elem[nbElem-1].val,constraint
+              ,LS.ppcm,nbElem,maxLv,LS.fact ,sumMax,nbCountS1 , ihMax) ;
+        if(mode & M_OUT_COUNT ) {
+            countS1 = calloc(nbCountS1,sizeof(countS1[0])) ;
+        }
+        u_int64_t nout = 0 ;
+        for(ih=0;ih<ihMax;ih++) {
+            sumType sum  ;  countType count ;
+            if(mode & M_IN_COUNT ) {
+//               count = countS0[ih] ; if(count==0) { nbNul++ ; continue ; }
+                count = countS0[ih] ;
+                if(isCountNull(count)) { nbNul++ ; continue ; }
+                sum = (offsetS0+ih) ;
+            } else {
+                count = Histo0[ih].count ;
+                sum = Histo0[ih].sum ;
+            }
+            sum *= factS ;
+            sumType intSum = sum / constraint ;
+            constraintType modSum = (constraintType) (sum - intSum * constraint) ;
+            if(Lv->indMod[modSum]>0) {
+                int32_t ind ;
+                for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
+                    sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
+                    if(newSum < 0) break ; // sum exeeds 1/2
+                    nout++ ;
+                    if(mode & M_OUT_COUNT ) {
+                        int nc = (indexType)(newSum - offsetS1) ;
+//                       countS1[nc]  += count ;
+                        addCount(countS1[nc],count) ;
+                    } else {
+                        Histo1[nbHisto1].sum = newSum ;
+                        Histo1[nbHisto1++].count = count ;
+                    }
+                }
+            }
+            if(mode == M_OUT_HISTO ) {
+                if(nout > nbCountS1 ) { // test swap to count mode ?
+                    mode = M_OUT_COUNT ; ih=-1; nout=0 ;
+                    printf("***");
+                    countS1 = calloc(nbCountS1,sizeof(countS1[0])) ;
+                    continue ;
+                } else if( nbHisto1 > PB152_SIZE_HISTO - Lv->nbSum || ih==nbHisto0-1) {
+                    // need compression ? end of level, or histo buffer out almost full
+                    nbHisto1 = CompressHisto(Histo1,nbHisto1) ;
+                }
+            }
+        } // end loop ih on precedent active sums
+       Lv = Free_levelDev(Lv);
+        if(mode == M_OUT_HISTO ) {
+            nbHisto0 = nbHisto1 ;
+            free(Histo0) ;
+            Histo0 = Histo1 ;
+        } else {
+            if(mode == M_OUT_COUNT) {
+                REORDER152 (&LP);
+                mode |= M_IN_COUNT ;
+            }
+            nbCountS0 = nbCountS1 ;
+            offsetS0 = offsetS1 ;
+            free(countS0);
+            countS0 = countS1 ;
+        }
+        if(mode == M_OUT_HISTO ) {
+            printf(" Hout=%lld/->%d \n",nout,nbHisto0) ;
+#if defined(PB152_DEBUG)
+            printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(Histo0[0].sum),l_count(Histo0[0].count),(u_int64_t)Histo0[nbHisto0-1].sum,l_count(Histo0[nbHisto0-1].count));
+            if(nbHisto0 < 50) {
+                for(ih=0;ih<nbHisto0;ih++) printf("(%lld,%lld)",(u_int64_t)(Histo0[ih].sum),l_count(Histo0[ih].count));
                 printf("\n");
             }
+#endif
         } else {
-            if(isBascule == 1) { REORDER152 (level,Elem,curLevel+1,nbLevel,den_ppcm  ); }
-            isBascule = 2 ;
-            printf("=%d+%d(0)  Hout=%lld/%d\n",(indexType)(nbHestim0-nbNul),nbNul,nout,(indexType)nbHestim);
-            if(nbHestim < 0)
-            {
+            printf("=%d+%d(0)  Hout=%lld/%d\n",(indexType)(ihMax-nbNul),nbNul,nout,(indexType)nbCountS0);
+#if defined(PB152_DEBUG)
+           if(nbCountS0 < 50) {
                 int i,i0 ;
- //               for(i=0;i<nbHestim;i++) { printf("[%d,%lld]",i,countH1[i]); }
-                
-                for(i0=0,i=0;i<nbHestim && i0 < 100;i++) { if(countH1[i])  { printf("[%d,%lld]",i,countH1[i]); i0++ ; } }
+                for(i0=0,i=0;i<nbCountS0 && i0 < 100;i++) { if(isCountNull(countS0[i]))  { printf("[%d,%lld]",i,l_count(countS0[i])); i0++ ; } }
                 printf("\n");
             }
+#endif
         }
-   }
-       if(isBascule==0) {
-            int i ;
-            for(i=0;i<nbHisto;i++) {
-                if(histo[i].sum == 0 ) nbSolTot += histo[i].count ;
-            }
-        } else {
-           nbSolTot = countH1[(int64_t)-deltaSum1] ;
+    }
+    if(mode & M_OUT_COUNT) {
+        nbSolTot = countS0[(int64_t)-offsetS0] ;
+        free(countS0);
+    } else {
+        int i ;
+        for(i=0;i<nbHisto0;i++) {
+//            if(Histo0[i].sum == 0 ) nbSolTot += Histo0[i].count ;
+           if(Histo0[i].sum == 0 ) { addCount(nbSolTot,Histo0[i].count) ; }
         }
+        free(Histo0) ;
+    }
     
     pbR->nbClock = clock() - pbR->nbClock ;
-    int64_t nbHig = 0 ;
-    if(nbSolTot > 1000000000000000000LL) {
-        nbHig = nbSolTot / 1000000000000000000LL ;
-        nbSolTot -= nbHig * 1000000000000000000LL  ;
+# define POW10_9  1000000000LL
+    if(h_count(nbSolTot) || l_count(nbSolTot) >= POW10_9 * POW10_9) {
+       u_int64_t nbH10 = h_count(nbSolTot) / POW10_9 ;
+       u_int64_t nbHr = h_count(nbSolTot) % POW10_9 ;
+       u_int64_t nbL10 = l_count(nbSolTot) / POW10_9 ;
+       u_int64_t nbLr = l_count(nbSolTot) % POW10_9 ;
+       u_int64_t p64_10 = (1LL << (64-9)) / (POW10_9/(1<<9)) ;
+       u_int64_t p64r = ((1LL << (64-9)) - p64_10 * (POW10_9/(1<<9))) << 9 ;
+       // (nbH10 * POW10_9 + nbHr) * (P64_10 * POW10_9 + p64r) + (nbL10 * POW10_9 + nbLr)
+      u_int64_t nbLow = (nbHr * p64r + nbLr) ;
+      u_int64_t nbHig = (nbLow / POW10_9) + nbH10 * p64r + nbHr * p64_10 + POW10_9 * nbH10 * p64_10 + nbL10;
+      nbLow -= (nbLow / POW10_9) * POW10_9 ;
+ 
+        if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %lld%lld sol\n",pbR->ident,max_n,nbHig,nbLow);
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld%lld",nbHig,nbLow) ;
+    } else {
+        if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %lld sol \n",pbR->ident,max_n,l_count(nbSolTot));
+        snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",l_count(nbSolTot)) ;
     }
-    if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %d ,%lld%lld sol \n",pbR->ident,PB152_MAXN,nbSol,nbHig,nbSolTot);
-    
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld%lld",nbHig,nbSolTot) ;
     return 1 ;
 }
 
