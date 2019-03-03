@@ -15,12 +15,13 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
-#define PB152_ASK 120
+#define PB152_ASK 280
 
 int PB152c_n(PB_RESULT *pbR,int max_n) ;
 int PB152c(PB_RESULT *pbR) {
    return PB152c_n(pbR,PB152_ASK) ;
 }
+
 
 
 #define PB152_MAXN 320
@@ -50,10 +51,10 @@ typedef int         indexType ;
    #define isCountNull(c)     ((c)==0)
 #endif
 // ppcm*ppcm/k**2
-typedef struct Element152 {
+typedef struct Element152_c {
     int     val ;           // k
     sumType weight ;        // contribution to 1/2 pondered by ppcm
-} Element152 ;
+} Element152_c ;
 
 
 typedef struct hist152 {
@@ -114,21 +115,24 @@ typedef struct sumLevel {
     sumType        intSum ;
     constraintType modSum ;
 } sumLevel ;
+
+
+
 // results of the development for  Powp
 typedef struct LevelDev {
     indexType           nbSum ;     // number of resulting sums
     constraintType      constraint ;    // constraint (modulus = p*p)
     indexType           nbDiffMod ;     // number of different remainder
     sumLevel *          sumL ;      // array of resulting sums
-    indexType *         indMod ;    // for each possible remainder index+1 in sumL for the first
-                                    // sumL with this remainder. (so 0 <=> remainder not present)
+    indexType *         indMod ;    // for each possible remainder index in sumL for the first
+                                    // sumL with this remainder.
     sumType             maxSum ;    // max intSum obtain for the development
 } LevelDev ;
 
 // current context of development
 typedef struct levelState {
     int         numLevel ;  // index of treated powp (with nb elements > 0)
-    Element152  Elem[50] ;  // coefficients for current powp
+    Element152_c  Elem[50] ;  // coefficients for current powp
     int         nbElem ;    // number of coefficients
     constraintType  constraint ;    // current constraint for the level (= p*p)
     int64_t     ppcm ;  // ppcm of elements for the level
@@ -167,7 +171,7 @@ LevelDev * Free_levelDev(LevelDev * Lv) {
 // Compute all the partial sums for a powp.
 // For nbElem (coefficients) => 2**nbElem partial sums.
 // The sum are sorted and indexed by remainder (mod[constraint]) for faster access.
-LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstraint) {
+LevelDev * Cmp52_level (const Element152_c * Elem, int nbElem, int32_t modConstraint) {
     indexType nbSum = 1 << nbElem ;
     LevelDev * Lv = calloc(1,sizeof(Lv[0])) ;
     Lv->nbSum = nbSum ;
@@ -199,9 +203,9 @@ LevelDev * Cmp52_level (const Element152 * Elem, int nbElem, int32_t modConstrai
     qsort(sumL,nbSum,sizeof(sumL[0]),CmpSumL) ; // sort by remainder,quotient
     Lv->nbDiffMod = 0 ;
     for(i=0;i<nbSum;) { // compute access index for each remainder present
-        int j ;
+        int j , nb ;
         constraintType mod = sumL[i].modSum ;
-        Lv->indMod[mod] = i+1 ;
+       Lv->indMod[mod] = i+1 ;
         Lv->nbDiffMod++ ;
         for(j=i+1;j<nbSum && sumL[j].modSum== mod;j++) ;
         i = j ;
@@ -318,8 +322,9 @@ int ComputeListPowP(listPowp *LP, int maxValue){
 
 #define PB152_SIZE_HISTO    20480000
 
+
+
 int PB152c_n(PB_RESULT *pbR,int max_n) {
-    int nbSol = 0 ;
     pbR->nbClock = clock() ;
     listPowp LP ;
     ComputeListPowP(&LP, max_n) ;
@@ -393,15 +398,14 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
             sum *= factS ;
             sumType intSum = sum / constraint ;
             constraintType modSum = (constraintType) (sum - intSum * constraint) ;
-            if(Lv->indMod[modSum]>0) {
+           if(Lv->indMod[modSum]>0) {
                 int32_t ind ;
-                for(ind = Lv->indMod[modSum] - 1 ; Lv->sumL[ind].modSum == modSum;ind++) {
+                for(ind = Lv->indMod[modSum]-1 ; Lv->sumL[ind].modSum == modSum;ind++) {
                     sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
                     if(newSum < 0) break ; // sum exeeds 1/2
                     nout++ ;
                     if(mode & M_OUT_COUNT ) {
                         int nc = (indexType)(newSum - offsetS1) ;
-//                       countS1[nc]  += count ;
                         addCount(countS1[nc],count) ;
                     } else {
                         Histo1[nbHisto1].sum = newSum ;
@@ -446,7 +450,7 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
             }
 #endif
         } else {
-            printf("=%d+%d(0)  Hout=%lld/%d\n",(indexType)(ihMax-nbNul),nbNul,nout,(indexType)nbCountS0);
+           printf("=%d+%d(0)  Hout=%lld/%d\n",(indexType)(ihMax-nbNul),nbNul,nout,(indexType)nbCountS0);
 #if defined(PB152_DEBUG)
            if(nbCountS0 < 50) {
                 int i,i0 ;
@@ -462,7 +466,6 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
     } else {
         int i ;
         for(i=0;i<nbHisto0;i++) {
-//            if(Histo0[i].sum == 0 ) nbSolTot += Histo0[i].count ;
            if(Histo0[i].sum == 0 ) { addCount(nbSolTot,Histo0[i].count) ; }
         }
         free(Histo0) ;
@@ -494,12 +497,12 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
 
 
 
-typedef struct Node152 {
+typedef struct Node152_a {
     int  level ;        // level for the node
     indexType elem ;              // element in the level for the node
     constraintType sumConstraint   ;   // cumulates sum modulus the constraint
     sumType sum ;                       // cumulated sum from the beginning
-} Node152 ;
+} Node152_a ;
 
 typedef void (*CBsol152) (void *ctx,hist152 hist) ;
 
@@ -584,19 +587,18 @@ int PB152a_n(PB_RESULT *pbR,int max_n) {
     u_int64_t den_ppcm = 1  ;
     int nbSol = 0 ;
     pbR->nbClock = clock() ;
-    int ip,p ;
-   listPowp LP ;
-   levelsGlobal LG ;
-   ComputeListPowP(&LP, max_n) ;
+   listPowp LP ; // list of power of p admissible
+   levelsGlobal LG ; // context for levels
+   ComputeListPowP(&LP, max_n) ; // compute powp
    den_ppcm = LP.den_ppcm ;
    LG.nbLevel =0 ;
    LG.nbComputVal=0 ;
    LG.computVal[LG.nbComputVal++] = 2 ;
    // compute all the level
-   while(nextLevelsGlobal(&LG,&LP) ) ;
+   while(nextLevelsGlobal(&LG,&LP) ) {} //compute coefficients all the powp
 
     printf("=%lld [%lld] nbLevel%d\n",LP.den_ppcm,LP.den_ppcm*LP.den_ppcm/2,LG.nbLevel );
-    Node152 nod[PB152_MAXN] ;
+    Node152_a nod[PB152_MAXN] ; // nodes for tree walk
     int is ;
 //   is =0 ; nod[is].sum = den_ppcm*den_ppcm/2 - Elem[0].weight ;  // car 2 obligatoire
     is =0 ; nod[is].sum = den_ppcm*den_ppcm/4 ;  // car 2 obligatoire
@@ -610,54 +612,42 @@ int PB152a_n(PB_RESULT *pbR,int max_n) {
       if(nod[is-1].sum == 0) {
          nbSol++ ;
       }
-      while (is > 0) { //try to advance by developing current node
-         if(nod[is-1].sum > 0) { // precedent node OK ?
+      while (is > 0) { //loop : try to advance by developing current node
+         if(nod[is-1].sum > 0 && nod[is].level < LG.nbLevel) { // precedent node OK ?
             int ie ;
             level_a *curLevel = LG.LS+nod[is].level ;
-            int isOk = 0 ;
-            int isEnd = (nod[is].level >= LG.nbLevel) ;
-            if(!isEnd) {
-               for(ie=nod[is].elem; ie<curLevel->nbElem ; ie++) {
-                  if( curLevel->Elem[ie].weight <= nod[is-1].sum ) {
-                     nod[is].elem = ie ;
-                     nod[is].sum = nod[is-1].sum-curLevel->Elem[ie].weight ;
-                     if(nod[is].level == nod[is-1].level) {
-                        nod[is].sumConstraint = nod[is-1].sumConstraint - curLevel->Elem[ie]. weightConstraint;
-                        if(nod[is].sumConstraint < 0) nod[is].sumConstraint += curLevel->constraint ;
-                     } else {
-                        nod[is].sumConstraint = nod[is].sum % curLevel->constraint  ;
-                     }
-                     isOk = 1 ;
-                     break ;
-                  }
-               }
-            }
-            if(isOk) {
-               if(ie < curLevel->nbElem || (nod[is].sumConstraint) == 0)  {
-                  is++ ;
-                  if(ie>= curLevel->nbElem ) {
-                     nod[is].elem = 0 ; nod[is].level=nod[is-1].level+1;   break ;
+            for(ie=nod[is].elem; ie<curLevel->nbElem ; ie++) { // search a valid element
+               if( curLevel->Elem[ie].weight <= nod[is-1].sum ) {
+                  nod[is].elem = ie ;
+                  nod[is].sum = nod[is-1].sum-curLevel->Elem[ie].weight ;
+                  if(nod[is].level == nod[is-1].level) {
+                     nod[is].sumConstraint = nod[is-1].sumConstraint - curLevel->Elem[ie]. weightConstraint;
+                     if(nod[is].sumConstraint < 0) nod[is].sumConstraint += curLevel->constraint ;
                   } else {
-                     nod[is].elem = nod[is-1].elem+1 ; nod[is].level=nod[is-1].level ;   break ;
+                     nod[is].sumConstraint = nod[is].sum % curLevel->constraint  ;
                   }
-               } else if(nod[is-1].sumConstraint == 0){
-                  nod[is].level++ ;
-                  nod[is].elem = 0 ;   break ;
+                  break ;
                }
-            } else if(!isEnd && nod[is-1].sumConstraint == 0 )  {
-               nod[is].level++ ;
-               nod[is].elem = 0 ;   break ;
             }
-         }
-         while(--is > 0) {
+            if(ie < curLevel->nbElem) { // found an admissible element
+               is++ ; nod[is].elem = nod[is-1].elem+1 ; nod[is].level=nod[is-1].level ;
+               break ; // continue on current level
+            } else if(nod[is-1].sumConstraint == 0){
+               nod[is].level++ ; // current level exhausted, try next level
+               nod[is].elem = 0 ;
+               break ; // continue on next level
+            }
+         } // end ob branch (last level, or sum< 0, must rewind
+         
+         while( --is > 0) { // rewind the tree
             if(nod[is].elem+1 <  LG.LS[nod[is].level].nbElem) {
                nod[is].elem++ ; break ;
             } else if ( nod[is-1].sumConstraint == 0) {
                nod[is].level++ ; nod[is].elem = 0 ;  break ;
             }
          }
-      }
-   }
+      } // end loop try to advance
+   } // end global loop
     pbR->nbClock = clock() - pbR->nbClock ;
     if(pbR->isVerbose) fprintf(stdout,"\t PB%s 1/2=sigma(1/n**2 <1<n<=%d has %d sol \n",pbR->ident,max_n,nbSol);
 
@@ -671,102 +661,73 @@ int PB152(PB_RESULT *pbR) {
    return PB152_n(pbR,PB152_ASK);
 }
 
+
+typedef struct Node152 {
+   indexType elem ;              // element in the level for the node
+   sumType sum ;                 // cumulated sum from the beginning
+} Node152 ;
+
+typedef struct Element152 {
+   int     val ;           // k
+   sumType weight ;        // contribution to 1/2 pondered by ppcm
+   sumType cumToEnd ;
+} Element152 ;
+
+
 int PB152_n(PB_RESULT *pbR,int max_n) {
-    int Primes[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97} ;
-    u_int64_t den_ppcm = 1  ;
     int nbSol = 0 ;
     pbR->nbClock = clock() ;
-    int i,ip,p ;
-    int64_t invSqare[100], sumInv[2048] ;
-    for(ip=0;(p=Primes[ip])<=max_n/2;ip++) {
-        int powp ;
-        for(powp=p;powp*p<=max_n/2;) {
-            powp = powp * p ;
-        }
-      int nbS0 = 0 ;
-      while(powp>1) {
-            int np = max_n/powp ;
-            int nbInv = 0 ;
-           int sqp = p*p ;
-            for(i=1;i<=np;i++) {
-                if((i % p) == 0) continue ;
-                int64_t i2 = (i*i) % sqp ;
-                int64_t inv_i2, ninv ; ;
-                for(inv_i2 = 1; (ninv = (inv_i2*i2) % sqp ) !=1;inv_i2=ninv) ;
-                invSqare[nbInv++] = inv_i2 ;
-            }
-            sumInv[0] = 0 ;
-              for(i=0;i<nbInv;i++) {
-                int j,jmax = 1 << i ; ;
-                for(j=0;j<jmax;j++) {
-                    sumInv[j+jmax] = (sumInv[j]+invSqare[i]) % sqp ;
-                    if(sumInv[j+jmax]==0){ nbS0++ ; break ; }
-                }
-                if(nbS0) break ;
-            }
-            if(nbS0) break ;
-            else powp /= p ;
-        }
-        if(nbS0) {
-            den_ppcm *= powp ;
-            printf("x%d",powp) ;
-        }
-    }
-    int64_t Num[PB152_MAXN] ;
-    int indNum[PB152_MAXN] ;
-    int64_t cumNum[PB152_MAXN] ;
-    int k ;
-    int nbNum = 0 ;
-//   Num[nbNum] = (den_ppcm / 2)*(den_ppcm / 2) ;
-//   indNum[nbNum++] = 2 ;
+   listPowp LP ; // list of power of p admissible
+   levelsGlobal LG ; // context for levels
+   ComputeListPowP(&LP, max_n) ; // compute powp
+   u_int64_t den_ppcm = LP.den_ppcm  ;
 
-   for(k=2;k<=max_n;k++) {
+   Node152 nod[PB152_MAXN] ;
+   Element152 Elem[PB152_MAXN] ;
+   int k ;
+   int nbElem = 0 ;
+   for(k=2;k<=max_n;k++) { // compute the weight for each k retained
         if((den_ppcm % k) == 0 ) {
-            Num[nbNum] = (den_ppcm / k)*(den_ppcm / k) ;
-            indNum[nbNum++] = k ;
+            Elem[nbElem].weight = (den_ppcm / k)*(den_ppcm / k) ;
+            Elem[nbElem++].val = k ;
         }
     }
-    int64_t cum = 0 ;
-    for(k=nbNum-1;k>=0;k--) {
-        cum += Num[k] ;
-        cumNum[k] = cum ;
+    sumType cum = 0 ;   // cumulative to the end, so we can filter the partail sums too low.
+    for(k=nbElem-1;k>=0;k--) {
+        cum += Elem[k].weight ;
+        Elem[k].cumToEnd = cum ;
     }
-    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbNum );
-    int64_t Sum[PB152_MAXN] ;
-    int Ind[PB152_MAXN] ;
+    printf("=%lld [%lld] nbNum=%d\n",den_ppcm,den_ppcm*den_ppcm/2,nbElem );
     int is ;
-    is =0 ; Sum[is] = den_ppcm*den_ppcm/2 - Num[0] ;  // car 2 obligatoire
-    Ind[is] = 0 ;
+    is =0 ;
+    nod[is].sum = den_ppcm*den_ppcm/2 - Elem[0].weight ;
+    nod[is].elem = 0 ;
     is++ ;
-    Sum[is] = Sum[is-1] - Num[1] ;
-    Ind[1] = 1  ;
-    while(is>=1) {
-        if (Sum[is] > 0) {
-            is++ ;
-            Ind[is] = Ind[is-1]+1 ;
-            Sum[is] = Sum[is-1] - Num[Ind[is]] ;
-        } else {
-            if(Sum[is] == 0) {
-//                int j ; for(j=0;j<=is;j++) printf("%d ",indNum[Ind[j]]);
-//                printf("\n") ;
-                nbSol++ ;
+    nod[is].sum = nod[is-1].sum - Elem[1].weight ;
+    nod[is].elem = 1 ;
+   while(is>=1) { // tree walk do develop the sums
+      if(nod[is].sum > 0) {
+         is++ ;
+         nod[is].elem = nod[is-1].elem + 1;
+         nod[is].sum = nod[is-1].sum - Elem[nod[is].elem].weight ;
+      } else {
+         if(nod[is].sum == 0) {
+            nbSol++ ;
+         }
+         while (is > 0) {
+            nod[is].sum += Elem[nod[is].elem].weight ;
+            int ie ;
+            for(ie=nod[is].elem+1;Elem[ie].cumToEnd >= nod[is].sum &&  ie<nbElem ;ie++) {
+               if( Elem[ie].weight <= nod[is].sum) break ;
             }
-            while (is > 0) {
-                Sum[is] += Num[Ind[is]] ;
-                int i ;
-                for(i=Ind[is]+1;cumNum[i]>= Sum[is] &&  i<nbNum;i++) {
-                    if( Num[i] <= Sum[is]) break ;
-                }
-                if(i<nbNum && cumNum[i]>= Sum[is] ) {
-                    Ind[is] = i ;
-                    Sum[is] -= Num[i] ;
-                    break ;
-                } else {
-                    is-- ;
-                }
+            if(ie<nbElem && Elem[ie].cumToEnd>= nod[is].sum ) {
+               nod[is].elem = ie ; nod[is].sum -= Elem[ie].weight ;
+               break ;
             }
-        }
-    }
+            is-- ;
+         }
+      }
+   }
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
