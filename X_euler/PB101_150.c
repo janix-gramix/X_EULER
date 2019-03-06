@@ -2799,35 +2799,56 @@ int PB140(PB_RESULT *pbR) {
 }
 
 
-#define PB141_MAX    1000000000000
+//#define PB141_MAX    1000000000000LL
+#define PB141_MAX      1000000000000000LL
+//#define PB141_MAX    100000
+
+
+
 int PB141(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int64_t a,r2,b1,r,d,q,n,b2 ;
+    int64_t a,a_3,r2,b1,r,d,q,n,b2 ;
     int64_t Sum = 0 ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    for(r2=1;27*r2*r2 < PB141_MAX;r2++) {
-        int64_t r2_2 = r2*r2 ;
-        int64_t aMax = PB141_MAX / r2_2 +1 ;
-        for(a=2;a*a<=aMax;a++) {
-            int64_t ar =a*a*a * r2_2 ;
-            for(b1=1;b1<a;b1++) {
-                if(b1*b1*ar > PB141_MAX ) break ;
-                for(b2=1;b1*b2*b2<a;b2++) {
-                    int64_t b2_2 =b2*b2 ;
-                    if(b2_2 * b1*b1*ar > PB141_MAX/r2_2) break ;
-                    int64_t br = b1 * (b2_2+ar) ;
-                    if(br > PB141_MAX) break ;
-                    int64_t m = Sqrt64(br);
-                    if(m*m != br) continue ;
-                    n  = r2_2*b2_2*b1*b1 *br ;
-                    if(n > PB141_MAX ) break ;
-                    Sum += n ;
-                    printf("%lld  ",n);
+    int64_t val[50] ;
+    int nbVal = 0 ;
+    for(a=2;(a_3=a*a*a) <=PB141_MAX ;a++) {
+        int64_t r2_2,r2_4,r2max ;
+        r2max = PB141_MAX / a_3 ;
+        for(r2=1; r2_2= r2*r2, r2_4=r2_2*r2_2, r2_4<= r2max;r2++) {
+            int64_t ar =a_3 * r2_2 ;
+            int64_t b2_2 ,b2max = r2max / r2_4 ;
+            if(a < b2max) b2max= a ;
+            for(b2=1;b2_2=b2*b2,b2_2 <= b2max ;b2++) {
+                if(PGCD64(b2,r2) != 1) continue ;
+                int64_t ar1 = ar + b2_2 ;
+                for(b1=1;b1*b2_2<a;b1++) {
+                    int64_t ar2 = ar1 * b1;
+                    if(ar2 > PB141_MAX ) break ;
+  
+                    n=r2_2*b2_2*b1*b1 *ar2 ;
+//                    if(b1*b1*b2_2*r2_2 > PB141_MAX /ar2 ) break ;
+                    if(n > PB141_MAX  ) break ;
+                    int64_t m = Sqrt64(ar2);
+                    if(m*m != ar2) continue ;
+                    int i ;
+                    for(i=0;i<nbVal;i++) {
+                        if(n == val[i]) break ;
+                    }
+                    if(i == nbVal) {
+                        val[nbVal++] = n ;
+                        Sum += n ;
+                        r=r2_2*b2_2*b2_2*b1*b1*b1 ;
+                        int64_t b = b1 * b2_2 ;
+                        d= (r/b)*a ;
+                        q= (d/b)*a ;
+                        printf("%lld m=%lld a=%lld r2=%lld b1=%lld b2=%lld b=%lld r=%lld d=%lld q=%lld verif=%lld ar2=%lld\n",n,m,a,r2,b1,b2,b1*b2_2,r,d,q,d*q+r,ar2);
+                    }
                }
                 
             }
          }
     }
+    pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum) ;
     return 1 ;
 }
