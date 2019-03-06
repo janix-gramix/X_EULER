@@ -2799,6 +2799,39 @@ int PB140(PB_RESULT *pbR) {
 }
 
 
+#define PB141_MAX    1000000000000
+int PB141(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t a,r2,b1,r,d,q,n,b2 ;
+    int64_t Sum = 0 ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    for(r2=1;27*r2*r2 < PB141_MAX;r2++) {
+        int64_t r2_2 = r2*r2 ;
+        int64_t aMax = PB141_MAX / r2_2 +1 ;
+        for(a=2;a*a<=aMax;a++) {
+            int64_t ar =a*a*a * r2_2 ;
+            for(b1=1;b1<a;b1++) {
+                if(b1*b1*ar > PB141_MAX ) break ;
+                for(b2=1;b1*b2*b2<a;b2++) {
+                    int64_t b2_2 =b2*b2 ;
+                    if(b2_2 * b1*b1*ar > PB141_MAX/r2_2) break ;
+                    int64_t br = b1 * (b2_2+ar) ;
+                    if(br > PB141_MAX) break ;
+                    int64_t m = Sqrt64(br);
+                    if(m*m != br) continue ;
+                    n  = r2_2*b2_2*b1*b1 *br ;
+                    if(n > PB141_MAX ) break ;
+                    Sum += n ;
+                    printf("%lld  ",n);
+               }
+                
+            }
+         }
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum) ;
+    return 1 ;
+}
+
 
 #define PB143_MAX   120000
 // brute force
