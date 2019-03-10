@@ -2800,17 +2800,26 @@ int PB140(PB_RESULT *pbR) {
 
 
 //#define PB141_MAX    1000000000000LL
-#define PB141_MAX      1000000000000000LL
+#define PB141_MAX      100000000000000000LL
 //#define PB141_MAX    100000
 #define PB141_SQFREE    1000
 
-int PB141b(PB_RESULT *pbR) {
-    int64_t Sum = 0 ;
-    int64_t k,a,b,n ;
-    static int squareFree[1000] ;
-   pbR->nbClock = clock() ;
-    int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,0} ;
+int IsSquare(int64_t n) {
+    static u_int8_t isSq[256] ;
+    if(n < 0) {
+        int i ; for(i=0;i<256;i++) isSq[i]=0 ;
+        for(i=0;i<256;i++)isSq[0xff & (i*i)] = 1 ;
+        return 0 ;
+    }    else if(isSq[n & 0xff] == 0) {
+        return 0 ;
+    }
+    int64_t m = Sqrt64(n) ;
+    return n==m*m ;
+}
+int GetSquareFree(int * squareFree, int nbMax) {
     int i,j,p;
+    int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,0} ;
+    IsSquare(-1) ;
     for(i=0;i<PB141_SQFREE;i++) squareFree[i]= i ;
     for(i=0;p=prime[i],p*p < PB141_SQFREE;i++) {
         int np2,p2=p*p ;
@@ -2819,154 +2828,106 @@ int PB141b(PB_RESULT *pbR) {
     for(i=1,j=0;i<PB141_SQFREE;i++) {
         if(squareFree[i]) squareFree[j++] = squareFree[i] ;
     }
-    squareFree[j] = 0 ;
-
-    
- //   for (k = 1; k*k*8 + k < PB141_MAX; k++){   // k limited by maximum n with minimum y < limit
- //       for (a = 2; k*k*a*a*a + k  < PB141_MAX; a++){           // x limited by maximum n with minimum k,y < limit
+    squareFree[j++] = 0 ;
+    return j ;
+}
+int PB141a(PB_RESULT *pbR) {
+    int64_t Sum = 0 ;
+    int32_t k,a,b,m ;
+    int64_t n ;
+    static int squareFree[PB141_SQFREE] ;
+    pbR->nbClock = clock() ;
+    GetSquareFree(squareFree,PB141_SQFREE);
     int32_t na=0 , nk=0,nb=0 ;
-    for (a = 2; a*a*a + 1 < PB141_MAX; a++){           // x limited by maximum n with minimum k,y < limit
- // ****************** k= 1
+    int64_t a3;
+    for (a = 2;a3 = (int64_t)a*a*a, a3 < PB141_MAX; a++){
+ 
+ // ** k==1 bf=1 (b square)
         na++ ;
-        int64_t a3 = a*a*a ;
-        int64_t m ;
+        double sq_a =a*sqrt(a);
         n = a3+1 ;
-        {
-            m = Sqrt64(n) ;
-            if(n==m*m) {
-                Sum += n;
-            }
+        m = (int32_t)sq_a+1 ;
+        if(n==m*(int64_t)m) {
+            Sum += n;
+            printf("#%lld=%d/%dx%d#\n",n,a,1,1);
         }
-        int64_t b1 ;
-        // b est un carre
-        for (b = 2;b1=b*b, b1 < a; b++){
-            //               n = k*a*a * k*a*b + k*b*b;
+        int32_t bs ;
+        // if k==1 => b square
+        for (bs = 2;b=bs*bs, b < a; bs++){
+            // n = k*a*a*k*a*b+k*b*b;
             nb++ ;
-            n = a3*b1 + b1*b1 ;
+            n = a3*b + b*b ;
             if(n >= PB141_MAX)break;
-            if ((a & 1) == 0 && (b1 & 1) == 0)  continue ;
-            m = Sqrt64(n) ;
-            if(n==m*m ) {
-                if (PGCD64(a, b1) > 1)continue;
+            if ((a & 1) == 0 && (bs & 1) == 0)  continue ;
+            m = (int32_t)(bs*sq_a)+1 ;
+            if(n==m*(int64_t)m) {
+                if (PGCD(a, b) > 1)continue;
+                printf("<%lld=%d/%dx%d>\n",n,a,b,1);
                 Sum += n;
             }
         }
-        
- // ************* k>1
-        int64_t k2 ;
-        for (k = 2;k2=k*k, k2*a3 + k < PB141_MAX; k++){   // k limited by maximum n with minimum y < limit
+// end k==1
+// k>1 && bf=1
+       int64_t k2 ;
+       for (k = 2;k2=k*(int64_t)k, (n=k2*a3 + k) < PB141_MAX; k++){
             nk++ ;
-            int64_t m ;
-            n = k2*a3 + k ;
-            {
-                m = Sqrt64(n) ;
-                if(n==m*m) {
+           double sq_ka = k*sq_a;
+           m = (int32_t)(sq_ka)+1 ;
+           if(n==m*(int64_t)m) {
+                printf("{%lld=%d/%dx%d}\n",n,a,1,k);
+                Sum += n;
+            }
+            int32_t bs ;
+            // b est un carre
+           for (bs = 2;b=bs*bs, b < a ; bs++){
+               n = k2*a3*b+k*(int64_t)b*b ;
+               if(n >= PB141_MAX)break;
+               if ((a & 1) == 0 && (bs & 1) == 0)  continue ;
+               nb++ ;
+               m = (int32_t)(bs*sq_ka)+1 ;
+               if(n==m*(int64_t)m) {
+                    if (PGCD(a, b) > 1)continue;
+                    printf("(%lld=%d/%dx%d)\n",n,a,b,k);
                     Sum += n;
                 }
             }
-           for (b = 2; b < a; b++){
-               nb++ ;
-               n = k2*a3*b+k*b*b ;
-                if(n >= PB141_MAX)break;
-                if ((a & 1) == 0 && (b & 1) == 0)  continue ;
-                m = Sqrt64(n) ;
-                if(n==m*m ) {
-                        if (PGCD64(a, b) > 1)continue;
-                        Sum += n;
-                }
-            }
         }
-    }
-    printf("na=%d,nk=%d,nb=%d\n",na,nk,nb);
-    pbR->nbClock = clock() - pbR->nbClock ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum) ;
-    return 1 ;
-}
-
-
-int PB141a(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    static int squareFree[1000] ;
-    int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,0} ;
-    int i,j,p;
-    for(i=0;i<PB141_SQFREE;i++) squareFree[i]= i ;
-    for(i=0;p=prime[i],p*p < PB141_SQFREE;i++) {
-        int np2,p2=p*p ;
-        for(np2=p2;np2<PB141_SQFREE;np2 += p2) squareFree[np2]=0 ;
-    }
-    for(i=1,j=0;i<PB141_SQFREE;i++) {
-        if(squareFree[i]) squareFree[j++] = squareFree[i] ;
-    }
-    squareFree[j] = 0 ;
- //   for(i=0;i<=j;i++) printf("%d ",squareFree[i]);
-    int64_t a,a_3,r2,b1,r,d,q,n1,n,b2 ;
-    int64_t Sum = 0 ;
-    int64_t val[500] ;
-    int nbVal = 0 ;
-    for(a=2;(a_3=a*a*a) <=PB141_MAX ;a++) {
-        int64_t r2_2,r2_4,r2max ;
-        r2max = PB141_MAX / a_3 ;
-        for(r2=1; r2_2= r2*r2, r2_4=r2_2*r2_2, r2_4<= r2max;r2++) {
-            int64_t ar =a_3 * r2_2 ;
-            int64_t b2_2 ,b2max = r2max / r2_4 ;
-            if(a < b2max) b2max= a ;
-            for(b2=1;b2_2=b2*b2,b2_2 <= b2max ;b2++) {
-                if(PGCD64(b2,r2*a) != 1) continue ;
-                int64_t ar1 = ar + b2_2 ;
-                int64_t b1_2 ;
-                for(b1=1;b1_2=b1*b1,b1_2*b2_2<a;b1++) {
-                    int64_t brs,brs_2 ;
-                    int64_t b1_4=b1_2*b1_2;
-                    int64_t n1_2 =r2_2*b2_2*b1_4*b1_2 ;
-                    int *ptbrs ;
-                    n1=n1_2*ar1;
-                    if(n1 > PB141_MAX  ) break ;
-                    int64_t bs ;
-                    int *ptbs ;
-                     int64_t maxBs = PB141_MAX / n1 ;
-                    for(ptbs=squareFree; bs= *ptbs ,bs && bs*b1_2*b2_2 < a && bs<=maxBs ; ptbs++) {
-                        int64_t ar2 = ar+b2_2*bs ;
-                        int64_t n2 = n1_2*ar2;
-                        if(n2 > PB141_MAX  ) break ;
-                        int64_t rs ;
-                        int *ptrs ;
-                        for(ptrs=squareFree; rs= *ptrs ,rs && rs*n2 <= PB141_MAX; ptrs++) {
-   //                         if(PGCD64(bs,rs) != 1) continue ;
-                            int64_t ar3 = (ar * rs + b2_2 * bs) * bs *rs ;
-                            int64_t n3 = ar3*n1_2;
-                            if(n3 > PB141_MAX  ) break ;
-       //                      int64_t maxBrs = PB141_MAX / n3 ;
-       //                     for(ptbrs=squareFree; brs= *ptbrs ,brs_2 = brs*brs, brs && brs*b1_2*b2_2*bs < a && brs_2*brs<=maxBrs ; ptbrs++) {
-                               for(ptbrs=squareFree; brs= *ptbrs ,brs_2 = brs*brs, brs && brs*b1_2*b2_2*bs < a && (n = brs_2*brs*n3) <= PB141_MAX ; ptbrs++) {
-                                //                    if(b1*b1*b2_2*r2_2 > PB141_MAX /ar2 ) break ;
-                                int i ;
-                                int64_t ar4 = ar3 * brs ;
-
-  //                              n =n3 *brs_2*brs ;
-                                int64_t m = Sqrt64(ar4);
-                                if(m*m != ar4) continue ;
-                                for(i=0;i<nbVal;i++) {
-                                    if(n == val[i]) break ;
-                                }
-                                if(i == nbVal) {
-                                    val[nbVal++] = n ;
-                                    Sum += n ;
-         //                           r=r2_2*b2_2*b2_2*b1*b1*b1*brs*brs*brs ;
-                                    int64_t b = b1_2*b2_2*bs*brs ;
-                                    int64_t r1 = b1_2*r2_2*brs*rs ;
-                                    r = b*b*r1 ;
-                                      d= (r/b)*a ;
-                                    q= (d/b)*a ;
-                                    printf("%lld m=%lld a=%lld r2=%lld b1=%lld b2=%lld bs=%lld rs=%lld brs=%lld b=%lld r=%lld d=%lld q=%lld verif=%lld ar2=%lld\n",n,m,a,r2,b1,b2,bs,rs,brs,b,r,d,q,d*q+r,ar4);
-                                } else { printf("+");}
-                            }
-   //                         if(brs==0) printf("***[%lld,%lld,a=%lld]***",maxBrs,n1,a);
-                        }
+// end k>1 && bf=1 b= bs*bs
+// bf > 1 (bs=1)
+        int64_t bf2 ;
+        int32_t bf ;
+        int32_t jf ;
+      for(jf=1;bf=squareFree[jf],bf2=bf*bf,bf && bf<a && bf2*a3+bf2< PB141_MAX;jf++) {
+          if(PGCD(a,bf) != 1) continue ;
+          int32_t kq ;
+          int64_t k2 ;
+          double sq_abf =a*sqrt(a*bf);
+            for (kq = 1;k=bf*kq ,k2=k*(int64_t)k, k2*a3 + k < PB141_MAX; kq++){   //
+                nk++ ;
+                double sq_kabf = k * sq_abf ;
+                n = k2*a3*bf+k*bf2 ;
+                if(n >= PB141_MAX)break;
+                m = (int32_t)(sq_kabf) + 1;
+                if(n == m*(int64_t)m) {
+                    printf("+%lld=%d/%dx%d+\n",n,a,bf,k);
+                    Sum += n;
+                }
+                for (bs = 2;b=bs*bs*bf, b < a; bs++){
+                   nb++ ;
+                   n = k2*a3*b+k*(int64_t)b*b ;
+                    if(n >= PB141_MAX)break;
+                   if ((a & 1) == 0 && (bs & 1) == 0)  continue ;
+                    m = (int32_t) (bs*sq_kabf) + 1 ;
+                    if(n==m*(int64_t) m) {
+                            if (PGCD(a, b) > 1)continue;
+                        printf("[%lld=%d/%dx%d]\n",n,a,b,k);
+                            Sum += n;
                     }
                 }
             }
         }
     }
+    printf("na=%d,nk=%d,nb=%d\n",na,nk,nb);
     pbR->nbClock = clock() - pbR->nbClock ;
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum) ;
     return 1 ;
