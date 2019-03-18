@@ -2954,7 +2954,6 @@ int PB141b(PB_RESULT *pbR) {
     uint64_t SumCarry = 0 ;
     uint64_t SumAsk = 0 ;
     qsort(sol,nbSol,sizeof(sol[0]),CmpSol) ;
-
     for(i=0;i<nbSol;i++) {
         uint64_t soli = sol[i].n ;
         Sum += soli ;
@@ -3017,6 +3016,46 @@ void NextFract(FractCont64 * F, int a) {
     F->D1 = a * F->D0 + tmp ;
 }
 */
+typedef struct CFSQ {
+    uint64_t N ; // number to compute sqrt(N)
+    uint32_t nb ;   // number of calculated coefs
+    uint32_t k0 ;   // integer part
+    uint64_t  d ;   // divisor for recursion
+    uint64_t  n ;   // remainder for recursion
+    uint32_t  a ;   // last coefficient for continued fraction developpment
+    FractCont64 FC ;    // current state of continued fraction (last= FC.N1/FC.D1)
+} CFSQ ;
+
+int CFSQ_init(CFSQ * cfsq, uint64_t N) {
+    cfsq->N = N ;
+    cfsq->FC = (FractCont64){0,1,1,0} ;
+    cfsq->k0 = (uint32_t)Sqrt64(N);
+    cfsq->a = cfsq->n = cfsq->k0 ;
+    cfsq->nb = 1 ;
+    cfsq->d= 1 ;
+    uint64_t tmp = cfsq->FC.N0 ;
+    cfsq->FC.N0 = cfsq->FC.N1 ;
+    cfsq->FC.N1 = cfsq->a * cfsq->FC.N0 + tmp ;
+    tmp = cfsq->FC.D0 ;
+    cfsq->FC.D0 = cfsq->FC.D1 ;
+    cfsq->FC.D1 = cfsq->a * cfsq->FC.D0 + tmp ;
+    if(N == cfsq->k0 * (uint64_t)cfsq->k0) cfsq->d=0;
+    return cfsq->nb ;
+}
+int CFSQ_next(CFSQ * cfsq) {
+    if(cfsq->d==0) return 0 ;
+    cfsq->d = (cfsq->N - cfsq->n *(uint64_t) cfsq->n) / cfsq->d ;
+    cfsq->n = cfsq->k0 - ( (cfsq->k0 + cfsq->n) % cfsq->d ) ;
+    cfsq->a = (cfsq->k0+cfsq->n)/cfsq->d ;
+    uint64_t tmp = cfsq->FC.N0 ;
+    cfsq->FC.N0 = cfsq->FC.N1 ;
+    cfsq->FC.N1 = cfsq->a * cfsq->FC.N0 + tmp ;
+    tmp = cfsq->FC.D0 ;
+    cfsq->FC.D0 = cfsq->FC.D1 ;
+    cfsq->FC.D1 = cfsq->a * cfsq->FC.D0 + tmp ;
+    return ++cfsq->nb ;
+}
+
 
 int  ContinuedFractionSqrt(int32_t * num,int32_t *den,int64_t N, int64_t maxD){
     uint64_t d,i,k0 ;
@@ -3042,10 +3081,10 @@ int  ContinuedFractionSqrt(int32_t * num,int32_t *den,int64_t N, int64_t maxD){
 }
 
 int PB141c(PB_RESULT *pbR) {
-    uint64_t Sum = 0 ;
-    int32_t k,a,b,m ;
+    int32_t k,a,b ;
     uint64_t n ;
-    int32_t den[30] , num[30] ;
+    SOL141  sol[200] ;
+    int nbSol = 0 ;
     static int squareFree[PB141_SQFREE] ;
     int SF[PB141_SQFREE*50] ;
     int SQ[PB141_SQFREE*50] ;
@@ -3067,62 +3106,77 @@ int PB141c(PB_RESULT *pbR) {
         int ib ;
         int32_t b0 ;
         for(ib=0;b0=squareFree[ib],b0<a && b0*b0*b0 * (a3+1) < PB141_MAX;ib++) {
- //       for(b=1;b<a && b*b*b * (a3+1) < PB141_MAX;b++) {
             if(PGCD(a,b0) != 1) continue ;
             uint64_t maxD = PB141_MAX / (a3 * b0 * b0 * b0  ) ;
             // continued fraction for sqrt(a*b)
-            int32_t nbDig = ContinuedFractionSqrt(num,den,a3*b0,maxD) ;
-            if(nbDig==1) continue ;
+            CFSQ cfsq ;
+            CFSQ_init(&cfsq,a3*b0) ;
             int i;
-            for(i=1;i<nbDig;i+=2) {
-//                 if(i&1)
-                 {
-                    uint32_t k0 =den[i]*(int64_t)den[i]  ;
-                    if( k0 * (int64_t)k0 >  maxD) break ;
-                    int32_t delta = (int32_t) ( num[i]*(int64_t)num[i] - a3 * b0 * k0 ) ;
-                     int32_t bbs = PGCD(b0,delta)  ;
-                     if(b0*delta / bbs >= a) continue ;
- //                   if(a3*k0*k0*delta*delta >PB141_MAX) continue ;
-                     if(delta > maxDelta) maxDelta = delta ;
-                     if(delta > 40000)
-                         continue ;
-//                     if(PGCD(a,delta) != 1) continue ;
-                    int32_t bs= SQ[delta] ;
-                    int32_t bf = SF[delta] ;
-       //             int32_t bbs = PGCD(b0,bs*bf)  ;
-                    b = (b0/bbs) * (delta/bbs) * bf  ;
-                    if(b >= a) continue ;
-                    
-                    k = k0 * b0 * b0 * bf / (bbs*bbs);
-                     if(((double)k)*b*(k*a3+b)> PB141_MAX ) break ;
-                    n = k*b *(k*a3+b) ;
- //                   if( n > PB141_MAX ) break ;
-                    if(PGCD(a,b) ==1) {
-                        printf("(%d/%d)x%d  %llu; %d FD=%d,delta=%d bs=%d bf=%d  k0=%d\n",a,b,k,n,b0,den[i],delta,bs,bf,k0) ;
-                        Sum += n ;
-                        while (Sum >= 10000000000000000000ULL) {
-                             Sum -=10000000000000000000ULL ;
-                        }
-                        int ks,ks2 ;
-                        int64_t ksMax = PB141_MAX / n ;
-                        for(ks=2;ks2=ks*ks, b*ks2< a && ks2*ks2*ks2 <= ksMax ;ks++) {
-                            if(PGCD(ks,a) != 1) continue ;
-                            Sum += ks2*ks2*ks2 *n ;
-                            while (Sum >= 1000000000000000000ULL) {
-                                Sum -=1000000000000000000ULL ;
-                            }
-                            printf("(%d/%d)x%d  %llu\n",a,b*ks2,k*ks2,n*ks2*ks2*ks2) ;
-                        }
+            if(CFSQ_next(&cfsq)==0)
+                continue ;
+            while(1) {
+                uint64_t k0 =cfsq.FC.D1*(int64_t)cfsq.FC.D1  ;
+                if( k0 * k0 >  maxD) break ;
+                 int32_t delta = (int32_t) ( cfsq.FC.N1*(int64_t)cfsq.FC.N1 - a3 * b0 * k0 ) ;
+                 int32_t bbs = PGCD(b0,delta)  ;
+                 if(b0*delta / bbs >= a) goto NEXTFC ;
+                 if(delta > maxDelta) maxDelta = delta ;
+                 if(delta > 40000)
+                    goto NEXTFC;
+                int32_t bs= SQ[delta] ;
+                int32_t bf = SF[delta] ;
+                b = (b0/bbs) * (delta/bbs) * bf  ;
+                if(b >= a) goto NEXTFC ;
+                
+                k = k0 * b0 * b0 * bf / (bbs*bbs);
+                 if(((double)k)*b*(k*a3+b)> PB141_MAX ) break ;
+                n = k*b *(k*a3+b) ;
+                if(PGCD(a,b) ==1) {
+ //                   printf("(%d/%d)x%d  %llu; %d FD=%lld,delta=%d bs=%d bf=%d  k0=%d\n",a,b,k,n,b0,cfsq.FC.D1,delta,bs,bf,k0) ;
+                    nbSol=AddSol141(nbSol,sol,n,a,b,k);
+                    int ks,ks2 ;
+                    int64_t ksMax = PB141_MAX / n ;
+                    for(ks=2;ks2=ks*ks, b*ks2< a && ks2*ks2*ks2 <= ksMax ;ks++) {
+                        if(PGCD(ks,a) != 1) continue ;
+                        nbSol=AddSol141(nbSol,sol,ks2*ks2*ks2*n,a,ks2*b,ks2*k);
                     }
                 }
-                
+            NEXTFC:
+                if(CFSQ_next(&cfsq)==0) break ;
+                k0 =cfsq.FC.D1*(int64_t)cfsq.FC.D1  ;
+                if( k0 * k0 >  maxD) break ;
+                if(CFSQ_next(&cfsq)==0) break ;
+            
             }
         }
         
     }
+    
+    
     printf("MaxDelta=%d\n",maxDelta) ;
+    uint64_t Sum = 0 ;
+    uint64_t SumCarry = 0 ;
+    uint64_t SumAsk = 0 ;
+    qsort(sol,nbSol,sizeof(sol[0]),CmpSol) ;
+    for(i=0;i<nbSol;i++) {
+        uint64_t soli = sol[i].n ;
+        Sum += soli ;
+        while (Sum >= 1000000000000000000ULL) {
+            Sum -=1000000000000000000ULL ;
+            SumCarry++ ;
+        }
+        if(sol[i].n <= PB141_MAX_ASK ) SumAsk += sol[i].n ;
+        if(pbR->isVerbose) fprintf(stdout,"\t PB%s (%d/%d)x%d\t\t%llu\n",pbR->ident,sol[i].a,sol[i].b,sol[i].k,sol[i].n) ;
+    }
+    if(SumCarry){
+        if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum(n)=%lld%0.18llu ; n<%llu\n",pbR->ident,SumCarry,Sum,PB141_MAX);
+    } else {
+        if(pbR->isVerbose) fprintf(stdout,"\t PB%s Sum(n)=%llu ; n<%llu\n",pbR->ident,Sum,PB141_MAX);
+    }
+    
     pbR->nbClock = clock() - pbR->nbClock ;
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum) ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",SumAsk) ;
+
     return 1 ;
 }
 
