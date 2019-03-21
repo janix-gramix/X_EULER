@@ -2810,10 +2810,10 @@ typedef  uint64_t bigInt141 ;
 
 
 #define PB141_MAX_ASK   1000000000000LL
-#define EXP_PB141_MAX   20
+#define EXP_PB141_MAX   24
 #define PB141_MAX       (((bigInt141)PB141_MAX_ASK)*1ULL)
 
-#define PB141_SQFREE    5000
+#define PB141_SQFREE    7000
 
 // couple d=divisor of sf (square free number)
 // coef = d * (sf/d)**2 so coef has the same divisors as sf
@@ -2918,7 +2918,7 @@ int IsSquare(int64_t n) {
 
 int GetSquareFree(int * squareFree, int nbMax) {
     int i,j,p;
-    int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59, 61, 67, 71, 73, 79, 83, 89, 97,101,0} ;
+    int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59, 61, 67, 71, 73, 79, 83, 89, 97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,0} ;
     IsSquare(-1) ;
     for(i=0;i<=nbMax;i++) squareFree[i]= i ;
     for(i=0;p=prime[i],p*p <= nbMax;i++) {
@@ -2960,7 +2960,7 @@ typedef struct CFSQ {
 int CFSQ_init(CFSQ * cfsq, uint64_t N) {
     cfsq->N = N ;
     cfsq->FC = (FractCont141){0,1,1,0} ;
-    cfsq->k0 = Sqrt64(N);
+    cfsq->k0 = (uint64_t)sqrt(N);
     cfsq->a = cfsq->n = cfsq->k0 ;
     cfsq->nb = 1 ;
     cfsq->d= 1 ;
@@ -3037,6 +3037,7 @@ uint32_t SQF_getSF(GETSQF * gsqf,uint32_t val) {
 }
 int AddSol141c(int nbSol,SOL141c *sols,bigInt141 n, int32_t a, int32_t b, int64_t k) {
     sols[nbSol].n = n ; sols[nbSol].a = a ; sols[nbSol].b = b ; sols[nbSol].k = k ;
+    printf("%d/%dx%lld\t%llu \n",a,b,k,(int64_t)n);
     return ++nbSol ;
 }
 // goodies to sort solutions
@@ -3068,8 +3069,25 @@ void print_bigInt141(bigInt141 val,char str[42]) {
     }
     return ;
 }
+int computePgcd(int32_t * pgcd, int32_t bsq) {
+    int i,p ;
+    static int prime[] = { 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59, 61, 67, 71, 73, 79, 83, 89, 97,101
+        ,103,107,109,113,127,131,137,139,149,151,157,163,167,173,0} ;
+    pgcd[0]= bsq;
+    int b1 = bsq ;
+    for(i=1;i<bsq;i++) pgcd[i]=1 ;
+    for(i=0;p=prime[i], b1 > 1 && p ;i++) {
+        if( p*p > bsq)  p = b1 ;
+        else if(b1 % p) continue ;
+        int pt ;
+        for(pt=p;pt<bsq;pt+=p) {
+                pgcd[pt] *= p;
+        }
+        b1 /= p ;
+    }
+    return p ;
+}
 
-#define PB141_MAXSQF  64000000
 #define PB141_PIVOT 2000
 int PB141c(PB_RESULT *pbR) {
     uint32_t a,b ;
@@ -3077,18 +3095,27 @@ int PB141c(PB_RESULT *pbR) {
     bigInt141 n ;
     bigInt141 pb141_max = 1;
     {  int i;  for(i=0;i<EXP_PB141_MAX;i++) pb141_max *= 10 ; }
-    SOL141c  sol[200] ;
+    int32_t maxB0 = (int) pow(pb141_max,1/6.0) + 1 ;
+    SOL141c  sol[300] ;
     int nbSol = 0 ;
-    static int squareFree[PB141_SQFREE] ;
+    int *squareFree = malloc((maxB0+1) * sizeof(squareFree[0])) ;
+    int32_t *pgcdB = malloc((maxB0+1) * sizeof(pgcdB[0])) ;
     pbR->nbClock = clock() ;
-    GetSquareFree(squareFree,PB141_SQFREE);
-    GETSQF *gsqf=SQF_Init(PB141_MAXSQF,PB141_PIVOT) ;
+    GetSquareFree(squareFree,maxB0+1);
+    int64_t maxSqf = maxB0 * maxB0 ;
+    GETSQF *gsqf=SQF_Init(maxSqf,PB141_PIVOT) ;
     bigInt141 a3;
-    for (a = 2;a3 = (bigInt141)a*a*a, a3 < pb141_max; a++){
-       int ib ;
-        int32_t b0 ;
-        for(ib=0;b0=squareFree[ib],b0<a && b0*b0*b0 * (a3+1) < pb141_max;ib++) {
-            if(PGCD(a,b0) != 1) continue ;
+    int ib ;
+    int32_t b0 ;
+    for(ib=0;b0=squareFree[ib],b0<=maxB0;ib++) {
+        computePgcd(pgcdB, b0) ;
+        int aModb0 = 0 ;
+        for (a = b0+1;a3 = (bigInt141)a*a*a, a3 * b0*b0*b0 < pb141_max; a++){
+            if(++aModb0 == b0) {
+                aModb0=0 ;
+            }
+            if(pgcdB[aModb0] != 1) continue ;
+  //          if(PGCD(a,b0) != 1) continue ;
             bigInt141 maxD = pb141_max / (a3 * b0 * b0 * b0  ) ;
             // continued fraction for sqrt(a3*b)
             CFSQ cfsq ;
@@ -3102,7 +3129,8 @@ int PB141c(PB_RESULT *pbR) {
                 uint32_t delta = (uint32_t)( cfsq.FC.N1*cfsq.FC.N1 - a3 * b0 * k0 ) ;
 //                printf("[%lld,%d,%d]",cfsq.a,delta
 //                       ,(int)(cfsq.FC.N1*cfsq.FC.N0 - a3*b0*cfsq.FC.D1*cfsq.FC.D0) );
-                uint32_t bbs = PGCD(b0,delta)  ;
+  //              uint32_t bbs = PGCD(b0,delta)  ;
+                uint32_t bbs = pgcdB[delta % b0] ;
                 if(b0*(int64_t)delta >= a*bbs) goto NEXTFC ;
                  int32_t bf = SQF_getSF(gsqf,delta) ;
                 if(bf==0){
@@ -3118,7 +3146,7 @@ int PB141c(PB_RESULT *pbR) {
                 if(PGCD(a,b) ==1) {
                     nbSol=AddSol141c(nbSol,sol,n,a,b,k);
                     int ks,ks2 ;
-                    int64_t ksMax = pb141_max / n ;
+                    bigInt141 ksMax = pb141_max / n ;
                     for(ks=2;ks2=ks*ks, b*ks2< a && ks2*ks2*ks2 <= ksMax ;ks++) {
                         if(PGCD(ks,a) != 1) continue ;
                         nbSol=AddSol141c(nbSol,sol,ks2*ks2*ks2*n,a,ks2*b,ks2*k);
@@ -3137,6 +3165,7 @@ int PB141c(PB_RESULT *pbR) {
         }
         
     }
+    printf("B0=%d\n",b0) ;
     bigInt141 Sum = 0 ;
     uint64_t SumAsk = 0 ;
     qsort(sol,nbSol,sizeof(sol[0]),CmpSolc) ;
