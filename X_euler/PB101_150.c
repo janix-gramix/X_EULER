@@ -2810,7 +2810,7 @@ typedef  uint64_t bigInt141 ;
 
 
 #define PB141_MAX_ASK   1000000000000LL
-#define EXP_PB141_MAX   18
+#define EXP_PB141_MAX   24
 
 
 
@@ -2825,7 +2825,11 @@ int IsSquare(int64_t n) {
         return 0 ;
     }
     int64_t m = Sqrt64(n) ;
-    return n==m*m ;
+    if( n==m*m ) {
+        return (int) m ;
+    } else {
+        return 0 ;
+    }
 }
 
 
@@ -2865,7 +2869,8 @@ typedef struct CFSQ {
 
 uint64_t nbinit = 0 ;
 uint64_t nbnext = 0 ;
-__inline int CFSQ_init(CFSQ * cfsq, uint64_t N) {
+// __inline
+int CFSQ_init(CFSQ * cfsq, uint64_t N) {
     cfsq->N = N ;
    cfsq->k0 = (uint64_t)sqrt(N);
     cfsq->a = cfsq->n = cfsq->k0 ;
@@ -2880,7 +2885,8 @@ __inline int CFSQ_init(CFSQ * cfsq, uint64_t N) {
 //    nbinit++ ;
     return cfsq->nb ;
 }
-__inline int CFSQ_next(CFSQ * cfsq) {
+//__inline
+int CFSQ_next(CFSQ * cfsq) {
     if(cfsq->d==0) return 0 ;
         cfsq->a = (cfsq->k0+cfsq->n)/cfsq->d ;
         cfsq->n = cfsq->a * cfsq->d - cfsq->n  ;
@@ -3213,8 +3219,7 @@ int PB141b(PB_RESULT *pbR) {
     DIV *Div = malloc((maxB0+1)*30 *sizeof(Sf[0]));
     int nbSf = GetSF(Sf,Div,maxB0) ;
    int32_t a,b,sfBK ;
-    uint64_t k ;
-    bigInt141 n,a3 ;
+     bigInt141 n,a3 ;
     double sqMax = sqrt(pb141_max) ;
          int32_t jsf ;
         SF  sf ; // current squarefree to test
@@ -3223,56 +3228,41 @@ int PB141b(PB_RESULT *pbR) {
         for (a = sfBK+1;a3 = (bigInt141)a*a*a, a3 < a3max; a++){
             if( ( a|sfBK)&1 &&  PGCD(a,sfBK) == 1) { // as sfBK is a divisor of b , must
                 int32_t b0,k0 ,k02 ;
+  
+                
+                int32_t jb ;
+                DIV divb ;
+                for(jb=sf.i0;divb=Div[jb],b0=divb.coef,k0=divb.d,k02=k0*k0, jb<sf.inext && b0<a && (n=k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jb++) {
+                    int32_t bf = divb.d ;
+                    double sq_bfa = a*sqrt(a*bf) ; // solution without additionnal square
+
                 DIV divk ;
                 int32_t jk ; //k0 = coef = (sf/d)**2 * d ; b0s = d  (square free)
-                for(jk=sf.i0 ;divk=Div[jk],k0=divk.coef , b0 = divk.d, k02=k0*k0, jk<sf.inext && b0<a && (n = k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jk++) {
-                    int32_t jb ;
-                    DIV divb ;
-                    // b0 = coeff ;
-                    for(jb=sf.i0;divb=Div[jb],b0=divb.coef, jb<sf.inext && b0<a && (n=k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jb++) {
-                        if((divb.d * divk.d) % sfBK != 0) continue ; // PPCM(b0squareFree, k0squarefree) = sfBK
-                        double sq_k0a = k0*a*sqrt(a*b0) ; // solution without additionnal square
-                        if(TestSol141(sq_k0a,n,a,b0))  {
-                            { int32_t bf =divb.d ; int32_t kf = divk.d ; uint32_t b12=1 ;uint64_t k12 = 1 ;uint64_t  nsmall = bf*k12*a3 +kf*b12 ;
-                                printf("0- %d/%dx%d %lld bf=%d, kf=%d k1**2=%lld b1**2=%d nsmall=%lld\n",a,b0,k0,(uint64_t)n,bf,kf,k12,b12,nsmall) ; }
-                         nbSol=AddSol141(nbSol,sol,n,a,b0,k0);
-                        }
-                        
-                        int32_t bs ; // additionnal square to b , k = k0
-                        for (bs = 2;b=bs*bs*b0, b < a ; bs++){
-                            n = k02*a3*b+k0*(int64_t)b*b ;
-                            if(n >= pb141_max)break;
-                            if(TestSol141(bs*sq_k0a,n,a,b))  {
-                                { int32_t bf =divb.d ;  uint64_t b12=bs*bs ;uint64_t k12 = 1 ; int32_t kf =divk.d  ;uint64_t nsmall = bf*a3*k12 +kf*b12 ;
-                                    printf("1- %d/%dx%d %lld bf=%d, kf=%d k1**2=%lld b1**2=%lld nsmall=%lld\n",a,b,k0,(uint64_t)n,bf,kf,k12,b12,nsmall) ;
-                                }
-                                  nbSol=AddSol141(nbSol,sol,n,a,b,k0) ;
-                            }
-                        }
+                for(jk=sf.i0 ;divk=Div[jk],k0=divk.coef , k02=k0*k0, jk<sf.inext && (n = k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jk++) {
+                    if((divb.d * divk.d) % sfBK != 0) continue ; // PPCM(b0squareFree, k0squarefree) = sfBK
+                    int32_t kf = divk.d ;
                         uint32_t ks;
                         uint64_t ks2 ; // additional square to k => k=k*ks*ks
                         bigInt141 k2 ;
-                        for (ks=2;ks2=ks*(uint64_t)ks,k=ks2*k0,k2=k*(bigInt141)k, (n=k2*a3*b0+k*(int64_t)b0*b0) < pb141_max; ks++){
-                            double sq_ka = ks2*sq_k0a;
-                            if(TestSol141(sq_ka,n,a,b0))  {
-                                { int32_t bf =divb.d ;  uint64_t b12=1 ;uint64_t  k12=ks*ks ; int32_t kf = divk.d  ;uint64_t nsmall = bf*a3*k12 +kf*b12 ;
-                                    printf("2- %d/%dx%lld %lld bf=%d, kf=%d k1**2=%lld b1**2=%lld  nsmall=%lld\n",a,b0,k,(uint64_t)n,bf,kf,k12,b12,nsmall) ;
-                                }
-                                nbSol=AddSol141(nbSol,sol,n,a,b0,k);
-                            }
-                            int32_t bs ; // additional square tob => b=b0*bs*bs
-                            for (bs = 2;b=bs*bs*b0, b < a ; bs++){
-                                n = k2*a3*b+k*(int64_t)b*b ;
-                                //                                if(n >= PB141_MAX)break;
-                                if(bs*sq_ka > sqMax)break;
-                                if(TestSol141(bs*sq_ka,n,a,b))  {
-                                    { int32_t bf =divb.d ;  uint64_t b12=bs*bs ;uint64_t  k12=ks*ks ; int32_t kf = divk.d  ;uint64_t nsmall = bf*a3*k12 +kf*b12 ;
-                                        int32_t bk1 = PGCD(bs,ks) ; bk1 = bk1*bk1 ;
-                                        printf("3- %d/%dx%lld %lld bf=%d, kf=%d k1**2=%lld b1**2=%lld nsmall=%lld ,%lld\n",a,b,k,(uint64_t)n,bf,kf,k12,b12,nsmall,nsmall/bk1) ;
+                        uint64_t k ;
+
+                        for (ks=1;ks2=ks*(uint64_t)ks,k=ks2*k0,k2=k*(bigInt141)k, (n=k2*a3*b0+k*(int64_t)b0*b0) < pb141_max; ks++){
+                            uint64_t b12 = (ks*sq_bfa+1) ;
+                            uint64_t delta = b12*(bigInt141) b12 - bf*ks2*a3 ;
+                            if( ( b0 * delta < a * (int64_t)kf ) && (delta % kf)  == 0  ) {
+                                delta /= kf ;
+                                int32_t bs = IsSquare(delta) ;
+                                if(bs && PGCD(bs,a)==1) {
+                                    b = bs*bs*b0 ;
+                                    n = k2*a3*b+k*(uint64_t)b*b ;
+                                    if( n < pb141_max) {
+                                        printf("%d/%dx%lld %lld bf=%d, kf=%d b1**2=%lld\n",a,b,k,(uint64_t)n,bf,kf,b12) ;
+                                        nbSol=AddSol141(nbSol,sol,n,a,b,k) ;
                                     }
-                                    nbSol=AddSol141(nbSol,sol,n,a,b,k);
-                                 }
                             }
+                                
+                            }
+
                         }
                     }
                 }
