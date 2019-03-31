@@ -3220,6 +3220,7 @@ int PB141b(PB_RESULT *pbR) {
     int nbSf = GetSF(Sf,Div,maxB0) ;
    int32_t a,b,sfBK ;
      bigInt141 n,a3 ;
+    IsSquare(-1);
     double sqMax = sqrt(pb141_max) ;
          int32_t jsf ;
         SF  sf ; // current squarefree to test
