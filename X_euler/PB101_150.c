@@ -3224,45 +3224,44 @@ int PB141b(PB_RESULT *pbR) {
          int32_t jsf ;
         SF  sf ; // current squarefree to test
     for(jsf=0;sf=Sf[jsf],sfBK = sf.sf, jsf < nbSf ;jsf++) { // loop on GCD(bs,ks) squarefree parts of b, k
-        bigInt141 a3max = pb141_max / (sfBK*(uint64_t)sfBK*sfBK) ;
-        for (a = sfBK+1;a3 = (bigInt141)a*a*a, a3 < a3max; a++){
-            if( ( a|sfBK)&1 &&  PGCD(a,sfBK) == 1) { // as sfBK is a divisor of b , must
-                int32_t b0,k0 ,k02 ;
-  
-                
-                int32_t jb ;
-                DIV divb ;
-                for(jb=sf.i0;divb=Div[jb],b0=divb.coef,k0=divb.d,k02=k0*k0, jb<sf.inext && b0<a && (n=k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jb++) {
-                    int32_t bf = divb.d ;
-                    double sq_bfa = a*sqrt(a*bf) ; // solution without additionnal square
-
-                DIV divk ;
-                int32_t jk ; //k0 = coef = (sf/d)**2 * d ; b0s = d  (square free)
-                for(jk=sf.i0 ;divk=Div[jk],k0=divk.coef , k02=k0*k0, jk<sf.inext && (n = k02*a3*b0+k0*(int64_t)b0*b0) < pb141_max ;jk++) {
-                    if((divb.d * divk.d) % sfBK != 0) continue ; // PPCM(b0squareFree, k0squarefree) = sfBK
-                    int32_t kf = divk.d ;
-                        uint32_t ks;
+        int32_t b0,k0 ;
+        uint64_t sfBK2 = sfBK *(uint64_t) sfBK ;
+        uint64_t k02 ;
+        int32_t jb ;
+        DIV divb ;
+        for(jb=sf.i0;divb=Div[jb],b0=divb.coef,k0=divb.d, jb<sf.inext  ;jb++) {
+            int32_t bf = divb.d ;
+            uint64_t b02 = b0*(uint64_t) b0 ;
+            DIV divk ;
+            int32_t jk ; //k0 = coef = (sf/d)**2 * d ; b0s = d  (square free)
+            for(jk=sf.i0 ;divk=Div[jk],k0=divk.coef , k02=k0*(uint64_t)k0, jk<sf.inext ;jk++) {
+                if((divb.d * divk.d) % sfBK != 0) continue ; // PPCM(b0squareFree, k0squarefree) = sfBK
+                int32_t kf = divk.d ;
+                 bigInt141 a3max = pb141_max / (b0*(bigInt141) k02) ;
+                for (a = b0+1;a3 = (bigInt141)a*a*a, a3 < a3max; a++){
+                    if( ( a|sfBK)&1 &&  PGCD(a,sfBK) == 1) { // as sfBK is a divisor of b , must
+                       double sq_bfa = a*sqrt(a*bf) ; // solution without additionnal square
+                         uint32_t ks;
                         uint64_t ks2 ; // additional square to k => k=k*ks*ks
-                        bigInt141 k2 ;
+                        bigInt141 ks4 ;
                         uint64_t k ;
-
-                        for (ks=1;ks2=ks*(uint64_t)ks,k=ks2*k0,k2=k*(bigInt141)k, (n=k2*a3*b0+k*(int64_t)b0*b0) < pb141_max; ks++){
+                       for (ks=1;ks2=ks*(uint64_t)ks, ks4=ks2*(bigInt141) ks2, a3*ks4< a3max ; ks++){
                             uint64_t b12 = (ks*sq_bfa+1) ;
                             uint64_t delta = b12*(bigInt141) b12 - bf*ks2*a3 ;
                             if( ( b0 * delta < a * (int64_t)kf ) && (delta % kf)  == 0  ) {
                                 delta /= kf ;
                                 int32_t bs = IsSquare(delta) ;
                                 if(bs && PGCD(bs,a)==1) {
+                                    k=ks2*k0 ;
                                     b = bs*bs*b0 ;
-                                    n = k2*a3*b+k*(uint64_t)b*b ;
+//                                    n = k2*a3*b+k*(uint64_t)b*b ;
+                                   n = k02*ks4*a3*b+k*b02*delta*delta ;
                                     if( n < pb141_max) {
                                         printf("%d/%dx%lld %lld bf=%d, kf=%d b1**2=%lld\n",a,b,k,(uint64_t)n,bf,kf,b12) ;
                                         nbSol=AddSol141(nbSol,sol,n,a,b,k) ;
                                     }
+                                }
                             }
-                                
-                            }
-
                         }
                     }
                 }
