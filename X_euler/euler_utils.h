@@ -118,6 +118,8 @@ int Search_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 // retourne (-1) si pas premier
 int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 
+int MRP_isPrime(uint64_t n) ;
+
 
 uint32_t FindNbDiv(uint64_t N, const T_prime *tbPrime) ;
 uint32_t FindNbDivPrime(uint64_t N, const T_prime *tbPrime) ;

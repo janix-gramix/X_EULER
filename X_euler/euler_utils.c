@@ -443,7 +443,8 @@ CTX_PRIMETABLE * Gen_tablePrimeNb(T_prime maxNb) {
     }
     ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
     if(ctx->tbPrime == NULL) { return Free_tablePrime(ctx) ; }
-    ctx->maxValue = 0x7fffffff ;
+//   ctx->maxValue = 0x7fffffff ;
+    ctx->maxValue = ctx->maxNbPrime * ctx->maxNbPrime  ;
     FindPrime(ctx->maxValue,ctx,CPL_tablePrime) ;
     return ctx ;
 }
@@ -461,6 +462,71 @@ int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) {
     if(pt != NULL) return (int)(pt-ctxP->tbPrime) ;
     else return -1 ;
 }
+//****************************************
+// calcul a^n%mod
+static  __int128 MRP_power(uint64_t a, uint64_t n, uint64_t mod) {
+    __int128 power = a;
+    __int128 result = 1;
+    while (n)    {
+        if (n & 1) result = (result * power) % mod;
+        power = (power * power) % mod;
+        n >>= 1;
+    }
+    return result;
+}
+
+// n−1 = 2^s * d with d odd by factoring powers of 2 from n−1
+static int MRP_witness(uint64_t n, uint64_t s, uint64_t d, uint64_t a){
+    __int128 x = MRP_power(a, d, n);
+    uint64_t y;
+    while (s) {
+        y = (uint64_t) ((x * x) % n );
+        if (y == 1 && x != 1 && x != n-1)  return 0 ;
+        x = y;
+        --s;
+    }
+    return (y==1) ;
+ }
+
+/*
+ * if n < 1,373,653, it is enough to test a = 2 and 3;
+ * if n < 9,080,191, it is enough to test a = 31 and 73;
+ * if n < 4,759,123,141, it is enough to test a = 2, 7, and 61;
+ * if n < 1,122,004,669,633, it is enough to test a = 2, 13, 23, and 1662803;
+ * if n < 2,152,302,898,747, it is enough to test a = 2, 3, 5, 7, and 11;
+ * if n < 3,474,749,660,383, it is enough to test a = 2, 3, 5, 7, 11, and 13;
+ * if n < 341,550,071,728,321, it is enough to test a = 2, 3, 5, 7, 11, 13, and 17.
+ * if n < 3,825,123,056,546,413,051, it is enough to test a = 2, 3, 5, 7, 11, 13, 17, 19, and 23.
+ * else it is enough to test a = 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, and 37.
+ */
+
+int MRP_isPrime(uint64_t n) {
+    if (((!(n & 1)) && n != 2 ) || (n < 2) || (n % 3 == 0 && n != 3))   return 0;
+    if (n <= 3)  return 1 ;
+    uint64_t d = n / 2;
+    uint64_t s = 1;
+    while (!(d & 1)) {
+        d /= 2;
+        ++s;
+    }
+    if (n < 1373653)  return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3);
+    if (n < 9080191)  return MRP_witness(n, s, d, 31) && MRP_witness(n, s, d, 73);
+    if (n < 4759123141) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 61);
+    if (n < 1122004669633) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 13) && MRP_witness(n, s, d, 23) && MRP_witness(n, s, d, 1662803);
+    if (n < 2152302898747) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3) && MRP_witness(n, s, d, 5) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 11);
+    if (n < 3474749660383) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3) && MRP_witness(n, s, d, 5) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 11) && MRP_witness(n, s, d, 13);
+    if (n < 341550071728321) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3) && MRP_witness(n, s, d, 5) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 11)
+        && MRP_witness(n, s, d,13) && MRP_witness(n, s, d, 17);
+    if (n < 3825123056546413051) return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3) && MRP_witness(n, s, d, 5) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 11)
+        && MRP_witness(n, s, d,13) && MRP_witness(n, s, d, 17) && MRP_witness(n, s, d, 19) && MRP_witness(n, s, d, 23) ;
+    return MRP_witness(n, s, d, 2) && MRP_witness(n, s, d, 3) && MRP_witness(n, s, d, 5) && MRP_witness(n, s, d, 7) && MRP_witness(n, s, d, 11)
+    && MRP_witness(n, s, d,13) && MRP_witness(n, s, d, 17) && MRP_witness(n, s, d, 19) && MRP_witness(n, s, d, 23) && MRP_witness(n, s, d, 29) && MRP_witness(n, s, d, 31) && MRP_witness(n, s, d, 37) ;
+}
+
+//**************************************
+
+
+
 
 uint64_t Sqrt64(uint64_t val) {
     // on utilse sqrt beaucoup plus efficace (30 fois)
