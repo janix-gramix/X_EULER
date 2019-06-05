@@ -15,7 +15,99 @@
 #include "faray_utils.h"
 #include "PB151_200.h"
 
-#define PB152_ASK 280
+typedef struct PB152_STATE {
+   int ns[4] ;
+   int next[4] ;
+   int nbSheet ;
+} PB152_STATE ;
+int PB151(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   PB152_STATE st[270] ;
+   int n5,n4,n3,n2 ;
+   for(n5=0;n5<9;n5++) {
+      for(n4=0;n4<5;n4++) {
+         for(n3=0;n3<3;n3++) {
+            for(n2=0;n2<2;n2++) {
+               if(n5+2*n4+4*n3+8*n2 > 15 || n5+2*n4+4*n3+8*n2 < 1 ) continue ;
+               int index = n5+9*(n4+5*(n3+3*n2)) ;
+               st[index].ns[0] = n2 ; st[index].ns[1] = n3 ; st[index].ns[2] = n4 ; st[index].ns[3] = n5 ;
+               st[index].nbSheet = n2+n3+n4+n5 ;
+               int nbNext = 0 ;
+               st[index].next[nbNext++] =  (n2 ==0) ? 0 : index - 135 + 45 + 9 + 1; // n2-- n3++ n4++ n5++
+               st[index].next[nbNext++] =  (n3 ==0) ? 0 : index - 45  + 9 + 1; // n3-- n4++ n5++
+               st[index].next[nbNext++] =  (n4 ==0) ? 0 : index -9 + 1; // n4-- n5++
+               st[index].next[nbNext++] =  (n5 ==0) ? 0 : index -1 ; // n5--
+           }
+         }
+      }
+   }
+   uint64_t prob1[270],prob2[270] ;
+   uint64_t *probAnt, *prob ;
+   prob= prob1;
+   probAnt = prob2 ;
+   memset(prob, 0, 270 * sizeof(prob1[0]));
+   int index0 = 1+9*(1+5*(1+3));
+   prob[index0]= 1;
+   int n ;
+   double alpha = 0 ;
+   for(n=0;n<13;n++) {
+      uint64_t * tmp = probAnt ;
+      probAnt = prob ;
+      prob = tmp ;
+      int i ;
+      uint64_t probDen = 1;
+      int denFactor = 0 ;
+      for(i=0;i<270;i++) {
+         if(probAnt[i] > 0)  denFactor |= 1 << st[i].nbSheet ;
+      }
+      for(i=8;i>1;i--) {
+         if(denFactor & ( 1<< i)) probDen *= i / PGCD64(probDen,i) ;
+      }
+      memset(prob, 0, 270 * sizeof(prob1[0]));
+      for(i=0;i<270;i++) {
+         if(probAnt[i] > 0)  {
+            int is ;
+            uint64_t den = probAnt[i] * probDen / st[i].nbSheet ;
+            for(is=0;is<4;is++) {
+               if(st[i].next[is]) {
+                  prob[st[i].next[is]] +=  den * st[i].ns[is] ;
+               }
+            }
+         }
+      }
+      uint64_t p = 0 ;
+      for(i=0;i<270;i++) {
+         if(prob[i] > 0) {
+            if (p==0) p = prob[i] ;
+            else p = PGCD64(p,prob[i]);
+            if(p==1) break ;
+         }
+      }
+      if(p > 1) {
+         for(i=0;i<270;i++) {
+            if(prob[i] > 0) prob[i] /= p ;
+         }
+      }
+      printf("%d->%d : ",n,probDen) ;
+      uint64_t sum = 0 , sum1 = 0 ;
+      for(i=0;i<270;i++) {
+         if(prob[i] > 0) {
+            printf("P(%d.%d.%d.%d:%d)=%lld ",st[i].ns[0],st[i].ns[1],st[i].ns[2],st[i].ns[3],st[i].nbSheet, prob[i]);
+            if(st[i].nbSheet==1) sum1 += prob[i] ;
+            sum += prob[i] ;
+         }
+      }
+      if(sum1) alpha += (double)sum1 / sum ;
+      printf(" Sum%lld\n",sum);
+   }
+   
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%.6f",alpha) ;
+   return 1 ;
+}
+
+#define PB152_ASK 80
 
 int PB152c_n(PB_RESULT *pbR,int max_n) ;
 int PB152c(PB_RESULT *pbR) {
@@ -387,9 +479,7 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
         for(ih=0;ih<ihMax;ih++) {
             sumType sum  ;  countType count ;
             if(mode & M_IN_COUNT ) {
-//               count = countS0[ih] ; if(count==0) { nbNul++ ; continue ; }
                 count = countS0[ih] ;
-                if(isCountNull(count)) { nbNul++ ; continue ; }
                 sum = (offsetS0+ih) ;
             } else {
                 count = Histo0[ih].count ;
@@ -402,7 +492,7 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
                 int32_t ind ;
                 for(ind = Lv->indMod[modSum]-1 ; Lv->sumL[ind].modSum == modSum;ind++) {
                     sumType newSum = (intSum - Lv->sumL[ind].intSum) ;
-                    if(newSum < 0) break ; // sum exeeds 1/2
+//                   if(newSum < 0) { nbNul++ ;break ;} // sum exeeds 1/2
                     nout++ ;
                     if(mode & M_OUT_COUNT ) {
                         int nc = (indexType)(newSum - offsetS1) ;
@@ -442,6 +532,7 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
         }
         if(mode == M_OUT_HISTO ) {
             printf(" Hout=%lld/->%d \n",nout,nbHisto0) ;
+
 #if defined(PB152_DEBUG)
             printf("(%lld,%lld)...(%lld,%lld)\n",(u_int64_t)(Histo0[0].sum),l_count(Histo0[0].count),(u_int64_t)Histo0[nbHisto0-1].sum,l_count(Histo0[nbHisto0-1].count));
             if(nbHisto0 < 50) {
@@ -454,14 +545,16 @@ int PB152c_n(PB_RESULT *pbR,int max_n) {
 #if defined(PB152_DEBUG)
            if(nbCountS0 < 50) {
                 int i,i0 ;
-                for(i0=0,i=0;i<nbCountS0 && i0 < 100;i++) { if(isCountNull(countS0[i]))  { printf("[%d,%lld]",i,l_count(countS0[i])); i0++ ; } }
+                for(i0=0,i=0;i<nbCountS0 && i0 < 100;i++) { if(!isCountNull(countS0[i]))  { printf("[%d,%lld]",i,l_count(countS0[i])); i0++ ; } }
                 printf("\n");
             }
 #endif
         }
     }
     if(mode & M_OUT_COUNT) {
-        nbSolTot = countS0[(int64_t)-offsetS0] ;
+       int i ;
+//       nbSolTot = countS0[(int64_t)-offsetS0] ;
+       nbSolTot = countS0[0] ;
         free(countS0);
     } else {
         int i ;
