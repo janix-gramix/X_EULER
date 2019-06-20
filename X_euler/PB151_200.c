@@ -915,6 +915,8 @@ int PB152_n(PB_RESULT *pbR,int max_n) {
 }
 
 #define PB153_NB    100000000
+#define PB153_NB    100000000
+#define SumN(N)   ((N)*((N)+1)/2)
 
 // compute Sigma (nb/i)*i i=1,... nb
 int64_t SigmaInvInt(int64_t nb) {
@@ -931,7 +933,94 @@ int64_t SigmaInvInt(int64_t nb) {
 }
 
 
-//#define PB153_NB    1000000000
+
+// #define PB153_NB    25
+
+// compute Sigma x for x^2+y^2 <= N x>0, y>0
+// on decoupe en 3 zones
+/*. ...
+ |  Z3   .
+ |---------.
+ |       . |  .
+ |    Z1 . |   .
+ |  .      | Z2 .
+ |_________|____.
+*/
+int64_t NbxPointsInCirle(int64_t N) {
+   int64_t sqrN2 =  Sqrt64(N/2) ;
+   int64_t sqrN = Sqrt64(N) ;
+   int64_t S = SumN(sqrN2)*sqrN2 ; // Z1
+   int64_t i ;
+   for(i=sqrN2+1;i<=sqrN;i++) {
+      int64_t sqrY = Sqrt64(N-i*i) ;
+      S += i * sqrY     // Z2
+         + SumN(sqrY);  // Z3
+   }
+   return S ;
+}
+
+static int nbCompute = 0 ;
+
+
+
+void PB153_compCircle(int64_t N,int64_t n1,int64_t * tbCircleLow,int64_t * tbCircleHigh,int64_t * tbPrimeLow,int64_t * tbPrimeHigh) {
+   int64_t i ;
+   tbCircleLow[0]=tbCircleHigh[0]=tbPrimeLow[0]=tbPrimeHigh[0]=0 ;
+   for(i=1;i<=n1;i++) {
+      tbCircleLow[i] = NbxPointsInCirle(i);
+      tbCircleHigh[i] = NbxPointsInCirle(N/i);
+   }
+   for(i=1;i<=n1;i++) {
+      int64_t S = tbCircleLow[i]  ;
+      int64_t j ;
+      for(j=2;j*j<=i;j++) S -= j * tbPrimeLow[i/(j*j)] ;
+      tbPrimeLow[i] = S ;
+   }
+   for(i=n1;i>0;i--) {
+      int64_t i1 = N/i ;
+      int64_t S =  tbCircleHigh[i]  ;
+      int64_t j ;
+      for(j=2;j*j<=i1;j++) {
+         int64_t j1 = i1 / (j*j) ;
+         if(j1 > n1) {
+            // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
+            S -= j * tbPrimeHigh[i*j*j] ;
+         } else {
+            S -= j * tbPrimeLow[j1] ;
+         }
+      }
+      tbPrimeHigh[i] = S ;
+   }
+}
+
+int PB153c(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int64_t n1=Sqrt64(PB153_NB);
+   int64_t * tbPrimeLow = malloc((n1+1)*sizeof(tbPrimeLow[0]));
+   int64_t * tbPrimeHigh = malloc((n1+1)*sizeof(tbPrimeHigh[0]));
+   int64_t * tbCircleLow = malloc((n1+1)*sizeof(tbCircleLow[0]));
+   int64_t * tbCircleHigh = malloc((n1+1)*sizeof(tbCircleHigh[0]));
+   
+
+   int32_t i ;
+   PB153_compCircle(PB153_NB,n1,tbCircleLow,tbCircleHigh,tbPrimeLow,tbPrimeHigh) ;
+
+   int64_t S =  SigmaInvInt(PB153_NB);
+   for(i=1;i<n1;i++) {
+      S += 2 * (tbPrimeHigh[i] - tbPrimeHigh[i+1])* SigmaInvInt(i) ;
+   }
+   S += 2 * (tbPrimeHigh[n1] - tbPrimeLow[PB153_NB/(n1+1)]) * SigmaInvInt(n1) ;
+   for(i=1;i<PB153_NB/n1;i++) {
+      S += 2* (tbPrimeLow[i] - tbPrimeLow[i-1])* SigmaInvInt(PB153_NB/i)  ;
+   }
+
+   //  sbt=SBT_free(sbt);
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+
 int PB153b(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
    int n1=Sqrt32(PB153_NB);
