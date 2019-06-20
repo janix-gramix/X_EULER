@@ -14,22 +14,25 @@
 #include "euler_utils.h"
 #include "faray_utils.h"
 #include "PB151_200.h"
-
-typedef struct PB152_STATE {
+typedef struct PB151_STATE {
    int ns[4] ;
    int next[4] ;
+   int size ;
    int nbSheet ;
-} PB152_STATE ;
+} PB151_STATE ;
+
 int PB151(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
-   PB152_STATE st[270] ;
+   PB151_STATE st[270] ;
    int n5,n4,n3,n2 ;
    for(n5=0;n5<9;n5++) {
       for(n4=0;n4<5;n4++) {
          for(n3=0;n3<3;n3++) {
             for(n2=0;n2<2;n2++) {
-               if(n5+2*n4+4*n3+8*n2 > 15 || n5+2*n4+4*n3+8*n2 < 1 ) continue ;
+               int size = n5+2*n4+4*n3+8*n2 ;
+               if(size > 15 || size < 1 ) continue ;
                int index = n5+9*(n4+5*(n3+3*n2)) ;
+               st[index].size = size ;
                st[index].ns[0] = n2 ; st[index].ns[1] = n3 ; st[index].ns[2] = n4 ; st[index].ns[3] = n5 ;
                st[index].nbSheet = n2+n3+n4+n5 ;
                int nbNext = 0 ;
@@ -41,33 +44,27 @@ int PB151(PB_RESULT *pbR) {
          }
       }
    }
-   uint64_t prob1[270],prob2[270] ;
-   uint64_t *probAnt, *prob ;
-   prob= prob1;
-   probAnt = prob2 ;
-   memset(prob, 0, 270 * sizeof(prob1[0]));
+   uint64_t prob[270] ;
+   memset(prob, 0, 270 * sizeof(prob[0]));
    int index0 = 1+9*(1+5*(1+3));
    prob[index0]= 1;
    int n ;
    double alpha = 0 ;
    for(n=0;n<13;n++) {
-      uint64_t * tmp = probAnt ;
-      probAnt = prob ;
-      prob = tmp ;
+      int size = 15 - n ;
       int i ;
       uint64_t probDen = 1;
       int denFactor = 0 ;
       for(i=0;i<270;i++) {
-         if(probAnt[i] > 0)  denFactor |= 1 << st[i].nbSheet ;
+         if(st[i].size == size && prob[i] > 0)  denFactor |= 1 << st[i].nbSheet ;
       }
       for(i=8;i>1;i--) {
          if(denFactor & ( 1<< i)) probDen *= i / PGCD64(probDen,i) ;
       }
-      memset(prob, 0, 270 * sizeof(prob1[0]));
       for(i=0;i<270;i++) {
-         if(probAnt[i] > 0)  {
+         if(st[i].size == size && prob[i] > 0)  {
             int is ;
-            uint64_t den = probAnt[i] * probDen / st[i].nbSheet ;
+            uint64_t den = prob[i] * probDen / st[i].nbSheet ;
             for(is=0;is<4;is++) {
                if(st[i].next[is]) {
                   prob[st[i].next[is]] +=  den * st[i].ns[is] ;
@@ -77,28 +74,24 @@ int PB151(PB_RESULT *pbR) {
       }
       uint64_t p = 0 ;
       for(i=0;i<270;i++) {
-         if(prob[i] > 0) {
+         if(st[i].size == size-1 && prob[i] > 0) {
             if (p==0) p = prob[i] ;
             else p = PGCD64(p,prob[i]);
             if(p==1) break ;
          }
       }
-      if(p > 1) {
-         for(i=0;i<270;i++) {
-            if(prob[i] > 0) prob[i] /= p ;
-         }
-      }
-      printf("%d->%d : ",n,probDen) ;
+ //     printf("%d->%d : ",n,probDen) ;
       uint64_t sum = 0 , sum1 = 0 ;
       for(i=0;i<270;i++) {
-         if(prob[i] > 0) {
-            printf("P(%d.%d.%d.%d:%d)=%lld ",st[i].ns[0],st[i].ns[1],st[i].ns[2],st[i].ns[3],st[i].nbSheet, prob[i]);
+         if(st[i].size == size-1 && prob[i]>0) {
+            if(p>1)prob[i] /= p ;
+ //           printf("P(%d.%d.%d.%d:%d)=%lld ",st[i].ns[0],st[i].ns[1],st[i].ns[2],st[i].ns[3],st[i].nbSheet, prob[i]);
             if(st[i].nbSheet==1) sum1 += prob[i] ;
             sum += prob[i] ;
          }
       }
       if(sum1) alpha += (double)sum1 / sum ;
-      printf(" Sum%lld\n",sum);
+ //     printf(" Sum%lld\n",sum);
    }
    
    
@@ -106,6 +99,101 @@ int PB151(PB_RESULT *pbR) {
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.6f",alpha) ;
    return 1 ;
 }
+
+typedef struct PB151a_STATE {
+   int na[4] ; // number of sheet A2,A3,A4,A5
+   int nbSheet ;  // total number of sheets
+   uint64_t prob ;   // proba of the state
+} PB151a_STATE ;
+
+// number range for sheet
+#define n2R   2
+#define n3R   3
+#define n4R   5
+#define n5R   9
+
+#define allR   (n2R*n3R*n4R*n5R)
+
+
+int PB151a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   PB151a_STATE st[allR] ;
+   int stateToRg[allR] ;
+   int rgLevel[16] ;
+   uint64_t sum[16] ;
+   memset(stateToRg,0,allR*sizeof(stateToRg[0]));
+   int ns = 0 ; //
+   rgLevel[0] = ns ; // initialize first state A2=A3=A4=A5=1
+   sum[0] = 1 ;
+   st[ns].na[0] =  st[ns].na[1] =  st[ns].na[2] = st[ns].na[3] = 1 ;
+   st[ns].nbSheet = st[ns].na[0]+st[ns].na[1]+st[ns].na[2]+st[ns].na[3] ;
+   st[ns].prob = 1 ;
+   ns++ ;
+   rgLevel[1] = ns ;
+   int nl,i ;
+   uint64_t alphaN=0 ; // proba for one sheet alphaN/alphaD
+   uint64_t alphaD=1 ;
+   for(nl=0;nl<14;nl++) { // loop far a week
+      int no,nn ;
+      int denFactor = 0 ; // bit mask for number of sheets 1,2,3,4,5,6,7,8
+       for(no=rgLevel[nl];no<rgLevel[nl+1];no++) {
+          denFactor |= 1 << st[no].nbSheet ; // add bit
+      }
+     uint64_t probDen = 1 ; // product of active number of sheets
+      for(i=8;i>1;i--) { // so  prob contribution to Ax  => probDen / nbSheet * nb(Ax)
+         if(denFactor & ( 1<< i)) probDen *= i ;
+      }
+     for(no=rgLevel[nl];no<rgLevel[nl+1];no++) { // developpement for active states
+         uint64_t den = st[no].prob * probDen / st[no].nbSheet ; // common factor
+         int index = st[no].na[3]+n5R*(st[no].na[2]+n4R*(st[no].na[1]+n3R*st[no].na[0]));
+         int ia ;
+         for(ia=0;ia<4;ia++) { // loop on Ax
+            if(st[no].na[ia]==0) continue ;
+            int idNext ; // compute next hash(exact) index
+            if(ia==3)  idNext = index - 1 ;
+            else if(ia==2) idNext = index - n5R +1 ;
+            else if(ia==1) idNext = index - n5R*n4R + n5R +1 ;
+            else idNext = index - n5R*n4R*n3R + n5R*n4R + n5R +1 ;
+            int isn =stateToRg[idNext] ;
+            if(isn==0) { // newstate
+               int ib ;
+               isn = ns++ ; stateToRg[idNext] = isn ;
+               memcpy(st[isn].na,st[no].na,4*sizeof(st[0].na[0])) ;
+               st[isn].na[ia]-- ; for(ib=ia+1;ib<4;ib++) st[isn].na[ib]++ ;
+               st[isn].nbSheet =st[no].nbSheet+2-ia ;
+               st[isn].prob =0 ;
+            }
+            st[isn].prob  +=  den *  st[no].na[ia] ; // add contribution
+         }
+      }
+      rgLevel[nl+2] = ns ;
+      uint64_t p = 0 ; // search pgcd of active probas
+      for(nn=rgLevel[nl+1];nn<rgLevel[nl+2];nn++) {
+         if (p==0) p = st[nn].prob ;
+         else p = PGCD64(p,st[nn].prob);
+         if(p==1) break ;
+      }
+      sum[nl+1] = 0 ;
+      uint64_t sum1 = 0 ;
+      for(nn=rgLevel[nl+1];nn<rgLevel[nl+2];nn++) {
+         if(p>1)st[nn].prob /= p ; // remove pgcd to keep smaller probas
+//         printf("P(%d.%d.%d.%d:%d)=%lld ",st[nn].na[0],st[nn].na[1],st[nn].na[2],st[nn].na[3],st[nn].nbSheet,st[nn].prob );
+         if(st[nn].nbSheet==1) sum1 += st[nn].prob ; // one sheet ?
+         sum[nl+1] += st[nn].prob ;
+      }
+      if(nl<13 && sum1) { // add proba for one sheet
+         uint64_t pgcdDS = PGCD64(alphaD,sum[nl+1]) ;
+         alphaN = alphaN * (sum[nl+1]/pgcdDS) + sum1 * (alphaD/pgcdDS) ;
+         alphaD *= (sum[nl+1]/pgcdDS) ;
+       }
+   }
+   if(pbR->isVerbose)fprintf(stdout,"\t%s P=%lld/%lld=%.6f\n",pbR->ident,alphaN,alphaD, (double)alphaN/alphaD);
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%.6f",(double)alphaN/alphaD) ;
+   return 1 ;
+}
+
+
 
 #define PB152_ASK 80
 
@@ -825,6 +913,109 @@ int PB152_n(PB_RESULT *pbR,int max_n) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbSol) ;
     return 1 ;
 }
+
+#define PB153_NB    100000000
+
+// compute Sigma (nb/i)*i i=1,... nb
+int64_t SigmaInvInt(int64_t nb) {
+   int64_t i ;
+   int64_t Inb0 = nb ;
+   int64_t S = 0 ;
+   for(i=1;i<Inb0;i++) {
+      int64_t Inb1 = nb/(i+1) ;
+      S += Inb0*i + i*(Inb1+1+Inb0)*(Inb0-Inb1)/2 ;
+      Inb0 = Inb1 ;
+   }
+   if(i == Inb0) S += i * Inb0 ;
+   return S ;
+}
+
+
+//#define PB153_NB    1000000000
+int PB153b(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int n1=Sqrt32(PB153_NB);
+   int32_t *tbSquare = malloc((n1+2)*sizeof(tbSquare[0]));
+   int32_t i ;
+   int64_t *cacheNb=calloc(n1+1,sizeof(cacheNb[0])) ;
+   int64_t S = SigmaInvInt(PB153_NB) + 2*SigmaInvInt(PB153_NB/2) ;
+   for(i=0;i<=n1+1;i++) tbSquare[i] = i*i;
+   
+   FRACTrec FRrec ;
+   FRC_init(&FRrec,n1 , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
+    int32_t norm ;
+   do {
+ //     printf("(%d/%d)",n,d);
+      norm = tbSquare[FRrec.fr1.n]+tbSquare[FRrec.fr1.d] ;
+      if(norm<=PB153_NB) {
+         int nb = PB153_NB / norm ;
+        if(nb<=n1) cacheNb[nb] += FRrec.fr1.n+FRrec.fr1.d ;
+         else  S += 2*SigmaInvInt(nb)*(FRrec.fr1.n+FRrec.fr1.d) ;
+      }
+   } while(FRC_getNext(&FRrec)) ;
+   for(i=1;i<=n1;i++) if(cacheNb[i]) S += 2*SigmaInvInt(i)*cacheNb[i] ;
+   free(tbSquare) ; free(cacheNb) ;
+ //  sbt=SBT_free(sbt);
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+
+int PB153a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int n1=Sqrt32(PB153_NB);
+   int32_t *tbSquare = malloc((n1+2)*sizeof(tbSquare[0]));
+   int32_t i ;
+   int64_t S = SigmaInvInt(PB153_NB) + 2*SigmaInvInt(PB153_NB/2) ;
+   for(i=0;i<=n1+1;i++) tbSquare[i] = i*i;
+   SBTree * sbt =  SBT_alloc() ;
+   FRACTRED fr0, fr1 ;
+   fr0.d=1 ; fr0.n=0 ;
+   fr1.d=1 ; fr1.n=1 ;
+   SBT_init(sbt,fr0,fr1);
+   int32_t norm ;
+    while(SBT_getNext(sbt, n1)){
+      norm = tbSquare[sbt->fr1.n]+tbSquare[sbt->fr1.d] ;
+      if(norm<=PB153_NB) {
+          int nb = PB153_NB / norm ;
+        S += 2*SigmaInvInt(nb)*(sbt->fr1.n+sbt->fr1.d) ;
+      }
+   }
+   sbt=SBT_free(sbt);
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+int PB153(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int n1=Sqrt32(PB153_NB);
+   int32_t *tbSquare = malloc((n1+2)*sizeof(tbSquare[0]));
+   int32_t i,j ;
+   int64_t S = SigmaInvInt(PB153_NB) + 2*SigmaInvInt(PB153_NB/2) ;
+   printf("S=%lld ",S);
+   for(i=0;i<=n1+1;i++) tbSquare[i] = i*i;
+   for(i=1;i<=n1;i++) {
+      int32_t norm ;
+      int antNb = 1 ;
+      int64_t delta = 1 ;
+      for(j=1;(j < i) && ((norm=tbSquare[i]+tbSquare[j]) <= PB153_NB) ;j++) {
+         if(PGCD(i,j) != 1) continue ;
+         int nb = PB153_NB / norm ;
+         if(nb != antNb) {
+            antNb = nb ;
+            delta = SigmaInvInt(nb) ;
+         }
+//         printf("(%d,%d)->%lld",j+1,i+1,delta);
+         S += 2*delta*(i+j) ;
+      }
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
 
 
 // nb(tiles) = 4*n*p with n>p
