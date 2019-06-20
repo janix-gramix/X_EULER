@@ -50,6 +50,35 @@ FRACTRED IBesout(FRACTRED fr1) {
 }
 
 
+void FRC_init(FRACTrec *FRrec,int maxDen , FRACTRED frStart, FRACTRED frEnd) {
+    FRrec->maxDen = maxDen ;
+    FRrec->frEnd = frEnd ;
+    if(frStart.n) { // pas 0
+        FRrec->fr1 = frStart ;
+        FRrec->fr0 = IBesout(frStart) ;
+    } else  {
+        FRrec->fr0 = frStart ; // fraction null
+        FRrec->fr1 = (FRACTRED){1,maxDen} ;
+    }
+}
+// obtient (dans FRrec->fr1) la fraction suivante entre frStart et frEnd
+// retourne 0 quand le parcours est termine
+int FRC_getNext(FRACTrec *FRrec) {
+    
+    int a = (FRrec->maxDen+FRrec->fr0.d)/FRrec->fr1.d ; // searcd d = a * d - d0 biggest
+    int tmp = FRrec->fr1.d ;
+    FRrec->fr1.d = a * FRrec->fr1.d - FRrec->fr0.d ;
+    FRrec->fr0.d = tmp ;
+    tmp = FRrec->fr1.n ;
+    FRrec->fr1.n = a * FRrec->fr1.n - FRrec->fr0.n ; // n = a * n - n0 ;
+    FRrec->fr0.n = tmp ;
+    if( FRrec->fr1.d == FRrec->frEnd.d && FRrec->fr1.n == FRrec->frEnd.n) return 0 ;
+    else return 1 ;
+
+}
+
+
+
 
 void SBT_init(SBTree * sbt,FRACTRED fr0, FRACTRED fr1) {
     sbt->fr0 = fr0 ;
@@ -64,6 +93,7 @@ SBTree * SBT_alloc() {
     //    SBT_init(sbt,fr0,fr1) ;
     return sbt ;
 }
+
 
 
 int SBT_ValidNxt(SBTree * sbt, int isOK) {
@@ -88,6 +118,19 @@ int SBT_ValidNxt(SBTree * sbt, int isOK) {
         return(sbt->indS);
     }
 }
+
+int SBT_getNext(SBTree * sbt,int maxDen) {
+    while(sbt->indS > 0) {
+        if(sbt->fr0.d + sbt->fr1.d <= maxDen) {
+            return SBT_ValidNxt(sbt,1) ;
+        } else {
+            SBT_ValidNxt(sbt,0) ;
+        }
+    }
+    return sbt->indS ;
+}
+
+
 SBTree * SBT_free(SBTree * sbt) {
     if(sbt) {
         free(sbt->stack);
