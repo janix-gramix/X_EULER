@@ -915,7 +915,7 @@ int PB152_n(PB_RESULT *pbR,int max_n) {
 }
 
 #define PB153_NB    100000000
-#define PB153_NB    100000000
+//#define PB153_NB    1000000000
 #define SumN(N)   ((N)*((N)+1)/2)
 
 // compute Sigma (nb/i)*i i=1,... nb
@@ -959,7 +959,6 @@ int64_t NbxPointsInCirle(int64_t N) {
    return S ;
 }
 
-static int nbCompute = 0 ;
 
 
 
@@ -970,19 +969,22 @@ void PB153_compCircle(int64_t N,int64_t n1,int64_t * tbCircleLow,int64_t * tbCir
       tbCircleLow[i] = NbxPointsInCirle(i);
       tbCircleHigh[i] = NbxPointsInCirle(N/i);
    }
+   // compute small values
    for(i=1;i<=n1;i++) {
       int64_t S = tbCircleLow[i]  ;
       int64_t j ;
+      // remove pgcd(x,y)=j
       for(j=2;j*j<=i;j++) S -= j * tbPrimeLow[i/(j*j)] ;
       tbPrimeLow[i] = S ;
    }
+   // compute big values N/i  (ascending order => i descending , for recursion)
    for(i=n1;i>0;i--) {
       int64_t i1 = N/i ;
       int64_t S =  tbCircleHigh[i]  ;
       int64_t j ;
       for(j=2;j*j<=i1;j++) {
          int64_t j1 = i1 / (j*j) ;
-         if(j1 > n1) {
+         if(j1 > n1) { // H or L ?
             // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
             S -= j * tbPrimeHigh[i*j*j] ;
          } else {
@@ -992,6 +994,8 @@ void PB153_compCircle(int64_t N,int64_t n1,int64_t * tbCircleLow,int64_t * tbCir
       tbPrimeHigh[i] = S ;
    }
 }
+
+
 
 int PB153c(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
@@ -1026,25 +1030,27 @@ int PB153b(PB_RESULT *pbR) {
    int n1=Sqrt32(PB153_NB);
    int32_t *tbSquare = malloc((n1+2)*sizeof(tbSquare[0]));
    int32_t i ;
-   int64_t *cacheNb=calloc(n1+1,sizeof(cacheNb[0])) ;
+   int64_t *lowNb=calloc(n1+1,sizeof(lowNb[0])) ;
+   int64_t *highNb=calloc(n1+1,sizeof(highNb[0])) ;
    int64_t S = SigmaInvInt(PB153_NB) + 2*SigmaInvInt(PB153_NB/2) ;
    for(i=0;i<=n1+1;i++) tbSquare[i] = i*i;
    
    FRACTrec FRrec ;
    FRC_init(&FRrec,n1 , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
-    int32_t norm ;
+   int32_t norm ;
    do {
- //     printf("(%d/%d)",n,d);
       norm = tbSquare[FRrec.fr1.n]+tbSquare[FRrec.fr1.d] ;
-      if(norm<=PB153_NB) {
-         int nb = PB153_NB / norm ;
-        if(nb<=n1) cacheNb[nb] += FRrec.fr1.n+FRrec.fr1.d ;
-         else  S += 2*SigmaInvInt(nb)*(FRrec.fr1.n+FRrec.fr1.d) ;
+      if(norm <=n1) {
+         highNb[norm] += FRrec.fr1.n+FRrec.fr1.d ;
+      } else {
+         lowNb[PB153_NB/norm] += FRrec.fr1.n+FRrec.fr1.d ;
       }
    } while(FRC_getNext(&FRrec)) ;
-   for(i=1;i<=n1;i++) if(cacheNb[i]) S += 2*SigmaInvInt(i)*cacheNb[i] ;
-   free(tbSquare) ; free(cacheNb) ;
- //  sbt=SBT_free(sbt);
+   for(i=1;i<=n1;i++) {
+      if(lowNb[i]) S += 2*SigmaInvInt(i)*lowNb[i] ;
+      if(highNb[i])  S += 2*SigmaInvInt(PB153_NB/i)*highNb[i] ;
+    }
+   free(tbSquare) ; free(lowNb) ;
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
    return 1 ;
@@ -1055,6 +1061,9 @@ int PB153a(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
    int n1=Sqrt32(PB153_NB);
    int32_t *tbSquare = malloc((n1+2)*sizeof(tbSquare[0]));
+   int64_t *lowNb=calloc(n1+1,sizeof(lowNb[0])) ;
+   int64_t *highNb=calloc(n1+1,sizeof(highNb[0])) ;
+
    int32_t i ;
    int64_t S = SigmaInvInt(PB153_NB) + 2*SigmaInvInt(PB153_NB/2) ;
    for(i=0;i<=n1+1;i++) tbSquare[i] = i*i;
@@ -1066,11 +1075,18 @@ int PB153a(PB_RESULT *pbR) {
    int32_t norm ;
     while(SBT_getNext(sbt, n1)){
       norm = tbSquare[sbt->fr1.n]+tbSquare[sbt->fr1.d] ;
-      if(norm<=PB153_NB) {
-          int nb = PB153_NB / norm ;
-        S += 2*SigmaInvInt(nb)*(sbt->fr1.n+sbt->fr1.d) ;
-      }
+       if(norm <=n1) {
+          highNb[norm] += sbt->fr1.n+sbt->fr1.d ;
+       } else {
+          lowNb[PB153_NB/norm] += sbt->fr1.n+sbt->fr1.d ;
+       }
+
    }
+   for(i=1;i<=n1;i++) {
+      if(lowNb[i]) S += 2*SigmaInvInt(i)*lowNb[i] ;
+      if(highNb[i]) S += 2*SigmaInvInt(PB153_NB/i)*highNb[i] ;
+   }
+
    sbt=SBT_free(sbt);
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
@@ -1102,6 +1118,276 @@ int PB153(PB_RESULT *pbR) {
    }
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+#define PB154_EXP 200000
+int PB154a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int32_t *exp2 = calloc(PB154_EXP+1,sizeof(exp2[0]));
+   int32_t *exp5 = calloc(PB154_EXP+1,sizeof(exp5[0]));
+   int16_t *sexp2 = malloc((PB154_EXP+1) *sizeof(sexp2[0]));
+   int16_t *sexp5 = malloc((PB154_EXP+1)*sizeof(sexp5[0]));
+   int32_t pow2 ;
+   for(pow2=2;pow2<=PB154_EXP; pow2 *= 2) {
+      int i ;
+      for(i=pow2; i<=PB154_EXP;i+=pow2 ) {
+         exp2[i]++ ;
+      }
+   }
+   int32_t pow5 ;
+   for(pow5=5;pow5<=PB154_EXP; pow5 *= 5) {
+      int i ;
+      for(i=pow5; i<=PB154_EXP;i+=pow5 ) {
+         exp5[i]++ ;
+      }
+   }
+   int i ;
+   for(i=1;i<=PB154_EXP;i++){ exp2[i] += exp2[i-1] ; exp5[i] += exp5[i-1];}
+   int32_t min2=0, min5=0 ;
+   int32_t max2=-100, max5=-100 ;
+   for(i=0;i<=PB154_EXP;i++){
+      sexp2[i] = (int16_t) (exp2[i] -  i) ;
+      if(sexp2[i]< min2) { min2 = sexp2[i] ;  }
+      else if(sexp2[i]> max2) { max2 = sexp2[i] ;}
+      sexp5[i] = (int16_t) (4*exp5[i] - i);
+      if(sexp5[i]< min5) { min5 = sexp5[i] ;  }
+      else if(sexp5[i]> max5) { max5 = sexp5[i] ;}
+//      sexp5[i] = sexp5[i] *256 + sexp2[i] ;
+   }
+   
+   int64_t S = 0 ;
+   int32_t p2 = sexp2[PB154_EXP]-12 , p5=sexp5[PB154_EXP]-48 ;
+//   p5 = sexp5[PB154_EXP] -12 -48*256 ;
+   //   for(i=0;i<1000;i++) printf("%d ",exp2[i]+6);
+   printf("Pow2=%d,[%d,%d] pow5=%d,[%d,%d]\n",p2,min2,max2,p5,min5,max5);
+   int a,b ;
+  
+   // a < b < c ; c = p-a-b
+   for(a=0;a<=PB154_EXP;a++) {
+      int c = PB154_EXP - 2*a -1 ;
+      for(b=a+1;2*b<PB154_EXP-a;b++,c--) {
+         if(sexp5[b]+sexp5[c]<=p5-sexp5[a] && sexp2[b]+sexp2[c]<= p2-sexp2[a]  ) S++ ;
+       }
+   }
+
+   
+   S *= 6 ;
+   // a=b
+   for(a=0;2*a<=PB154_EXP;a++) {
+      if(2*sexp2[a]+sexp2[PB154_EXP-2*a]<= p2 && 2*sexp5[a]+sexp5[PB154_EXP-2*a]<=p5 ) S += 3 ;
+//     if( 2*sexp5[a]+sexp5[PB154_EXP-2*a]<=p5 ) S += 3 ;
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+
+int PB154(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int32_t *exp2 = calloc(PB154_EXP+1,sizeof(exp2[0]));
+   int32_t *exp5 = calloc(PB154_EXP+1,sizeof(exp5[0]));
+   int32_t pow2 ;
+   for(pow2=2;pow2<=PB154_EXP; pow2 *= 2) {
+      int i ;
+      for(i=pow2; i<=PB154_EXP;i+=pow2 ) {
+         exp2[i]++ ;
+      }
+   }
+   int32_t pow5 ;
+   for(pow5=5;pow5<=PB154_EXP; pow5 *= 5) {
+      int i ;
+      for(i=pow5; i<=PB154_EXP;i+=pow5 ) {
+         exp5[i]++ ;
+      }
+   }
+   int i ;
+   for(i=1;i<=PB154_EXP;i++){ exp2[i] += exp2[i-1] ; exp5[i] += exp5[i-1];}
+   int32_t min2=0, min5=0 ;
+   int32_t max2=-100, max5=-100 ;
+  for(i=0;i<=PB154_EXP;i++){
+      exp2[i] -=  i ;
+      if(exp2[i]< min2) { min2 = exp2[i] ;  }
+      else if(exp2[i]> max2) { max2 = exp2[i] ;}
+      exp5[i] = 4*exp5[i] - i;
+      if(exp5[i]< min5) { min5 = exp5[i] ;  }
+      else if(exp5[i]> max5) { max5 = exp5[i] ;}
+   }
+
+   int64_t S = 0 ;
+   int32_t p2 = exp2[PB154_EXP]-12 , p5=exp5[PB154_EXP]-48 ;
+//   for(i=0;i<1000;i++) printf("%d ",exp2[i]+6);
+   printf("Pow2=%d,[%d,%d] pow5=%d,[%d,%d]\n",p2,min2,max2,p5,min5,max5);
+   int a,b ;
+   // a < b < c ; c = p-a-b
+   for(a=0;a<=PB154_EXP;a++) {
+      for(b=a+1;2*b<PB154_EXP-a;b++) {
+         if(exp5[a]+exp5[b]+exp5[PB154_EXP-a-b]<=p5 && exp2[a]+exp2[b]+exp2[PB154_EXP-a-b]<= p2  ) S++ ;
+      }
+   }
+   S *= 6 ;
+   // a=b
+   for(a=0;2*a<=PB154_EXP;a++) {
+      if(2*exp2[a]+exp2[PB154_EXP-2*a]<= p2 && 2*exp5[a]+exp5[PB154_EXP-2*a]<=p5 ) S += 3 ;
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+#define PB155_NBC 18
+typedef struct Capacity {
+   int64_t  num;
+   int64_t  den ;
+} Capacity ;
+
+Capacity Paral(Capacity cap1,Capacity cap2) {
+   Capacity capP ;
+   capP.den = cap1.den * cap2.den ;
+   capP.num = cap1.num * cap2.den + cap2.num * cap1.den ;
+   int64_t g = PGCD64(capP.den, capP.num);
+   if(g > 1) {
+      capP.den /= g ;
+      capP.num /= g ;
+   }
+   return capP ;
+}
+
+int cmpCap(const void *e1,const void *e2) {
+   Capacity * c1 = (Capacity * )e1 ;
+   Capacity * c2 = (Capacity * )e2 ;
+   int64_t diff  = c1->num * c2->den - c2->num * c1->den ;
+   if(diff > 0) return 1;
+   else if (diff < 0) return -1 ;
+   return 0 ;
+}
+Capacity Serial(Capacity cap1,Capacity cap2) {
+   Capacity serP ;
+   serP.num = cap1.num * cap2.num ;
+   serP.den = cap1.num * cap2.den + cap2.num * cap1.den ;
+   int64_t g = PGCD64(serP.den, serP.num);
+   if(g > 1) {
+      serP.den /= g ;
+      serP.num /= g ;
+   }
+   return serP ;
+}
+typedef struct TBCAP {
+   Capacity *caps ;
+   int32_t indCs[PB155_NBC+2];
+} TBCAP ;
+
+int CheckInsert(TBCAP *tbc,int is, int level, Capacity nCap) {
+/*   int k ;
+   for(k=1;k<level;k++) {
+      if(bsearch(&nCap,tbc->caps+tbc->indCs[k], tbc->indCs[k+1]-tbc->indCs[k],sizeof(tbc->caps[0]),cmpCap)!=NULL) {
+         return is ;
+      }
+   }
+ */
+   tbc->caps[is++] = nCap;
+   return is ;
+}
+
+int PB155(PB_RESULT *pbR) {
+   TBCAP tbc ;
+   pbR->nbClock = clock() ;
+   tbc.indCs[1] = 0 ;
+   tbc.indCs[2] = 1 ;
+   tbc.indCs[3] = 3 ;
+   int i ;
+   int32_t SSs =  tbc.indCs[3] ;
+   int32_t SS =  SSs ;
+   for(i=3;i<=PB155_NBC;i++) {
+      int32_t Ss = 0 ;
+      int32_t Sp = 0 ;
+      int k ;
+      for(k=1;2*k<i;k++) {
+         Ss +=  2*(tbc.indCs[k+1]-tbc.indCs[k])*(tbc.indCs[i-k+1]-tbc.indCs[i-k]) ;
+      }
+      if(2*k==i) {
+         Ss += (tbc.indCs[k+1]-tbc.indCs[k])*(tbc.indCs[k+1]-tbc.indCs[k]+1) ;
+       }
+      tbc.indCs[i+1] = Ss ;
+      SSs += Ss ;
+      SS += Ss  ;
+      printf("\n%d->s=%d,T=%d ",i,Ss,SS );
+   }
+//   Capacity * caps = malloc(SSs*sizeof(caps[0]));
+   tbc.caps = malloc(50000000*sizeof(tbc.caps[0]));
+   int is = 0 ;
+   int ip = 0 ;
+   
+   tbc.indCs[1] = 0 ;
+   tbc.caps[is++]  =(Capacity) { 1, 1} ;
+   tbc.indCs[2] = is ;
+   tbc.caps[is++] = Paral(tbc.caps[0],tbc.caps[0]);
+   tbc.caps[is++] = Serial(tbc.caps[0],tbc.caps[0]);
+   SSs =  is ;
+   tbc.indCs[3]=is ;
+   SS = SSs  ;
+   for(i=3;i<=PB155_NBC;i++) {
+      int32_t Ss = 0 ;
+      int k ;
+      tbc.indCs[i] = is ;
+      for(k=1;2*k<i;k++) {
+        int k1,k2 ;
+         for(k1=tbc.indCs[k];k1<tbc.indCs[k+1];k1++) {
+            for(k2=tbc.indCs[i-k];k2<tbc.indCs[i-k+1];k2++) {
+//               is=CheckInsert(&tbc, is,i,Serial(tbc.caps[k1],tbc.caps[k2]));
+//               is=CheckInsert(&tbc, is,i,Paral(tbc.caps[k1],tbc.caps[k2]));
+               tbc.caps[is++] = Serial(tbc.caps[k1],tbc.caps[k2]) ;
+               tbc.caps[is++] = Paral(tbc.caps[k1],tbc.caps[k2]) ;
+           }
+         }
+         
+      }
+      if(2*k==i) {
+         int k1,k2 ;
+         for(k1=tbc.indCs[k];k1<tbc.indCs[k+1];k1++) {
+            for(k2=k1;k2<tbc.indCs[k+1];k2++) {
+ //              is=CheckInsert(&tbc, is,i,Serial(tbc.caps[k1],tbc.caps[k2]));
+ //              is=CheckInsert(&tbc, is,i,Paral(tbc.caps[k1],tbc.caps[k2]));
+               tbc.caps[is++] = Serial(tbc.caps[k1],tbc.caps[k2]) ;
+               tbc.caps[is++] = Paral(tbc.caps[k1],tbc.caps[k2]) ;
+            }
+         }
+      }
+      int32_t oldNb = tbc.indCs[i+1] = is  ;
+      qsort(tbc.caps+tbc.indCs[i], tbc.indCs[i+1]-tbc.indCs[i], sizeof(tbc.caps[0]), cmpCap) ;
+      is =tbc.indCs[i]+1  ;
+      for(k=tbc.indCs[i]+1;k<tbc.indCs[i+1];k++) {
+         if(tbc.caps[k].den != tbc.caps[is-1].den ||tbc.caps[k].num != tbc.caps[is-1].num ) {
+            tbc.caps[is++] = tbc.caps[k] ;
+         }
+      }
+      tbc.indCs[i+1] = is  ;
+      SSs +=  tbc.indCs[i+1] - tbc.indCs[i];
+      SS +=   tbc.indCs[i+1] - tbc.indCs[i] ;
+      printf("\n%d->s=%d=>%d,T=%d=%d\n ",i,oldNb,tbc.indCs[i+1],SS,SSs );
+      if(i<=10) {
+         for(k=tbc.indCs[i];k<tbc.indCs[i+1];k++) { printf("%lld/%lld ",tbc.caps[k].num,tbc.caps[k].den); }
+      }
+   }
+   qsort(tbc.caps, SSs, sizeof(tbc.caps[0]), cmpCap) ;
+   if(PB155_NBC<=10) {
+      int k ;
+      printf("\n serial=");
+      for(k=0;k<SSs;k++) { printf("%lld/%lld ",tbc.caps[k].num,tbc.caps[k].den); }
+   }
+   printf("\n");
+   Capacity ant = (Capacity){0,1} ;
+   int nbConf = 0 ;
+   for(is=1;is<SSs;is++){
+      if(cmpCap(tbc.caps+is,tbc.caps+is-1)==0){ nbConf++ ;}
+   }
+   printf("Nbconf=%d\n",nbConf );
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",SS-nbConf) ;
+   
    return 1 ;
 }
 
