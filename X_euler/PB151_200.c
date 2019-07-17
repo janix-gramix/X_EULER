@@ -1240,15 +1240,15 @@ int PB154(PB_RESULT *pbR) {
 
 #define PB155_NBC 18
 typedef struct Capacity {
-   int64_t  num;
-   int64_t  den ;
+   int32_t  num;
+   int32_t  den ;
 } Capacity ;
 
-Capacity Paral(Capacity cap1,Capacity cap2) {
+static inline Capacity IParal(Capacity cap1,Capacity cap2) {
    Capacity capP ;
-   capP.den = cap1.den * cap2.den ;
-   capP.num = cap1.num * cap2.den + cap2.num * cap1.den ;
-   int64_t g = PGCD64(capP.den, capP.num);
+   capP.num = cap1.den * cap2.den ;
+   capP.den = cap1.num * cap2.den + cap2.num * cap1.den ;
+   int32_t g = PGCD(capP.den, capP.num);
    if(g > 1) {
       capP.den /= g ;
       capP.num /= g ;
@@ -1256,52 +1256,33 @@ Capacity Paral(Capacity cap1,Capacity cap2) {
    return capP ;
 }
 
-int cmpCap(const void *e1,const void *e2) {
-   Capacity * c1 = (Capacity * )e1 ;
-   Capacity * c2 = (Capacity * )e2 ;
-   int64_t diff  = c1->num * c2->den - c2->num * c1->den ;
-   if(diff > 0) return 1;
-   else if (diff < 0) return -1 ;
-   return 0 ;
-}
-Capacity Serial(Capacity cap1,Capacity cap2) {
-   Capacity serP ;
-   serP.num = cap1.num * cap2.num ;
-   serP.den = cap1.num * cap2.den + cap2.num * cap1.den ;
-   int64_t g = PGCD64(serP.den, serP.num);
-   if(g > 1) {
-      serP.den /= g ;
-      serP.num /= g ;
-   }
-   return serP ;
-}
-Capacity SerialI1(Capacity cap1,Capacity cap2) {
+static inline Capacity SerialI1(Capacity cap1,Capacity cap2) {
    Capacity serP ;
    serP.num = cap1.den * cap2.num ;
    serP.den = cap1.den * cap2.den + cap2.num * cap1.num ;
-   int64_t g = PGCD64(serP.den, serP.num);
+   int32_t g = PGCD(serP.den, serP.num);
    if(g > 1) {
       serP.den /= g ;
       serP.num /= g ;
    }
    return serP ;
 }
-Capacity SerialI2(Capacity cap1,Capacity cap2) {
+static inline Capacity SerialI2(Capacity cap1,Capacity cap2) {
    Capacity serP ;
    serP.num = cap1.num * cap2.den ;
    serP.den = cap1.num * cap2.num + cap2.den * cap1.den ;
-   int64_t g = PGCD64(serP.den, serP.num);
+   int32_t g = PGCD(serP.den, serP.num);
    if(g > 1) {
       serP.den /= g ;
       serP.num /= g ;
    }
    return serP ;
 }
-Capacity SerialI12(Capacity cap1,Capacity cap2) {
+static inline Capacity SerialI12(Capacity cap1,Capacity cap2) {
    Capacity serP ;
    serP.num = cap1.num * cap2.num ;
    serP.den = cap1.den * cap2.num + cap2.den * cap1.num ;
-   int64_t g = PGCD64(serP.den, serP.num);
+   int32_t g = PGCD(serP.den, serP.num);
    if(g > 1) {
       serP.den /= g ;
       serP.num /= g ;
@@ -1311,79 +1292,70 @@ Capacity SerialI12(Capacity cap1,Capacity cap2) {
 
 
 
-typedef struct TBCAP {
-   Capacity *caps ;
-   int32_t indCs[PB155_NBC+2];
-} TBCAP ;
-
-int CheckInsert(TBCAP *tbc,int is, int level, Capacity nCap) {
-/*   int k ;
-   for(k=1;k<level;k++) {
-      if(bsearch(&nCap,tbc->caps+tbc->indCs[k], tbc->indCs[k+1]-tbc->indCs[k],sizeof(tbc->caps[0]),cmpCap)!=NULL) {
-         return is ;
-      }
-   }
- */
-   tbc->caps[is++] = nCap;
-   return is ;
-}
-#define PB155_MAXD   4181
+//#define HASH_CP(cp) (PB155_MAXD*(cp).den+(cp).num)
+#define HASH_CP(cp) ((cp).den*((cp).den+1)/2+(cp).num)
 int PB155(PB_RESULT *pbR) {
-   TBCAP tbc ;
+   int maxDen ;
+   {
+      int F0 = 1, F1=1 ;
+      int k ;
+      for(k=2;k<=PB155_NBC;k++) {    int F2 = F0+F1 ;    F0=F1;  F1=F2 ;   }
+      maxDen = F1 ;
+
+   }
+//   int maxDen = PB155_MAXD ;
    pbR->nbClock = clock() ;
    int i;
    Capacity cp ;
-//   Capacity * caps = malloc(SSs*sizeof(caps[0]));
-   tbc.caps = malloc(50000000*sizeof(tbc.caps[0]));
+   Capacity *caps = malloc((maxDen+1)*(maxDen+2)/2*sizeof(caps[0]));
+   int32_t indCs[PB155_NBC+2];
    int is = 0 ;
-   uint8_t * isFound = calloc((PB155_MAXD+1)*PB155_MAXD,sizeof(isFound[0])) ;
-   tbc.indCs[1] = 0 ;
-   tbc.caps[is++]  =(Capacity) { 1, 1} ; isFound[PB155_MAXD*1+1]=1 ;
-   tbc.indCs[2] = is ;
-//   tbc.caps[is++] = Paral(tbc.caps[0],tbc.caps[0]);
-   tbc.caps[is++] = cp= Serial(tbc.caps[0],tbc.caps[0]); isFound[PB155_MAXD*cp.den+cp.num]=1 ;
-   int SSs =  is ;
-   tbc.indCs[3]=is ;
-   int SS = SSs  ;
+   uint8_t * isFound = calloc((maxDen+1)*(maxDen+2)/2,sizeof(isFound[0])) ;
+   indCs[1] = 0 ;
+   cp = (Capacity) { 1, 1} ;
+   caps[is++]  = cp  ; isFound[HASH_CP(cp)]=1 ;
+   indCs[2] = is ;
+   caps[is++] = cp= IParal(caps[0],caps[0]); isFound[HASH_CP(cp)]=1 ;
+   int SS =  is ;
+   indCs[3]=is ;
+   int32_t hcp ;
    for(i=3;i<=PB155_NBC;i++) {
-      int32_t Ss = 0 ;
       int k ;
-      tbc.indCs[i] = is ;
-      for(k=1;2*k<=i;k++) {
-        int k1,k2 ;
-         for(k1=tbc.indCs[k];k1<tbc.indCs[k+1];k1++) {
-            for(k2=(2*k==i) ? k1 : tbc.indCs[i-k];k2<tbc.indCs[i-k+1];k2++) {
-//               tbc.caps[is++] = Serial(tbc.caps[k1],tbc.caps[k2]) ;
-//               tbc.caps[is++] = Paral(tbc.caps[k1],tbc.caps[k2]) ;
+      indCs[i] = is ;
+      {
+         int k2 ;
+         Capacity cp1 = (Capacity) { 1, 1} ;
+         for(k2=indCs[i-1];k2<indCs[i];k2++) {
+               Capacity cp = IParal(cp1,caps[k2]) ;
+               if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
+               cp = SerialI1(cp1,caps[k2]) ; if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
+               cp = SerialI2(cp1,caps[k2]) ; if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
+         }
 
-               Capacity cp = Paral(tbc.caps[k1],tbc.caps[k2]) ;
-               if(cp.den > cp.num) {
-                  if(isFound[PB155_MAXD*cp.den+cp.num] == 0) { tbc.caps[is++] = cp ; isFound[PB155_MAXD*cp.den+cp.num]=1 ; }
+      }
+      for(k=2;2*k<=i;k++) {
+        int k1,k2 ;
+         for(k1=indCs[k];k1<indCs[k+1];k1++) {
+            for(k2=(2*k==i) ? k1 : indCs[i-k];k2<indCs[i-k+1];k2++) {
+                Capacity cp = IParal(caps[k1],caps[k2]) ;
+               if( cp.den > cp.num) {
+                  if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
                } else if(cp.den < cp.num)  {
-                  int64_t tmp = cp.den ;
+                  int32_t tmp = cp.den ;
                   cp.den = cp.num ;
                   cp.num = tmp ;
-                  if(isFound[PB155_MAXD*cp.den+cp.num] == 0) { tbc.caps[is++] = cp ; isFound[PB155_MAXD*cp.den+cp.num]=1 ; }
+                  if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
                }
-               cp = SerialI1(tbc.caps[k1],tbc.caps[k2]) ; if(isFound[PB155_MAXD*cp.den+cp.num] == 0) { tbc.caps[is++] = cp ; isFound[PB155_MAXD*cp.den+cp.num]=1 ; }
-               cp = SerialI2(tbc.caps[k1],tbc.caps[k2]) ; if(isFound[PB155_MAXD*cp.den+cp.num] == 0) { tbc.caps[is++] = cp ; isFound[PB155_MAXD*cp.den+cp.num]=1 ; }
-               cp = SerialI12(tbc.caps[k1],tbc.caps[k2]) ; if(isFound[PB155_MAXD*cp.den+cp.num] == 0) { tbc.caps[is++] = cp ; isFound[PB155_MAXD*cp.den+cp.num]=1 ; }
- 
-               
+               cp = SerialI1(caps[k1],caps[k2]) ; if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
+               cp = SerialI2(caps[k1],caps[k2]) ; if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
+               cp = SerialI12(caps[k1],caps[k2]) ; if(isFound[hcp=HASH_CP(cp)] == 0) { caps[is++] = cp ; isFound[hcp]=1 ; }
             }
          }
          
       }
-      int32_t oldNb = tbc.indCs[i+1] = is  ;
-      SSs +=  tbc.indCs[i+1] - tbc.indCs[i];
-      SS +=   tbc.indCs[i+1] - tbc.indCs[i] ;
-      printf("\n%d->s=%d=>%d,T=%d=%d\n ",i,oldNb-tbc.indCs[i],tbc.indCs[i+1]-tbc.indCs[i],SS,SSs );
-      if(i<=10) {
-         int k ;
-         printf("\n serial=");
-         for(k=tbc.indCs[i];k<tbc.indCs[i+1];k++) { printf("%lld/%lld ",tbc.caps[k].num,tbc.caps[k].den); }
-      }
-
+      indCs[i+1] = is  ;
+      SS +=   indCs[i+1] - indCs[i] ;
+      printf("%d->s=%d,T=%d\n ",i,indCs[i+1]-indCs[i],2*SS-1);
    }
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",2*SS-1) ;
@@ -1391,6 +1363,127 @@ int PB155(PB_RESULT *pbR) {
    return 1 ;
 }
 
+#define PB156_EXP    19
+
+static inline int64_t nbxd(int64_t n,int digit) {
+   int64_t pow10 = 1 ;
+   int64_t nb = -n ;
+   while(n >= pow10) {
+      int64_t powNext = 10 * pow10 ;
+      int64_t iq = (n / powNext) ;
+      nb  += pow10*iq  ;
+      iq = n - powNext * iq - digit* pow10 + 1 ; // n % 10*pow10 - (digit*pow10-1)
+      if(iq > 0) {
+         if(iq>pow10) {
+            nb += pow10 ;
+         } else {
+            nb += iq ;
+         }
+      }
+      pow10 = powNext ;
+   }
+   return nb ;
+}
+
+
+// f(10**10+n,d)=f(n,d)+10**10
+// so if f(n,d)==n => f(10**10+n,d) == 10**10+n
+// we can sho that no solution > 10**11
+
+int PB156(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int digit ;
+   int64_t is, Sd=0 ;
+   for(digit=1;digit<=9;digit++){
+      int nbF = 0 ;
+      int64_t Si = 0 ;
+      for(is=1;is<10000000000;){
+         int64_t exps =nbxd(is,digit) ;
+         if(exps > 0) {
+            is += exps ;
+         }  else if(exps< 0) {
+            is += (-exps+9)/10 ;
+         } else {
+            Si += is ; nbF++ ;
+            is++ ;
+         }
+            
+      }
+      if(digit > 1) nbF++ ;
+      Sd += digit*Si+(digit-1)*digit/2*nbF*10000000000 ;
+      if(pbR->isVerbose) fprintf(stdout,"\t PB%s S(%d)=%lld\n",pbR->ident,digit,digit*Si+(digit-1)*digit/2*nbF*10000000000);
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",Sd) ;
+   return 1 ;
+}
+
+#define PB157_EXP 9
+int PB157(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int64_t nbSol = 0 ;
+   int pow2a,pow5a,pow2b,pow5b ;
+   int exp ;
+   for(exp=1;exp<=PB157_EXP;exp++){
+      pow2a=pow5a=0 ;
+      int a =1 ;
+      int b ;
+      int N,D ;
+      for(pow2b=0;pow2b<=exp;pow2b++) {
+         b=1 << pow2b ; // 2**pow2b
+         for(pow5b=0;pow5b<=exp;pow5b++,b *=5) {
+            N = a+b ;
+            D = a*b ;
+            int pow2r = exp - pow2b + 1 ;
+            int pow5r = exp - pow5b + 1 ;
+            while((N%2) == 0) {
+               pow2r++ ; N /= 2 ;
+            }
+            while((N%5) == 0) {
+               pow5r++ ; N /= 5 ;
+            }
+           // divison for N
+            int d ,nbDiv = 0;
+            for(d=1;d*d<N;d++) {
+               if((N % d) == 0) nbDiv += 2 ;
+            }
+            if((N % d)==0) nbDiv++ ;
+            nbSol += nbDiv * pow2r * pow5r ;
+//            printf("[%d,%d]->%d ",a,b, nbDiv * pow2r * pow5r);
+         }
+      }
+      for(pow2a=1;pow2a<=exp;pow2a++) {
+         a = 1 << pow2a ;
+         b = 5 ;
+         for(pow5b=1;pow5b<=exp;pow5b++,b *=5) {
+            N = a+b ;
+            D = a*b ;
+            int pow2r = exp - pow2a + 1 ;
+            int pow5r = exp - pow5b + 1 ;
+            while((N%2) == 0) {
+               pow2r++ ; N /= 2 ;
+            }
+            while((N%5) == 0) {
+               pow5r++ ; N /= 5 ;
+            }
+
+            // divison for N
+            int d ,nbDiv = 0;
+            for(d=1;d*d<N;d++) {
+               if((N % d) == 0) nbDiv += 2 ;
+            }
+            if((N % d)==0) nbDiv++ ;
+            nbSol += nbDiv * pow2r * pow5r ;
+//            printf("{%d,%d}->%d ",a,b,nbDiv * pow2r * pow5r);
+         }
+
+      }
+      printf("\n");
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",nbSol) ;
+   return 1 ;
+}
 
 
 // nb(tiles) = 4*n*p with n>p
