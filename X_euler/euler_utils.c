@@ -294,7 +294,8 @@ CTX_PRIMETABLE * Free_tablePrime(CTX_PRIMETABLE * ctx) {
     free(ctx);
     return NULL ;
 }
-#define USE_Primeb  1
+
+#define USE_PRIMEb  1
 
 
 
@@ -444,7 +445,7 @@ CTX_PRIMETABLE * Gen_tablePrimeNb(T_prime maxNb) {
     ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
     if(ctx->tbPrime == NULL) { return Free_tablePrime(ctx) ; }
 //   ctx->maxValue = 0x7fffffff ;
-    ctx->maxValue = ctx->maxNbPrime * ctx->maxNbPrime  ;
+    ctx->maxValue = ctx->maxNbPrime * (4 + log (ctx->maxNbPrime))  ;
     FindPrime(ctx->maxValue,ctx,CPL_tablePrime) ;
     return ctx ;
 }
