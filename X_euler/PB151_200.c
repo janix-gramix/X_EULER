@@ -1695,15 +1695,15 @@ int PB166(PB_RESULT *pbR) {
                   Si = ai+bi+ci+di ;
                   for(fi=0;fi<=9;fi++) {
                      ni = Si -bi -fi ;
-                     if(ni < 0) break ;
-                     for(ji=0;ji<=9;) {
+                     if(ni > 9) { ni = 9 ;}
+                     // oi = Si -bi -ci -ni ;
+                     if(Si-bi-ci<ni) ni = Si-bi-ci ;
+                     int minni = 0 ;
+                     if(Si-9 -bi -fi > 0)minni = Si-9 -bi -fi ;
+                     if(Si -9 -bi -ci> minni) minni=Si -9 -bi -ci ;
+                     for(;ni >= minni ;ni-- ) {
  //                       ni = Si - bi -fi - ji ;
-                        if(ni<0) break ;
-                        if(ni > 9) { ji += ni - 9 ; ni=9 ; continue ; }
-                        
                         //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
-                        oi = Si -bi -ci -ni ;
-                        if(oi < 0 || oi > 9) { ji++ ; ni-- ;  continue ; }
                         for(pi=0;pi<=9;pi++) {
                            ki = Si - ai -fi -pi ;
                            if(ki < 0) break ;
@@ -1713,23 +1713,25 @@ int PB166(PB_RESULT *pbR) {
                            mi = bi + ci -pi ;
                            if(mi < 0) break ;
                            if(mi > 9) { pi += mi -10 ; continue ; }
-                           gi = Si - di -ji - mi ;
+                           // ji = Si -bi -ni -fi ;
+//                           gi = Si - di -ji - mi ;
+                           gi = bi + ni +fi -di - mi ;
                            if(gi > 9) break ;
                            if(gi< 0) continue ;
-                           for(ei=0;ei<=9;ei++) {
-                              ii = Si - ai - ei -mi  ;
-                              if(ii<0) break ;
-                              hi = Si -ei -fi -gi ;
-                              if(hi < 0) break ;
-                              if(ii>9 || hi > 9) continue ;
-                              li = Si -di -hi -pi ;
-                              if(li > 9) break ;
-                              if(li < 0) continue ;
-                              S++ ;
-                           }
+                           // ii=Si-ai -mi -ei [0,9]
+                           // hi=Si-fi -gi -ei [0-9]
+                           // li = Si - di -hi -pi = ei + fi + gi -di -pi
+                           int maxei = 9 ;
+                           if(Si-ai -mi < 9) maxei = Si-ai -mi ;
+                           if(Si-fi-gi < maxei)maxei = Si-fi-gi ;
+                           if(9-fi -gi +di+pi< maxei ) maxei = 9-fi -gi +di+pi ;
+                           int minei = 0 ;
+                           if(Si-ai -mi -9 > 0)minei=Si-ai -mi -9 ;
+                           if(Si-fi -gi -9> minei )minei=Si-fi -gi -9 ;
+                           if(di+pi-fi-gi > minei)minei = di+pi-fi-gi ;
+                           if(maxei>=minei)S += maxei-minei+1 ;
                         }
-                        ji++ ; ni-- ;
-                     }
+                      }
                   }
                   
                }
