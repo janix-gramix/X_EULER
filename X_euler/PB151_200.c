@@ -1700,6 +1700,10 @@ int PB166(PB_RESULT *pbR) {
  //                       ni = Si - bi -fi - ji ;
                         if(ni<0) break ;
                         if(ni > 9) { ji += ni - 9 ; ni=9 ; continue ; }
+                        
+                        //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
+                        oi = Si -bi -ci -ni ;
+                        if(oi < 0 || oi > 9) { ji++ ; ni-- ;  continue ; }
                         for(pi=0;pi<=9;pi++) {
                            ki = Si - ai -fi -pi ;
                            if(ki < 0) break ;
@@ -1709,12 +1713,6 @@ int PB166(PB_RESULT *pbR) {
                            mi = bi + ci -pi ;
                            if(mi < 0) break ;
                            if(mi > 9) { pi += mi -10 ; continue ; }
-                           //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
-                           oi = Si -bi -ci -ni ;
-                           if(oi < 0) break ;
-                           if(oi >9) {
-                              pi += oi-10 ; continue ;
-                           }
                            gi = Si - di -ji - mi ;
                            if(gi > 9) break ;
                            if(gi< 0) continue ;
