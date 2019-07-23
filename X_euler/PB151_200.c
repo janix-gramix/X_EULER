@@ -1422,66 +1422,614 @@ int PB156(PB_RESULT *pbR) {
 int PB157(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
    int64_t nbSol = 0 ;
-   int pow2a,pow5a,pow2b,pow5b ;
+   int pow2,pow5 ;
    int exp ;
    for(exp=1;exp<=PB157_EXP;exp++){
-      pow2a=pow5a=0 ;
-      int a =1 ;
-      int b ;
-      int N,D ;
-      for(pow2b=0;pow2b<=exp;pow2b++) {
-         b=1 << pow2b ; // 2**pow2b
-         for(pow5b=0;pow5b<=exp;pow5b++,b *=5) {
-            N = a+b ;
-            D = a*b ;
-            int pow2r = exp - pow2b + 1 ;
-            int pow5r = exp - pow5b + 1 ;
-            while((N%2) == 0) {
-               pow2r++ ; N /= 2 ;
+      int aIs1 ;
+      for(aIs1=0;aIs1<=1;aIs1++) {
+         int a,b;
+         int N,D ;
+         for(pow2=1-aIs1;pow2<=exp;pow2++) {
+            if(aIs1==1) {
+               a=1;
+               b=1 << pow2 ; // 2**pow2b
+            } else {
+               a= 1 << pow2 ;
+               b = 5 ;
             }
-            while((N%5) == 0) {
-               pow5r++ ; N /= 5 ;
+            for(pow5=1-aIs1;pow5<=exp;pow5++,b *=5) {
+               N = a+b ;
+               D = a*b ;
+               int pow2r = exp - pow2 + 1 ;
+               int pow5r = exp - pow5 + 1 ;
+               {
+                  int N1 ;
+                  while(N1=N/2, N==2*N1) {
+                     pow2r++ ; N = N1 ;
+                  }
+                  while(N1=N/5, N==2*N1) {
+                     pow5r++ ; N = N1 ;
+                  }
+               }
+              // divison for N
+               int d ,nbDiv = 0;
+               for(d=1;d*d<N;d++) {
+                  if((N % d) == 0) nbDiv += 2 ;
+               }
+               if((N % d)==0) nbDiv++ ;
+               nbSol += nbDiv * pow2r * pow5r ;
+   //            printf("[%d,%d]->%d ",a,b, nbDiv * pow2r * pow5r);
             }
-           // divison for N
-            int d ,nbDiv = 0;
-            for(d=1;d*d<N;d++) {
-               if((N % d) == 0) nbDiv += 2 ;
-            }
-            if((N % d)==0) nbDiv++ ;
-            nbSol += nbDiv * pow2r * pow5r ;
-//            printf("[%d,%d]->%d ",a,b, nbDiv * pow2r * pow5r);
          }
       }
-      for(pow2a=1;pow2a<=exp;pow2a++) {
-         a = 1 << pow2a ;
-         b = 5 ;
-         for(pow5b=1;pow5b<=exp;pow5b++,b *=5) {
-            N = a+b ;
-            D = a*b ;
-            int pow2r = exp - pow2a + 1 ;
-            int pow5r = exp - pow5b + 1 ;
-            while((N%2) == 0) {
-               pow2r++ ; N /= 2 ;
-            }
-            while((N%5) == 0) {
-               pow5r++ ; N /= 5 ;
-            }
-
-            // divison for N
-            int d ,nbDiv = 0;
-            for(d=1;d*d<N;d++) {
-               if((N % d) == 0) nbDiv += 2 ;
-            }
-            if((N % d)==0) nbDiv++ ;
-            nbSol += nbDiv * pow2r * pow5r ;
-//            printf("{%d,%d}->%d ",a,b,nbDiv * pow2r * pow5r);
-         }
-
-      }
-      printf("\n");
    }
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",nbSol) ;
+   return 1 ;
+}
+
+// par symetrie il suffit de trouver les permutations 1..n avec un seul increment Kn
+// par position du 0 en 1ere éieme ... nieme on a K(n) = C(0,n-1)+C(1,n-1)+..(C(n-2,n-1)+K(n-1)
+//  = 2 << (n-1) - 1 + K(n-1)
+// => K(n) = 2 << n - (n+1)
+// on multiplie apres par C(n,26)
+
+int PB158(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   uint64_t C =  26 * 25 /2;
+   uint64_t F = C ;
+   int n ;
+   for(n=3;n<20;n++) {
+      C = C * (26-n+1) / n ;
+      uint64_t Fnext = C *  ((1<<n) -n-1);
+      if(pbR->isVerbose) fprintf(stdout,"\t PB%s F(%d)=%lld\n",pbR->ident, n,Fnext);
+      if(Fnext<F) break ;
+      else F = Fnext ;
+   }
+     pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",F) ;
+   return 1 ;
+}
+
+#define PB159_MAX 1000000
+#define mod9(p)   ((p) % 9)
+
+
+int PB159(PB_RESULT *pbR) {
+   int32_t S = 0 ;
+   pbR->nbClock = clock() ;
+   int sqM = Sqrt32(PB159_MAX)+1;
+   
+   CTX_PRIMETABLE * ctxP  ;
+   if((ctxP = Gen_tablePrime(sqM)) == NULL) {
+      fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+      return 0 ;
+   }
+   const T_prime * tbPrime = GetTbPrime(ctxP);
+   int nbPrime = GetNbPrime(ctxP) ;
+   int lastP = tbPrime[nbPrime-1] ;
+   int8_t *modP = malloc(nbPrime*sizeof(modP[0])) ;
+   int i ;
+   for(i=0;i<nbPrime;i++) {
+      int p = tbPrime[i] ;
+      modP[i] = mod9(p) ;
+//      printf("%d->%d ",p,modP[i]) ;
+   }
+   int8_t mod[9] ;
+   for(i=2;i<PB159_MAX;i++) {
+      int i1=i ;
+      int ip,p ;
+      memset(mod,0,sizeof(mod)) ;
+      for(ip=0;i1>1 && ip < nbPrime ;ip++) {
+         p = tbPrime[ip] ;
+         if(p>i1) break ;
+         while((i1 % p)==0) {
+            i1 /= p ;
+            mod[modP[ip]]++ ;
+         }
+      }
+      if(i1 > 1) {
+         mod[mod9(i1)]++ ;
+      }
+//    6 and 9 no possible value
+      int s = mod[1]+ 5*mod[5]+7*mod[7]+8*mod[8] ;
+      if(mod[3]) {
+         s += (mod[3]/2) * 9 ;
+         mod[3] &= 1 ;
+      }
+      if(mod[4]) {
+         if(mod[4]<=mod[2]) {
+            s += mod[4]*8 ;
+            mod[2] -= mod[4] ;
+         } else {
+            s += mod[2]*8 + (mod[4]-mod[2])*4 ;
+            mod[2] = 0 ;
+         }
+      }
+      s += (mod[2]/3)*8 ;
+      mod[2]-= 3*(mod[2]/3) ;
+      if(mod[3] && mod[2]) {
+         s += 6  ;
+         mod[2]-- ;
+      } else if(mod[3]) s+= 3 ;
+      s += mod[2]*2  ;
+      S += s ;
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+   return 1 ;
+}
+
+int PB159a(PB_RESULT *pbR) {
+   int32_t S = 0 ;
+   pbR->nbClock = clock() ;
+   
+   int8_t *maxDrs = malloc(PB159_MAX*sizeof(maxDrs[0])) ;
+   int i,m9 ;
+   
+   for(m9=1;m9<=9;m9++) {
+      for(i=m9;i<PB159_MAX;i+=9) {
+         maxDrs[i]= m9 ;
+      }
+   }
+   for(i=2;i<PB159_MAX;i++) {
+      S += maxDrs[i] ;
+      int j,k ;
+      for(j=2*i,k=2; j<PB159_MAX;k++,j+=i) {
+         int d = maxDrs[i]+maxDrs[k] ;
+         if(d > maxDrs[j])maxDrs[j] = d ;
+      }
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+   return 1 ;
+}
+
+int PB159b(PB_RESULT *pbR) {
+   int32_t S = 0 ;
+   pbR->nbClock = clock() ;
+   
+   int8_t *maxDrs = malloc(PB159_MAX*sizeof(maxDrs[0])) ;
+   int i,m9 ;
+   
+   for(m9=1;m9<=9;m9++) {
+      for(i=m9;i<PB159_MAX;i+=9) {
+         maxDrs[i]= m9 ;
+      }
+   }
+   int sqM = Sqrt32(PB159_MAX)+1;
+   int *next = malloc(sqM*sizeof(next[0]));
+   for(i=0;i<sqM;i++)next[i]= i ;
+   int imax,n,m,k,j ;
+   for(imax=1,n=9;n<PB159_MAX;n*=2) {
+      m=2*n; if(m>=PB159_MAX) m=PB159_MAX-1;
+      while((imax+1)*(imax+1)<=m) imax++;
+      for(i=2;i<=imax;i++) {
+         for(k=i*(j=next[i]);k<=m;j++,k+=i) {
+            int d = maxDrs[i]+maxDrs[j] ;
+            if(maxDrs[k]<d) maxDrs[k]=d;
+         }
+         next[i]=j;
+      }
+   }
+   for(i=2;i<PB159_MAX;i++) S+=maxDrs[i];
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+   return 1 ;
+}
+
+#define PB160_FACT   1000000000000LL
+int PB160(PB_RESULT *pbR) {
+   int32_t S = 0 ;
+   pbR->nbClock = clock() ;
+   int64_t pow2=2 ;
+   int64_t exp2 = 0 ;
+   while(pow2<=PB160_FACT) {
+      exp2 += PB160_FACT / pow2 ;
+      pow2 *=2 ;
+   }
+   int64_t pow5=5 ;
+   int64_t exp5 = 0 ;
+   while(pow5<=PB160_FACT) {
+      exp5 += PB160_FACT / pow5 ;
+      pow5 *=5 ;
+   }
+   printf("Exp2=%lld Exp5=%lld \n",exp2,exp5) ;
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+   return 1 ;
+}
+
+int64_t Pow(int64_t a,int exp) {
+   int64_t pow = 1;
+   while(exp > 0) { pow *= a ; exp-- ; }
+   return pow ;
+}
+int PB162(PB_RESULT *pbR) {
+   int64_t S = 0 ;
+   pbR->nbClock = clock() ;
+   int len ;
+   for(len=16;len>=3;len--) {
+      S += 15*Pow(16,len-1) // any
+      -Pow(15,len) // without 0
+      -2*14*Pow(15,len-1) // without 1 or A
+      +2*Pow(14,len) // without 01 or 0A
+      +13*Pow(14,len-1) // without 1A
+      -Pow(13,len) ; // without 01A
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llX",S) ;
+   return 1 ;
+}
+
+
+#define I(i,j) ((i)*4+(j))
+
+int CmpV(const void *e1,const void *e2){
+   const uint64_t * u1= e1 ;
+   const uint64_t * u2= e2 ;
+   if(*u1 > *u2) return 1 ;
+   else if (*u1 != *u2) return -1;
+   else return 0 ;
+
+}
+int PB166(PB_RESULT *pbR) {
+   int64_t N = 0 ;
+   char * raw1[4] = { " X . . ."," . X . ."," . . X ."," . . . X" } ;
+   char *raw[16] = {" . . . ."," X . . ."," . X . ."," X X . .",
+      " . . X ."," X . X ."," . X X ."," X X X .",
+      " . . . X"," X . . X"," . X . X"," X X . X",
+      " . . X X"," X . X X"," . X X X"," X X X X"
+   } ;
+   pbR->nbClock = clock() ;
+   
+   uint64_t S = 0 ;
+   {
+      int ai,bi,ci,di,ei,fi,gi,hi,ii,ji,ki,li,mi,ni,oi,pi, Si ;
+      for(ai=0;ai<=9;ai++) {
+         for(bi=0;bi<=9;bi++) {
+            for(ci=0;ci<=9;ci++) {
+               for(di=0;di<=9;di++) {
+                  Si = ai+bi+ci+di ;
+                  for(fi=0;fi<=9;fi++) {
+                     ni = Si -bi -fi ;
+                     if(ni < 0) break ;
+                     for(ji=0;ji<=9;) {
+ //                       ni = Si - bi -fi - ji ;
+                        if(ni<0) break ;
+                        if(ni > 9) { ji += ni - 9 ; ni=9 ; continue ; }
+                        for(pi=0;pi<=9;pi++) {
+                           ki = Si - ai -fi -pi ;
+                           if(ki < 0) break ;
+                           if(ki>9) { pi += ki -10 ; continue ; }
+                           // oi = Si - mi -ni -pi  et oi = Si - ci -gi -ki et gi = Si - di -ji - mi
+                           // => 2*mi = Si -ni -pi -di -ji +ci +ki
+                           mi = bi + ci -pi ;
+                           if(mi < 0) break ;
+                           if(mi > 9) { pi += mi -10 ; continue ; }
+                           //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
+                           oi = Si -bi -ci -ni ;
+                           if(oi < 0) break ;
+                           if(oi >9) {
+                              pi += oi-10 ; continue ;
+                           }
+                           gi = Si - di -ji - mi ;
+                           if(gi > 9) break ;
+                           if(gi< 0) continue ;
+                           for(ei=0;ei<=9;ei++) {
+                              ii = Si - ai - ei -mi  ;
+                              if(ii<0) break ;
+                              hi = Si -ei -fi -gi ;
+                              if(hi < 0) break ;
+                              if(ii>9 || hi > 9) continue ;
+                              li = Si -di -hi -pi ;
+                              if(li > 9) break ;
+                              if(li < 0) continue ;
+                              S++ ;
+                           }
+                        }
+                        ji++ ; ni-- ;
+                     }
+                  }
+                  
+               }
+            }
+         }
+      }
+      printf("S=%lld \n",S) ;
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+   
+   uint64_t j0,j1,j2,j3 ;
+   int i0,i1,i2,i3 ;
+   uint32_t x1[4]= {1,16,256,4096} ;
+   uint64_t pat[12] ;
+   int np = 0 ;
+   for(i0=0;i0<4;i0++) {
+      j0 = x1[i0] ;
+      for(i1=0;i1<4;i1++) {
+         j1 = x1[i1] ;
+         for(i2=0;i2<4;i2++) {
+            j2 = x1[i2] ;
+            for(i3=0;i3<4;i3++) {
+               j3 = x1[i3] ;
+               int c0 = (j0 & 0xf) + (j1 & 0xf) + (j2 & 0xf) + (j3 & 0xf) ;
+               if(c0 != 1) continue ;
+               int c1 = (j0 & 0xf0) + (j1 & 0xf0) + (j2 & 0xf0) + (j3 & 0xf0) ;
+               if(c1 != 0x10) continue ;
+               int c2 = (j0 & 0xf00) + (j1 & 0xf00) + (j2 & 0xf00) + (j3 & 0xf00) ;
+               if(c2 != 0x100) continue ;
+               int d0 = (j0 & 0xf) + ((j1 & 0xf0)>>4) + ((j2 & 0xf00)>>8) + ((j3 & 0xf000)>>12) ;
+               if(d0 != 1) continue ;
+               int d1 = (j3 & 0xf) + ((j2 & 0xf0)>>4) + ((j1 & 0xf00)>>8) + ((j0 & 0xf000)>>12) ;
+               if(d1==1) {
+                  printf("%s\n%s\n%s\n%s\n\n",raw[(j0 & 1) + ((j0 & 0x10)>>3) + ((j0 & 0x100)>>6) + ((j0 & 0x1000)>>9)]
+                         ,raw[(j1 & 1) + ((j1 & 0x10)>>3) + ((j1 & 0x100)>>6) + ((j1 & 0x1000)>>9)]
+                         ,raw[(j2 & 1) + ((j2 & 0x10)>>3) + ((j2 & 0x100)>>6) + ((j2 & 0x1000)>>9)]
+                         ,raw[(j3 & 1) + ((j3 & 0x10)>>3) + ((j3 & 0x100)>>6) + ((j3 & 0x1000)>>9)]);
+                  uint64_t v = j0 + (j1<<16) + (j2<<32) + (j3<<48) ;
+                  pat[np++] = v ;
+               }
+            }
+
+         }
+      }
+   }
+   uint32_t x2[6]= { 0x11,0x101,0x110,0x1001,0x1010,0x1100} ;
+   for(i0=0;i0<6;i0++) {
+      j0 = x2[i0] ;
+      for(i1=0;i1<6;i1++) {
+         j1 = x2[i1] ;
+         for(i2=0;i2<6;i2++) {
+            j2 = x2[i2] ;
+            for(i3=0;i3<6;i3++) {
+               j3 = x2[i3] ;
+               int c0 = (j0 & 0xf) + (j1 & 0xf) + (j2 & 0xf) + (j3 & 0xf) ;
+               if(c0 != 2) continue ;
+               int c1 = (j0 & 0xf0) + (j1 & 0xf0) + (j2 & 0xf0) + (j3 & 0xf0) ;
+               if(c1 != 0x20) continue ;
+               int c2 = (j0 & 0xf00) + (j1 & 0xf00) + (j2 & 0xf00) + (j3 & 0xf00) ;
+               if(c2 != 0x200) continue ;
+               int d0 = (j0 & 0xf) + ((j1 & 0xf0)>>4) + ((j2 & 0xf00)>>8) + ((j3 & 0xf000)>>12) ;
+               if(d0 != 2) continue ;
+               int d1 = (j3 & 0xf) + ((j2 & 0xf0)>>4) + ((j1 & 0xf00)>>8) + ((j0 & 0xf000)>>12) ;
+               if(d1==2) {
+                  uint64_t v = j0 + (j1<<16) + (j2<<32) + (j3<<48) ;
+                  int nbv1=0 ;
+                  int k ; for(k=0;k<np;k++) {if((v & pat[k]) == pat[k]) nbv1++ ; }
+                  if(nbv1==2)printf("Sum \n") ;
+                  else {
+                     pat[np++] = v ;
+                     printf("%s\n%s\n%s\n%s\n\n",raw[(j0 & 1) + ((j0 & 0x10)>>3) + ((j0 & 0x100)>>6) + ((j0 & 0x1000)>>9)]
+                            ,raw[(j1 & 1) + ((j1 & 0x10)>>3) + ((j1 & 0x100)>>6) + ((j1 & 0x1000)>>9)]
+                            ,raw[(j2 & 1) + ((j2 & 0x10)>>3) + ((j2 & 0x100)>>6) + ((j2 & 0x1000)>>9)]
+                            ,raw[(j3 & 1) + ((j3 & 0x10)>>3) + ((j3 & 0x100)>>6) + ((j3 & 0x1000)>>9)],v);
+                  }
+               }
+            }
+         }
+      }
+   }
+   int i;
+   int nbBycase[16] ;
+   int indexByCase[16][8] ;
+   for(i=0;i<16;i++) {
+      nbBycase[i]=0 ;
+      uint64_t ib = 1LL <<(4*i) ;
+      int j ;
+      for(j=0;j<np;j++) {
+         if (pat[j] & ib) {
+            indexByCase[i][nbBycase[i]++] = j ;
+         }
+      }
+      printf("%d->",i); for(j=0;j<nbBycase[i];j++) printf(" %d",indexByCase[i][j]) ;
+      printf("\n");
+   }
+   /*
+    0-> 0 1 8 9
+    1-> 2 3 8 10
+    2-> 4 5 9 11
+    3-> 6 7 10 11
+    4-> 4 6 8 10
+    5-> 5 7 10 11
+    6-> 0 2 8 9
+    7-> 1 3 9 11
+    8-> 2 7 9 11
+    9-> 1 4 8 9
+    10-> 3 6 10 11
+    11-> 0 5 8 10
+    12-> 3 5 10 11
+    13-> 0 6 9 11
+    14-> 1 7 8 10
+    15-> 2 4 8 9
+   */
+   int n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11;
+   for(i=0;i<np;i++) printf("%016llx\n",pat[i]) ;
+   printf("\n");
+#define MAX1(maxi,nj)  if(9-(nj)<maxi) maxi = 9-(nj)
+   int nb9 = 0 ;
+  
+   uint64_t *tbV = malloc(70000000*sizeof(tbV[0])) ;
+   for(n0=0; n0<=9;n0++) {
+      for(n1=0;n1<=9-n0;n1++) {
+         for(n2=0;n2<=9-n0;n2++) {
+            int maxn3 = 9 -n1;
+            MAX1(maxn3,n2);
+             for(n3=0;n3<=maxn3;n3++) {
+               int maxn4 = 9 -n1;
+               MAX1(maxn4,n2) ;
+               for(n4=0;n4<=maxn4;n4++) {
+                  int maxn5 = 9 -n4;
+                  MAX1(maxn5,n0) ; MAX1(maxn5,n3) ;
+                  for(n5=0;n5<=maxn5;n5++) {
+                     int maxn6 = 9 -n4;
+                     MAX1(maxn6,n0) ; MAX1(maxn6,n3) ;
+                     for(n6=0;n6<=maxn6;n6++) {
+                        int maxn7 = 9 -n6;
+                        MAX1(maxn7,n5) ; MAX1(maxn7,n2) ;  MAX1(maxn7,n1) ;
+                        if(n0 && n3 && n4) maxn7 = 0 ;
+                        for(n7=0;n7<=maxn7;n7++) {
+                           int maxn8 = 9-n0-n1;
+                           MAX1(maxn8,n2+n3) ; MAX1(maxn8,n1+n4) ;  MAX1(maxn8,n0+n5) ;
+                           MAX1(maxn8,n4+n6) ; MAX1(maxn8,n0+n2) ;  MAX1(maxn8,n1+n7) ; MAX1(maxn8,n2+n4) ;
+                           maxn8 = 0 ;
+                          for(n8=0;n8<=maxn8;n8++) {
+                             int maxn9 = 9-n0-n1-n8;
+                             MAX1(maxn9,n4+n5) ; MAX1(maxn9,n0+n2+n8) ;  MAX1(maxn9,n1+n3) ;
+                             MAX1(maxn9,n2+n7) ; MAX1(maxn9,n0+n6) ;  MAX1(maxn9,n2+n4+n8) ;
+                               maxn9 = 0 ;
+                             if(n3 && n7 && n8) maxn9 = 0 ;
+                             for(n9=0;n9<=maxn9;n9++) {
+                                int maxn10 = 9-n2-n3-n8;
+                                MAX1(maxn10,n6+n7) ; MAX1(maxn10,n4+n6+n8) ;  MAX1(maxn10,n5+n7) ;
+                                MAX1(maxn10,n3+n6) ; MAX1(maxn10,n3+n5) ;  MAX1(maxn10,n1+n7+n8) ;
+                                maxn10 = 0 ;
+                                if(n9) maxn10=0 ;
+                                for(n10=0;n10<=maxn10;n10++) {
+                                   int maxn11 = 9-n4-n5-n9;
+                                   MAX1(maxn11,n6+n7+n10) ; MAX1(maxn11,n5+n7+n10) ;  MAX1(maxn11,n1+n3+n9) ;
+                                   MAX1(maxn11,n2+n7+n9) ; MAX1(maxn11,n3+n6+n10) ;  MAX1(maxn11,n3+n5+n10) ; MAX1(maxn11,n0+n6+n9) ;
+                                   if(n8) maxn11 = 0 ;
+                                   if(n0 && n4 && n10)maxn11 = 0 ;
+                                   maxn11 = 0 ;
+                                   for(n11=0;n11<=maxn11;n11++) {
+                                      uint64_t v = n0*pat[0]+n1*pat[1]+n2*pat[2]+n3*pat[3]+n4*pat[4]+n5*pat[5]
+                                      +n6*pat[6]+n7*pat[7]+n8*pat[8]+n9*pat[9]+n10*pat[10]+n11*pat[11] ;
+                                      if(v==0x9999999999999999LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
+//                                      if(v==0x2222222222222222LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
+//                                      if(v==0x3333333333333333LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
+                                      tbV[N++] = v ;
+                                   }
+                                }
+                             }
+                          }
+                       }
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+  int64_t nbEq= 0 ;
+  qsort(tbV,N,sizeof(tbV[0]),CmpV) ;
+   for(i=1;i<N;i++) {
+      if(tbV[i-1] == tbV[i]) nbEq++ ;
+   }
+   printf("N=%lld nbEQ=%d\n",N,nbEq);
+
+   return 1 ;
+}
+
+
+int PB164(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   uint64_t n00=0,n01=0,n02=0,n03=0,n04=0,n05=0,n06=0,n07=0,n08=0,n09=0 ;
+   uint64_t n10=1,n11=1,n12=1,n13=1,n14=1,n15=1,n16=1,n17=1,n18=1 ;
+   uint64_t n20=1,n21=1,n22=1,n23=1,n24=1,n25=1,n26=1,n27=1;
+   uint64_t n30=1,n31=1,n32=1,n33=1,n34=1,n35=1,n36=1;
+   uint64_t n40=1,n41=1,n42=1,n43=1,n44=1,n45=1;
+   uint64_t n50=1,n51=1,n52=1,n53=1,n54=1;
+   uint64_t n60=1,n61=1,n62=1,n63=1;
+   uint64_t n70=1,n71=1,n72=1;
+   uint64_t n80=1,n81=1;
+   uint64_t n90=1;
+   int i ;
+   for(i=3;i<=20;i++) {
+      uint64_t m00 = n00+n10+n20+n30+n40+n50+n60+n70+n80+n90 ;
+      uint64_t m01 = n00+n10+n20+n30+n40+n50+n60+n70+n80 ;
+      uint64_t m02 = n00+n10+n20+n30+n40+n50+n60+n70 ;
+      uint64_t m03 = n00+n10+n20+n30+n40+n50+n60 ;
+      uint64_t m04 = n00+n10+n20+n30+n40+n50 ;
+      uint64_t m05 = n00+n10+n20+n30+n40 ;
+      uint64_t m06 = n00+n10+n20+n30 ;
+      uint64_t m07 = n00+n10+n20 ;
+      uint64_t m08 = n00+n10 ;
+      uint64_t m09 = n00 ;
+
+      uint64_t m10 = n01+n11+n21+n31+n41+n51+n61+n71+n81 ;
+      uint64_t m11 = n01+n11+n21+n31+n41+n51+n61+n71 ;
+      uint64_t m12 = n01+n11+n21+n31+n41+n51+n61 ;
+      uint64_t m13 = n01+n11+n21+n31+n41+n51 ;
+      uint64_t m14 = n01+n11+n21+n31+n41 ;
+      uint64_t m15 = n01+n11+n21+n31 ;
+      uint64_t m16 = n01+n11+n21 ;
+      uint64_t m17 = n01+n11 ;
+      uint64_t m18 = n01 ;
+
+      uint64_t m20 = n02+n12+n22+n32+n42+n52+n62+n72 ;
+      uint64_t m21 = n02+n12+n22+n32+n42+n52+n62 ;
+      uint64_t m22 = n02+n12+n22+n32+n42+n52 ;
+      uint64_t m23 = n02+n12+n22+n32+n42 ;
+      uint64_t m24 = n02+n12+n22+n32 ;
+      uint64_t m25 = n02+n12+n22 ;
+      uint64_t m26 = n02+n12 ;
+      uint64_t m27 = n02 ;
+
+      uint64_t m30 = n03+n13+n23+n33+n43+n53+n63 ;
+      uint64_t m31 = n03+n13+n23+n33+n43+n53 ;
+      uint64_t m32 = n03+n13+n23+n33+n43 ;
+      uint64_t m33 = n03+n13+n23+n33 ;
+      uint64_t m34 = n03+n13+n23 ;
+      uint64_t m35 = n03+n13 ;
+      uint64_t m36 = n03 ;
+
+      uint64_t m40 = n04+n14+n24+n34+n44+n54 ;
+      uint64_t m41 = n04+n14+n24+n34+n44 ;
+      uint64_t m42 = n04+n14+n24+n34 ;
+      uint64_t m43 = n04+n14+n24 ;
+      uint64_t m44 = n04+n14 ;
+      uint64_t m45 = n04 ;
+
+      uint64_t m50 = n05+n15+n25+n35+n45 ;
+      uint64_t m51 = n05+n15+n25+n35 ;
+      uint64_t m52 = n05+n15+n25 ;
+      uint64_t m53 = n05+n15 ;
+      uint64_t m54 = n05 ;
+
+      uint64_t m60 = n06+n16+n26+n36 ;
+      uint64_t m61 = n06+n16+n26 ;
+      uint64_t m62 = n06+n16 ;
+      uint64_t m63 = n06 ;
+
+      uint64_t m70 = n07+n17+n27 ;
+      uint64_t m71 = n07+n17 ;
+      uint64_t m72 = n07 ;
+
+      uint64_t m80 = n08+n18 ;
+      uint64_t m81 = n08 ;
+
+      uint64_t m90 = n09 ;
+
+      n00=m00 ; n01=m01 ;n02=m02 ;n03=m03 ;n04=m04 ;n05=m05 ;n06=m06 ;n07=m07 ;n08=m08 ;n09=m09 ;
+      n10=m10 ; n11=m11 ;n12=m12 ;n13=m13 ;n14=m14 ;n15=m15 ;n16=m16 ;n17=m17 ;n18=m18 ;
+      n20=m20 ; n21=m21 ;n22=m22 ;n23=m23 ;n24=m24 ;n25=m25 ;n26=m26 ;n27=m27 ;
+      n30=m30 ; n31=m31 ;n32=m32 ;n33=m33 ;n34=m34 ;n35=m35 ;n36=m36 ;
+      n40=m40 ; n41=m41 ;n42=m42 ;n43=m43 ;n44=m44 ;n45=m45 ;
+      n50=m50 ; n51=m51 ;n52=m52 ;n53=m53 ;n54=m54 ;
+      n60=m60 ; n61=m61 ;n62=m62 ;n63=m63 ;
+      n70=m70 ; n71=m71 ;n72=m72 ;
+      n80=m80 ; n81=m81 ;
+      n90=m90 ;
+   }
+   uint64_t S = n00+n01+n02+n03+n04+n05+n06+n07+n08+n09
+     + n10+n11+n12+n13+n14+n15+n16+n17+n18
+     + n20+n21+n22+n23+n24+n25+n26+n27
+     + n30+n31+n32+n33+n34+n35+n36
+     + n40+n41+n42+n43+n44+n45
+     + n50+n51+n52+n53+n54
+     + n60+n61+n62+n63
+     + n70+n71+n72
+     + n80+n81
+     + n90 ;
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",S) ;
    return 1 ;
 }
 
@@ -1507,7 +2055,7 @@ int PB173(PB_RESULT *pbR) {
 // #define PB174_NB    100
 
 int PB174(PB_RESULT *pbR) {
-    int N = PB174_NB/4 ;
+   int N = PB174_NB/ 4 ;
     pbR->nbClock = clock() ;
     uint8_t *nbProd=malloc((N+1)*sizeof(nbProd[0])) ;
     int n ;
