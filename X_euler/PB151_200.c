@@ -1665,267 +1665,8 @@ int PB162(PB_RESULT *pbR) {
 }
 
 
-#define I(i,j) ((i)*4+(j))
 
-int CmpV(const void *e1,const void *e2){
-   const uint64_t * u1= e1 ;
-   const uint64_t * u2= e2 ;
-   if(*u1 > *u2) return 1 ;
-   else if (*u1 != *u2) return -1;
-   else return 0 ;
 
-}
-int PB166(PB_RESULT *pbR) {
-   int64_t N = 0 ;
-   char * raw1[4] = { " X . . ."," . X . ."," . . X ."," . . . X" } ;
-   char *raw[16] = {" . . . ."," X . . ."," . X . ."," X X . .",
-      " . . X ."," X . X ."," . X X ."," X X X .",
-      " . . . X"," X . . X"," . X . X"," X X . X",
-      " . . X X"," X . X X"," . X X X"," X X X X"
-   } ;
-   pbR->nbClock = clock() ;
-   
-   uint64_t S = 0 ;
-   {
-      int ai,bi,ci,di,ei,fi,gi,hi,ii,ji,ki,li,mi,ni,oi,pi, Si ;
-      for(ai=0;ai<=9;ai++) {
-         for(bi=0;bi<=9;bi++) {
-            for(ci=0;ci<=9;ci++) {
-               for(di=0;di<=9;di++) {
-                  Si = ai+bi+ci+di ;
-                  for(fi=0;fi<=9;fi++) {
-                     ni = Si -bi -fi ;
-                     if(ni > 9) { ni = 9 ;}
-                     // oi = Si -bi -ci -ni ;
-                     if(Si-bi-ci<ni) ni = Si-bi-ci ;
-                     int minni = 0 ;
-                     if(Si-9 -bi -fi > 0)minni = Si-9 -bi -fi ;
-                     if(Si -9 -bi -ci> minni) minni=Si -9 -bi -ci ;
-                     for(;ni >= minni ;ni-- ) {
- //                       ni = Si - bi -fi - ji ;
-                        //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
-                        for(pi=0;pi<=9;pi++) {
-                           ki = Si - ai -fi -pi ;
-                           if(ki < 0) break ;
-                           if(ki>9) { pi += ki -10 ; continue ; }
-                           // oi = Si - mi -ni -pi  et oi = Si - ci -gi -ki et gi = Si - di -ji - mi
-                           // => 2*mi = Si -ni -pi -di -ji +ci +ki
-                           mi = bi + ci -pi ;
-                           if(mi < 0) break ;
-                           if(mi > 9) { pi += mi -10 ; continue ; }
-                           // ji = Si -bi -ni -fi ;
-//                           gi = Si - di -ji - mi ;
-                           gi = bi + ni +fi -di - mi ;
-                           if(gi > 9) break ;
-                           if(gi< 0) continue ;
-                           // ii=Si-ai -mi -ei [0,9]
-                           // hi=Si-fi -gi -ei [0-9]
-                           // li = Si - di -hi -pi = ei + fi + gi -di -pi
-                           int maxei = 9 ;
-                           if(Si-ai -mi < 9) maxei = Si-ai -mi ;
-                           if(Si-fi-gi < maxei)maxei = Si-fi-gi ;
-                           if(9-fi -gi +di+pi< maxei ) maxei = 9-fi -gi +di+pi ;
-                           int minei = 0 ;
-                           if(Si-ai -mi -9 > 0)minei=Si-ai -mi -9 ;
-                           if(Si-fi -gi -9> minei )minei=Si-fi -gi -9 ;
-                           if(di+pi-fi-gi > minei)minei = di+pi-fi-gi ;
-                           if(maxei>=minei)S += maxei-minei+1 ;
-                        }
-                      }
-                  }
-                  
-               }
-            }
-         }
-      }
-      printf("S=%lld \n",S) ;
-   }
-   
-   pbR->nbClock = clock() - pbR->nbClock ;
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
-   return 1 ;
-   
-   uint64_t j0,j1,j2,j3 ;
-   int i0,i1,i2,i3 ;
-   uint32_t x1[4]= {1,16,256,4096} ;
-   uint64_t pat[12] ;
-   int np = 0 ;
-   for(i0=0;i0<4;i0++) {
-      j0 = x1[i0] ;
-      for(i1=0;i1<4;i1++) {
-         j1 = x1[i1] ;
-         for(i2=0;i2<4;i2++) {
-            j2 = x1[i2] ;
-            for(i3=0;i3<4;i3++) {
-               j3 = x1[i3] ;
-               int c0 = (j0 & 0xf) + (j1 & 0xf) + (j2 & 0xf) + (j3 & 0xf) ;
-               if(c0 != 1) continue ;
-               int c1 = (j0 & 0xf0) + (j1 & 0xf0) + (j2 & 0xf0) + (j3 & 0xf0) ;
-               if(c1 != 0x10) continue ;
-               int c2 = (j0 & 0xf00) + (j1 & 0xf00) + (j2 & 0xf00) + (j3 & 0xf00) ;
-               if(c2 != 0x100) continue ;
-               int d0 = (j0 & 0xf) + ((j1 & 0xf0)>>4) + ((j2 & 0xf00)>>8) + ((j3 & 0xf000)>>12) ;
-               if(d0 != 1) continue ;
-               int d1 = (j3 & 0xf) + ((j2 & 0xf0)>>4) + ((j1 & 0xf00)>>8) + ((j0 & 0xf000)>>12) ;
-               if(d1==1) {
-                  printf("%s\n%s\n%s\n%s\n\n",raw[(j0 & 1) + ((j0 & 0x10)>>3) + ((j0 & 0x100)>>6) + ((j0 & 0x1000)>>9)]
-                         ,raw[(j1 & 1) + ((j1 & 0x10)>>3) + ((j1 & 0x100)>>6) + ((j1 & 0x1000)>>9)]
-                         ,raw[(j2 & 1) + ((j2 & 0x10)>>3) + ((j2 & 0x100)>>6) + ((j2 & 0x1000)>>9)]
-                         ,raw[(j3 & 1) + ((j3 & 0x10)>>3) + ((j3 & 0x100)>>6) + ((j3 & 0x1000)>>9)]);
-                  uint64_t v = j0 + (j1<<16) + (j2<<32) + (j3<<48) ;
-                  pat[np++] = v ;
-               }
-            }
-
-         }
-      }
-   }
-   uint32_t x2[6]= { 0x11,0x101,0x110,0x1001,0x1010,0x1100} ;
-   for(i0=0;i0<6;i0++) {
-      j0 = x2[i0] ;
-      for(i1=0;i1<6;i1++) {
-         j1 = x2[i1] ;
-         for(i2=0;i2<6;i2++) {
-            j2 = x2[i2] ;
-            for(i3=0;i3<6;i3++) {
-               j3 = x2[i3] ;
-               int c0 = (j0 & 0xf) + (j1 & 0xf) + (j2 & 0xf) + (j3 & 0xf) ;
-               if(c0 != 2) continue ;
-               int c1 = (j0 & 0xf0) + (j1 & 0xf0) + (j2 & 0xf0) + (j3 & 0xf0) ;
-               if(c1 != 0x20) continue ;
-               int c2 = (j0 & 0xf00) + (j1 & 0xf00) + (j2 & 0xf00) + (j3 & 0xf00) ;
-               if(c2 != 0x200) continue ;
-               int d0 = (j0 & 0xf) + ((j1 & 0xf0)>>4) + ((j2 & 0xf00)>>8) + ((j3 & 0xf000)>>12) ;
-               if(d0 != 2) continue ;
-               int d1 = (j3 & 0xf) + ((j2 & 0xf0)>>4) + ((j1 & 0xf00)>>8) + ((j0 & 0xf000)>>12) ;
-               if(d1==2) {
-                  uint64_t v = j0 + (j1<<16) + (j2<<32) + (j3<<48) ;
-                  int nbv1=0 ;
-                  int k ; for(k=0;k<np;k++) {if((v & pat[k]) == pat[k]) nbv1++ ; }
-                  if(nbv1==2)printf("Sum \n") ;
-                  else {
-                     pat[np++] = v ;
-                     printf("%s\n%s\n%s\n%s\n\n",raw[(j0 & 1) + ((j0 & 0x10)>>3) + ((j0 & 0x100)>>6) + ((j0 & 0x1000)>>9)]
-                            ,raw[(j1 & 1) + ((j1 & 0x10)>>3) + ((j1 & 0x100)>>6) + ((j1 & 0x1000)>>9)]
-                            ,raw[(j2 & 1) + ((j2 & 0x10)>>3) + ((j2 & 0x100)>>6) + ((j2 & 0x1000)>>9)]
-                            ,raw[(j3 & 1) + ((j3 & 0x10)>>3) + ((j3 & 0x100)>>6) + ((j3 & 0x1000)>>9)],v);
-                  }
-               }
-            }
-         }
-      }
-   }
-   int i;
-   int nbBycase[16] ;
-   int indexByCase[16][8] ;
-   for(i=0;i<16;i++) {
-      nbBycase[i]=0 ;
-      uint64_t ib = 1LL <<(4*i) ;
-      int j ;
-      for(j=0;j<np;j++) {
-         if (pat[j] & ib) {
-            indexByCase[i][nbBycase[i]++] = j ;
-         }
-      }
-      printf("%d->",i); for(j=0;j<nbBycase[i];j++) printf(" %d",indexByCase[i][j]) ;
-      printf("\n");
-   }
-   /*
-    0-> 0 1 8 9
-    1-> 2 3 8 10
-    2-> 4 5 9 11
-    3-> 6 7 10 11
-    4-> 4 6 8 10
-    5-> 5 7 10 11
-    6-> 0 2 8 9
-    7-> 1 3 9 11
-    8-> 2 7 9 11
-    9-> 1 4 8 9
-    10-> 3 6 10 11
-    11-> 0 5 8 10
-    12-> 3 5 10 11
-    13-> 0 6 9 11
-    14-> 1 7 8 10
-    15-> 2 4 8 9
-   */
-   int n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11;
-   for(i=0;i<np;i++) printf("%016llx\n",pat[i]) ;
-   printf("\n");
-#define MAX1(maxi,nj)  if(9-(nj)<maxi) maxi = 9-(nj)
-   int nb9 = 0 ;
-  
-   uint64_t *tbV = malloc(70000000*sizeof(tbV[0])) ;
-   for(n0=0; n0<=9;n0++) {
-      for(n1=0;n1<=9-n0;n1++) {
-         for(n2=0;n2<=9-n0;n2++) {
-            int maxn3 = 9 -n1;
-            MAX1(maxn3,n2);
-             for(n3=0;n3<=maxn3;n3++) {
-               int maxn4 = 9 -n1;
-               MAX1(maxn4,n2) ;
-               for(n4=0;n4<=maxn4;n4++) {
-                  int maxn5 = 9 -n4;
-                  MAX1(maxn5,n0) ; MAX1(maxn5,n3) ;
-                  for(n5=0;n5<=maxn5;n5++) {
-                     int maxn6 = 9 -n4;
-                     MAX1(maxn6,n0) ; MAX1(maxn6,n3) ;
-                     for(n6=0;n6<=maxn6;n6++) {
-                        int maxn7 = 9 -n6;
-                        MAX1(maxn7,n5) ; MAX1(maxn7,n2) ;  MAX1(maxn7,n1) ;
-                        if(n0 && n3 && n4) maxn7 = 0 ;
-                        for(n7=0;n7<=maxn7;n7++) {
-                           int maxn8 = 9-n0-n1;
-                           MAX1(maxn8,n2+n3) ; MAX1(maxn8,n1+n4) ;  MAX1(maxn8,n0+n5) ;
-                           MAX1(maxn8,n4+n6) ; MAX1(maxn8,n0+n2) ;  MAX1(maxn8,n1+n7) ; MAX1(maxn8,n2+n4) ;
-                           maxn8 = 0 ;
-                          for(n8=0;n8<=maxn8;n8++) {
-                             int maxn9 = 9-n0-n1-n8;
-                             MAX1(maxn9,n4+n5) ; MAX1(maxn9,n0+n2+n8) ;  MAX1(maxn9,n1+n3) ;
-                             MAX1(maxn9,n2+n7) ; MAX1(maxn9,n0+n6) ;  MAX1(maxn9,n2+n4+n8) ;
-                               maxn9 = 0 ;
-                             if(n3 && n7 && n8) maxn9 = 0 ;
-                             for(n9=0;n9<=maxn9;n9++) {
-                                int maxn10 = 9-n2-n3-n8;
-                                MAX1(maxn10,n6+n7) ; MAX1(maxn10,n4+n6+n8) ;  MAX1(maxn10,n5+n7) ;
-                                MAX1(maxn10,n3+n6) ; MAX1(maxn10,n3+n5) ;  MAX1(maxn10,n1+n7+n8) ;
-                                maxn10 = 0 ;
-                                if(n9) maxn10=0 ;
-                                for(n10=0;n10<=maxn10;n10++) {
-                                   int maxn11 = 9-n4-n5-n9;
-                                   MAX1(maxn11,n6+n7+n10) ; MAX1(maxn11,n5+n7+n10) ;  MAX1(maxn11,n1+n3+n9) ;
-                                   MAX1(maxn11,n2+n7+n9) ; MAX1(maxn11,n3+n6+n10) ;  MAX1(maxn11,n3+n5+n10) ; MAX1(maxn11,n0+n6+n9) ;
-                                   if(n8) maxn11 = 0 ;
-                                   if(n0 && n4 && n10)maxn11 = 0 ;
-                                   maxn11 = 0 ;
-                                   for(n11=0;n11<=maxn11;n11++) {
-                                      uint64_t v = n0*pat[0]+n1*pat[1]+n2*pat[2]+n3*pat[3]+n4*pat[4]+n5*pat[5]
-                                      +n6*pat[6]+n7*pat[7]+n8*pat[8]+n9*pat[9]+n10*pat[10]+n11*pat[11] ;
-                                      if(v==0x9999999999999999LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
-//                                      if(v==0x2222222222222222LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
-//                                      if(v==0x3333333333333333LL){ nb9++ ; printf("%d%d%d%d,%d%d%d%d,%d%d,%d%d ",n0,n3,n4,n7,n1,n2,n5,n6,n8,n11,n9,n10) ; }
-                                      tbV[N++] = v ;
-                                   }
-                                }
-                             }
-                          }
-                       }
-                     }
-                  }
-               }
-            }
-         }
-      }
-   }
-
-  int64_t nbEq= 0 ;
-  qsort(tbV,N,sizeof(tbV[0]),CmpV) ;
-   for(i=1;i<N;i++) {
-      if(tbV[i-1] == tbV[i]) nbEq++ ;
-   }
-   printf("N=%lld nbEQ=%d\n",N,nbEq);
-
-   return 1 ;
-}
 
 
 int PB164(PB_RESULT *pbR) {
@@ -2032,6 +1773,518 @@ int PB164(PB_RESULT *pbR) {
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",S) ;
    return 1 ;
 }
+#define INLOOP165
+#define PB165_NB  5000
+typedef struct SEG165 {
+   int64_t x1 ;
+   int64_t y1 ;
+   int64_t x2 ;
+   int64_t y2 ;
+   int64_t  A ;
+   int64_t  B ;
+   int64_t  C ;
+} SEG165 ;
+
+typedef struct PT165 {
+   int64_t nx ;
+   int64_t ny ;
+   int64_t dxy ;
+ } PT165 ;
+
+typedef struct landa165 {
+   int64_t n ;
+   int64_t d ;
+} landa165 ;
+
+int IsCross(SEG165 * seg1,SEG165 * seg2) {
+   if((seg1->A * seg2->x1 + seg1->B * seg2->y1+seg1->C) * (seg1->A * seg2->x2 + seg1->B * seg2->y2+seg1->C) < 0  &&
+      (seg2->A * seg1->x1 + seg2->B * seg1->y1+seg2->C) * (seg2->A * seg1->x2 + seg2->B * seg1->y2+seg2->C) < 0 ) return 1;
+   else return 0 ;
+}
+int IsAlign(SEG165 * seg1,SEG165 * seg2) {
+   if((seg1->A * seg2->x1 + seg1->B * seg2->y1+seg1->C) == 0 && (seg1->A * seg2->x2 + seg1->B * seg2->y2+seg1->C) ==0 )
+      return 1 ;
+   else return 0 ;
+}
+void PtCross(SEG165 * seg1,SEG165 * seg2,PT165  *pt) {
+   pt->dxy = seg1->A * seg2->B - seg1->B * seg2->A ;
+   pt->nx = seg1->B * seg2->C - seg1->C * seg2->B ;
+   pt->ny = seg1->C * seg2->A - seg1->A * seg2-> C ;
+   if(pt->dxy < 0) {
+      pt->dxy = -pt->dxy ; pt->nx = -pt->nx ; pt->ny = -pt->ny ;
+   }
+ }
+void LandaCross(SEG165 * seg1,SEG165 * seg2,landa165  *ld) {
+   ld->d = seg2->A * (seg1->x1-seg1->x2) + seg2->B * (seg1->y1-seg1->y2) ;
+   ld->n = seg2->A * seg1->x2 + seg2->B * seg1->y2 + seg2->C ;
+   if(ld->d < 0) { ld->d = -ld->d ; ld->n = -ld->n ; }
+   return ;
+}
+int CmpLd(const void *el1,const void *el2) {
+   const landa165 * ld1 = (landa165 *) el1 ;
+   const landa165 * ld2 = (landa165 *) el2 ;
+   int64_t diff = ld1->n * ld2->d - ld2->n * ld1->d ;
+   if(diff > 0) return 1 ;
+   else if(diff<0) return -1 ;
+   else return 0 ;
+}
+
+int CmpPt(const void *el1,const void *el2) {
+   const PT165 * pt1 = (PT165 *) el1 ;
+   const PT165 * pt2 = (PT165 *) el2 ;
+   int64_t dx = pt1->nx * pt2->dxy - pt2->nx * pt1->dxy ;
+   if(dx > 0) return 1 ;
+   else if(dx<0) return -1 ;
+   int64_t dy = pt1->ny * pt2->dxy - pt2->ny * pt1->dxy ;
+   if(dy > 0) return 1 ;
+   else if(dy<0) return -1 ;
+   else return 0 ;
+}
+#define ABS64(n)   (((n)>=0) ? (n) : (-n) )
+int PB165(PB_RESULT *pbR) {
+   int64_t S = 0 ;
+   pbR->nbClock = clock() ;
+   SEG165 seg[PB165_NB] ;
+   int64_t sn = 290797 ;
+   int i,j;
+#if defined(INLOOP165)
+   landa165 *ld = malloc(5000*sizeof(ld[0])) ;
+#else
+   PT165 *pt = malloc(3000000*sizeof(pt[0])) ;
+#endif
+   int nbPt = 0 ;
+   int nbalign =0 ;
+   int iLanda = 0 ;
+   for(i=0;i<PB165_NB;i++) {
+      sn = (sn * sn ) % 50515093 ;
+      seg[i].x1 = (sn % 500) ;
+      sn = (sn * sn ) % 50515093 ;
+      seg[i].y1 = (sn % 500) ;
+      sn = (sn * sn ) % 50515093 ;
+      seg[i].x2 = (sn % 500) ;
+      sn = (sn * sn ) % 50515093 ;
+      seg[i].y2 = (sn % 500) ;
+      seg[i].A = seg[i].y2 - seg[i].y1 ;
+      seg[i].B = seg[i].x1 - seg[i].x2 ;
+      seg[i].C = seg[i].x2 * seg[i].y1  - seg[i].x1 * seg[i].y2 ;
+      int64_t g = PGCD64(ABS64(seg[i].A), ABS64(seg[i].B));
+      if(g > 1) g=PGCD64(ABS64(seg[i].C), g);
+      if(g>1) { seg[i].A /= g ; seg[i].B /= g ;  seg[i].C /= g ; }
+      int j ;
+      for(j=0;j<i;j++) if (IsAlign(seg+i,seg+j))  {
+         SEG165 tmpS = seg[nbalign] ;
+         seg[nbalign++]= seg[i] ;
+         seg[i] = tmpS ;
+         tmpS = seg[nbalign] ;
+         seg[nbalign++]= seg[j] ;
+         seg[j] = tmpS ;
+      }
+   }
+    for(i=0;i<PB165_NB-1;i++) {
+      for(j=i+1;j<PB165_NB;j++) {
+         if(IsCross(seg+i,seg+j)) {
+#if defined(INLOOP165)
+            LandaCross(seg+iLanda,seg+j,ld+nbPt) ;
+#else
+            PtCross(seg+i,seg+j,pt+nbPt) ;
+#endif
+            nbPt++ ;
+         }
+      }
+#if defined(INLOOP165)
+      if((i<nbalign && IsAlign(seg+i,seg+i+1)==0) || i>=nbalign ) {
+        qsort(ld,nbPt,sizeof(ld[0]),CmpLd) ;
+         int supEq = (i>=nbalign) ? 1 : 0 ;
+         int k,isEq=0, totEq= 0 ;
+         for(k=0;k<nbPt-1;k++) {
+            if(CmpLd(ld+k,ld+k+1)==0) isEq++ ;
+            else if(isEq) {
+               totEq+=isEq+supEq  ; isEq=0 ;
+            }
+         }
+         if(isEq) {
+               totEq+=isEq+supEq ;
+         }
+         S += nbPt -totEq ;
+         nbPt = 0 ; iLanda = i+1 ;
+      }
+#endif
+   }
+#if !defined(INLOOP165)
+   qsort(pt,nbPt,sizeof(pt[0]),CmpPt) ;
+   int isEq=0 ;
+   for(i=0;i<nbPt-1;i++) {
+      if(CmpPt(pt+i,pt+i+1)==0)   { isEq++ ; }
+   }
+   S=nbPt - isEq ;
+#endif
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+
+
+int PB166(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   
+   /*
+    A  B  C  D
+    e  F  g4 h
+    i  j1 k2 l
+    m3 N  o5 P Et fixant ei on a toutes les contraites
+    
+    On peut montrer que X1+X2=Y1+Y2 etT1+T2= Z1+Z2 et utiliser les symetries
+    pour les 6 autres relations similaires
+    .  X1 X2 .     .  .  .  .
+    .  .  .  .     .  T1 T2 .
+    .  .  .  .     Z1 .  .  Z2
+    Y1 .  .  Y2    .  .  .  .
+    */
+   uint64_t S = 0 ;
+   {
+      int ai,bi,ci,di,ei,fi,gi,hi,ii,ji,ki,li,mi,ni,oi,pi, Si ;
+      for(ai=0;ai<=9;ai++) {
+         for(bi=0;bi<=9;bi++) {
+            for(ci=0;ci<=9;ci++) {
+               for(di=0;di<=9;di++) {
+                  Si = ai+bi+ci+di ;
+                  for(fi=0;fi<=9;fi++) {
+                     ni = Si -bi -fi ;
+                     if(ni > 9) { ni = 9 ;}
+                     // oi = Si -bi -ci -ni ;
+                     if(Si-bi-ci<ni) ni = Si-bi-ci ;
+                     int minni = 0 ;
+                     //  ni = Si - bi -fi - ji ;
+                     if(Si-9 -bi -fi > 0)minni = Si-9 -bi -fi ;
+                     if(Si -9 -bi -ci> minni) minni=Si -9 -bi -ci ;
+                     for(;ni >= minni ;ni-- ) {
+                        //  oi = Si - mi -ni -pi ; mi = bi + ci -pi
+                        for(pi=0;pi<=9;pi++) {
+                           ki = Si - ai -fi -pi ;
+                           if(ki < 0) break ;
+                           if(ki>9) { pi += ki -10 ; continue ; }
+                           // oi = Si - mi -ni -pi  et oi = Si - ci -gi -ki et gi = Si - di -ji - mi
+                           // => 2*mi = Si -ni -pi -di -ji +ci +ki
+                           mi = bi + ci -pi ;
+                           if(mi < 0) break ;
+                           if(mi > 9) { pi += mi -10 ; continue ; }
+                           // ji = Si -bi -ni -fi ;
+                           //                           gi = Si - di -ji - mi ;
+                           gi = bi + ni +fi -di - mi ;
+                           if(gi > 9) break ;
+                           if(gi< 0) continue ;
+                           // ii=Si-ai -mi -ei [0,9]
+                           // hi=Si-fi -gi -ei [0-9]
+                           // li = Si - di -hi -pi = ei + fi + gi -di -pi
+                           int maxei = 9 ;
+                           int minei = 0 ;
+                           if(ai+mi <= fi+gi) {
+                              if(Si-fi-gi < 9 )maxei = Si-fi-gi ;
+                              if(Si-ai-mi >9 )minei=Si-ai -mi -9 ;
+                              
+                           } else {
+                              if(Si-ai -mi < 9) maxei = Si-ai -mi ;
+                              if(Si-fi -gi > 9 )minei=Si-fi -gi -9 ;
+                           }
+                           if(9-fi -gi +di+pi< maxei ) maxei = 9-fi -gi +di+pi ;
+                           if(di+pi-fi-gi > minei)minei = di+pi-fi-gi ;
+                           if(maxei>=minei)S += maxei-minei+1 ;
+                        }
+                     }
+                  }
+                  
+               }
+            }
+         }
+      }
+      printf("S=%lld \n",S) ;
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+#define PB167_MAXIR    22
+#define PB167_K      100000000000LL
+
+/*
+ Base sur les principes (Steven R Finch) (v=2*ir+1)
+- la suite commence 2 2*ir+1, 2*ir+3 ,2*ir+4, ...3*ir
+-  qu'il n'a que 2 nombres pairs ds la suite  p0=2 et p1=2*(ir+1).
+ - la suite des nombres impairs: est present 2n+1 = 2n-1+p0 soit 2n-2*ir-1+p1
+- soit absent si 2n-1 et 2n-2*ir-1 sont tous deux presents.
+- Donc la suite est determine par la presence ou on de (ir+1) nb impairs precedent
+ - Si on constitue un masque binaire de la presence on a :
+  st(n+1) = (st(n)<<1) & 01111111...110) | (st(n)>>ir & 1 )^ (st(n)&1)
+ Cela peut être vu comme un LSFR de polynome 1+X+X^ir qui genere une suite de 0 et 1
+ Note: la periodicite du LSFR (nb à et 1) est le poids,  le nbre de 1 d'une periode LSFR la periode de la suite.
+ et initialise a 1111111111111 (ir+1 x 1)
+ A noter que la recursion est inversible => la periodicite commence juste apres p1
+ initialise par tous impairs precedents 2*ir+1, 2*ir+3 ,2*ir+4, ...3*ir
+ */
+ 
+
+int PB167(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int ir ;
+    int64_t S = 0 ;
+   for(ir=5;ir<PB167_MAXIR;ir+=2) {
+      int64_t S0 = S;
+       int32_t circular[PB167_MAXIR];
+      int indC = 0 ;
+      for(indC=0;indC<ir+1;indC++) {
+         circular[indC]= 1 ; // 2*ir+1, 2*ir+3,....,... 3*ir
+      }
+      int nbCirc = ir+1 ;
+      int weightP = 0 ;
+       int period = 0 ;
+      indC=0 ;
+      int oldCirc = circular[indC] ;
+       do {
+         do {
+            if(indC) indC-- ;
+            else indC = ir;
+            weightP++ ;
+            if(oldCirc) {
+               nbCirc += 1 - 2* circular[indC] ;
+               circular[indC] ^= 1 ;
+            }
+            oldCirc = circular[indC] ;
+        } while(oldCirc==0) ;
+         period++ ;
+      } while(nbCirc != ir+1) ;
+      int64_t nbPeriod = (PB167_K -ir -3 ) / period ;
+      int64_t offsetP = (PB167_K -ir -3 ) - period * nbPeriod ;
+      S += nbPeriod * 2 * weightP + 3*ir  ;
+       int i ;
+       if(2 * offsetP < period ) { // on deroule ds le sens positif
+          for(i=0;i<offsetP;i++) {
+            do {
+               if(indC) indC-- ;
+               else indC = ir;
+               S += 2 ;
+               if(oldCirc) {
+                  nbCirc += 1 - 2* circular[indC] ;
+                  circular[indC] ^= 1 ;
+               }
+               oldCirc = circular[indC] ;
+            } while(oldCirc==0) ;
+         }
+       } else { // on deroule en sens inverse
+          S += 2 * weightP ;
+          offsetP = period - offsetP ;
+          int newCirc ;
+          for(i=0;i<offsetP;i++) {
+             do {
+                int nxtIndC = (indC == ir) ? 0 : indC+1 ;
+                newCirc = circular[nxtIndC] ;
+                S -= 2 ;
+                if(newCirc) {
+                   nbCirc += 1 - 2* circular[indC] ;
+                   circular[indC] ^= 1 ;
+                }
+                indC = nxtIndC ;
+            } while(newCirc==0) ;
+          }
+       }
+      if(pbR->isVerbose) fprintf(stdout,"\t PB%s ir=%d P=%d W=%d S+=%lld\n",pbR->ident, ir,period,2*weightP,S-S0) ;
+  }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+
+int PB167a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int ir;
+   int64_t S = 0 ;
+   for(ir=5;ir<PB167_MAXIR;ir+=2) {
+      int64_t S0 = S ;
+      uint32_t state = (1 << (ir+1)) - 1 ;
+      uint32_t msk = (1 << (ir+1)) - 2 ;
+      uint32_t oldState=state ;
+      int period =0 ;
+      int32_t weightP=0 ;
+      int32_t newB ;
+      do {
+        do {
+           newB = (state & 1)^ (state >> ir)  ;
+            state = ( (state << 1) & msk ) | newB;
+           weightP++ ;
+         } while (newB==0  );
+         period++ ;
+      } while (state != oldState  );
+      int64_t nbPeriod = (PB167_K - ir - 3 ) / period ;
+       int remain = (int) (PB167_K  - ir - 3  - nbPeriod * period ) ;
+
+      S += weightP * 2 * nbPeriod + 3 * ir ;
+       if(2*remain < period) {
+          while(remain--) {
+             do {
+                newB = (state & 1)^ (state >> ir)  ;
+                state = ( (state << 1) & msk ) | newB;
+                S += 2 ;
+             } while (newB==0  );
+             
+          }
+       } else {
+          S += 2*weightP ;
+          remain = period - remain ;
+          msk = (1 << ir) - 1 ;
+          while(remain--) {
+             do {
+                newB = ((state & 1) << ir)^((state & 2)<<(ir-1))  ;
+                state = ( state >> 1 ) | newB;
+                S -= 2 ;
+             } while ((state & 1 ) == 0 );
+          }
+      }
+      if(pbR->isVerbose) fprintf(stdout,"\t PB%s ir=%d P=%d W=%d S+=%lld\n",pbR->ident, ir,period,2*weightP,S-S0) ;
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+#define PB169_NP    25
+// solution tres rapide
+// on cherche la position des 1 en partant du poids le plus faible
+// par recurrence
+// on calcule nb0 (si ce 1 n'est divise) et nb1 si ce 1 est divise
+// nb1 permet pour le 1 suivant de faire une division de plus (x(iz+1))
+int PB169a(PB_RESULT *pbR) {
+   int bits[100] ;
+   pbR->nbClock = clock() ;
+   int nb ;
+   int64_t pow2,N = 1 ;
+   int i ;
+   for(i=0;i<PB169_NP;i++) { N *= 5 ;bits[i]= 0 ; }
+   for(pow2=1,nb=PB169_NP;pow2<=N;nb++,pow2 <<= 1) {
+      if(pow2 & N) {
+         bits[nb]=1 ;
+         N ^= pow2 ;
+      } else {
+         bits[nb]= 0 ;
+      }
+   }
+
+   int64_t nb0 =1, nb1=0 ;
+   int iz=0 ;
+   for(i=0;i<nb;i++) {
+      
+      if(bits[i] == 0) {
+         iz++ ;
+      } else {
+         int64_t nb0_ = nb0 ;
+         nb0 = nb0+nb1 ;
+         nb1 = (iz)*nb0_+(iz+1)*nb1 ;
+         iz=0 ;
+      }
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nb0+nb1) ;
+   return 1 ;
+}
+
+// Parcours arbre de Calkin and Wilf des fractions irreductibles
+// en utilisant le fait que le denominateur de F(n) est la solution
+int PB169b(PB_RESULT *pbR) {
+   uint64_t bits[100] ;
+   pbR->nbClock = clock() ;
+   int nb ;
+   int64_t pow2,N = 1 ;
+   int i ;
+   // 10^n = 5^n * 2^n (on rajoutera les zeos en fin)
+   for(i=0;i<PB169_NP;i++) { N *= 5 ; }
+   for(pow2=1;pow2<=N;pow2 *=2) ;
+   pow2 /=2 ; // un coup trop loin
+   int is1 = 1 ;
+   nb=0 ;
+   int count = 0 ;
+   while(pow2) {
+      if(is1) {
+         if(pow2 & N) {
+            count++ ;
+         } else {
+            bits[nb++] = count ;  count = 1 ;   is1=0 ;
+         }
+      } else {
+         if(pow2 & N) {
+            bits[nb++] = count ;   count = 1 ;    is1=1 ;
+         } else {
+            count++ ;
+         }
+      }
+      pow2 >>= 1 ;
+   }
+   if(is1==0) bits[nb++] = count + PB169_NP;
+   else { bits[nb++] = count ; bits[nb++] = PB169_NP ; }
+   uint64_t num,den ;
+   CalkWilfFrac(&num,&den,bits,nb);
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",den) ;
+   return 1 ;
+}
+
+
+// parcours en arbre des solutions
+int64_t NbDecomp169(int8_t * bits,int nb) {
+   int indL[100];
+   int64_t nbSol=1 ;
+   int level=0;
+   indL[level]=1 ;
+   while(level>=0) {
+      int i;
+      for(i=indL[level];i<nb;i++) {
+         if(bits[i-1]==0 && bits[i]) {
+            nbSol++ ;
+            indL[level]= i+1;
+            bits[i-1]=2 ; bits[i]-- ;
+            indL[level+1] = i>1 ? i-1 : i ;
+            level++ ;
+            break ;
+         }
+      }
+      if(i<nb) continue ;
+      else {
+         
+         if(--level >=0) {
+            bits[indL[level]-2]=0 ;
+            bits[indL[level]-1]++ ;
+         }
+     }
+   }
+   return nbSol ;
+}
+// version tres lente mais qui genere toutes les solutions
+// base sur la formule f(2^^k * n) = f(n) + k * f(n-1)
+// applique a n = 5^^k
+// parcours en arbre des solutions
+int PB169(PB_RESULT *pbR) {
+   int8_t bits[100] ;
+   pbR->nbClock = clock() ;
+   int nb ;
+   int64_t pow2,N = 1 ;
+   int i ;
+   for(i=0;i<PB169_NP;i++) { N *= 5 ; }
+   for(pow2=1,nb=0;pow2<=N;nb++,pow2 <<= 1) {
+      if(pow2 & N) {
+         bits[nb]=1 ;
+         N ^= pow2 ;
+      } else {
+         bits[nb]= 0 ;
+      }
+   }
+   int64_t nbSol = NbDecomp169(bits,nb) ;
+   bits[0] = 0 ;
+   nbSol += PB169_NP * NbDecomp169(bits,nb) ;
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
+   return 1 ;
+}
+
 
 
 // nb(tiles) = 4*n*p with n>p
@@ -2071,6 +2324,28 @@ int PB174(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
     return 1 ;
 }
+
+#define PB175_N   123456789
+#define PB175_N1   987654321
+// parcours de l'arbre de Calkin and Wilf
+// on cherche la fraction f(n-1)/f(n) dans l'arbre
+int PB175(PB_RESULT *pbR) {
+   uint64_t nbits[50] ;
+   pbR->nbClock = clock() ;
+   int nb=CalkWilfFindFrac(PB175_N1,PB175_N,nbits,50) ;
+   int i,is = 0 ;
+   for(i=0;i<nb;i++) is += sprintf(pbR->strRes+is,"%c%lld",(i==0) ? '\'' : ',',nbits[i]) ;
+   sprintf(pbR->strRes+is,"'");
+   {
+      uint64_t num,den ; // verif
+      CalkWilfFrac(&num,&den,nbits,nb);
+      printf("F=%lld/%lld\n",num*9,den*9);
+      
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   return 1 ;
+}
+
 // #define PB179_NB    1000
 #define PB179_NB    10000000
 
