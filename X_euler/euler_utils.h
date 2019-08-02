@@ -142,4 +142,19 @@ typedef struct FractCont64 {
 void NextFract(FractCont64 * F, int a) ; // compute next continued fraction
 
 
+// Parcours arbre de Calkin and Wilf des fractions irreductibles
+// si num>den le pere de num/den est num-den/den
+// si den>num le pere est de num/den est num/den-num
+// qd un des deux est nul  on est a la racine
+// retourne le resultat ds nbits en nbre de bits a 1, puis a 0, puis a 1,..
+// En partant du msb. (si chaine trop longue retourne la longueur en neagatif)
+// 110001 => 2,3,1
+// 1000011100 => 1,4,3,2
+int CalkWilfFindFrac(uint64_t num,uint64_t den,uint64_t *nbits,int sizeNbits);
+    
+// fonction inverse de la precedente
+// le denominateur donne le nb de decomposition en 2^n apparaissant au plus 2 fois.
+void CalkWilfFrac(uint64_t *ptNum,uint64_t *ptDen,uint64_t *nbits,int nb);
+
+
 #endif /* euler_utils_h */

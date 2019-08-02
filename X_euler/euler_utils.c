@@ -676,3 +676,64 @@ void NextFract(FractCont64 * F, int a) {
     F->D0 = F->D1 ;
     F->D1 = a * F->D0 + tmp ;
 }
+
+
+// Parcours arbre de Calkin and Wilf des fractions irreductibles
+// si num>den le pere de num/den est num-den/den
+// si den>num le pere est de num/den est num/den-num
+// qd un des deux est nul  on est a la racine
+// retourne le resultat ds nbits en nbre de bits a 1, puis a 0, puis a 1,..
+// En partant du msb. (si chaine trop longue retourne la longueur en neagatif)
+// 110001 => 2,3,1
+// 1000011100 => 1,4,3,2
+int CalkWilfFindFrac(uint64_t num,uint64_t den,uint64_t *nbits,int sizeNbits){
+    uint64_t g = PGCD64(num, den);
+    if(g>1) { num /= g ; den /= g ; }
+    int nb = 0 ;
+    while(num && den ){
+        int64_t q ;
+        if(num > den ) {
+            q = num / den ;
+            num -= q*den ;
+        } else {
+            q = den / num ;
+            den -= q*num ;
+        }
+        if(nb<sizeNbits){
+            nbits[sizeNbits - ++nb] = q ;
+        } else {
+            ++nb ;
+        }
+    }
+    if(den==0) {
+        if(nb < sizeNbits) {
+            nbits[sizeNbits - nb]-- ;
+            nbits[sizeNbits - ++nb]=1 ;
+        }
+    }
+    if(nb < sizeNbits ) {
+        int i ;
+        for(i=0;i<nb;i++) {
+            nbits[i] = nbits[i+sizeNbits-nb] ;
+        }
+    }
+    return (nb<=sizeNbits) ? nb : (-nb) ;
+}
+    // fonction inverse de la precedente
+    // le denominateur donne le nb de decomposition en 2^n apparaissant au plus 2 fois.
+    void CalkWilfFrac(uint64_t *ptNum,uint64_t *ptDen,uint64_t *nbits,int nb){
+    uint64_t num=1 ;
+    uint64_t den=1 ;
+    int isLeft=1, i=0 ;
+    if(nbits[i]>1) {
+        num=nbits[0];
+    }
+    while(++i < nb) {
+        if(isLeft) den += nbits[i]*num ;
+        else num += nbits[i]*den ;
+        isLeft = 1-isLeft ;
+    }
+    *ptNum = num ;
+    *ptDen = den ;
+}
+
