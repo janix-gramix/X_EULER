@@ -1619,27 +1619,1223 @@ int PB159b(PB_RESULT *pbR) {
 }
 
 #define PB160_FACT   1000000000000LL
+#define PB160_MOD    100000LL
+
+
+uint64_t   PowerMod(uint32_t a, uint64_t n, uint64_t mod) {
+   uint64_t power = a;
+   uint64_t result = 1;
+   while (n)    {
+      if (n & 1) result = (result * power) % mod;
+      power = (power * power) % mod;
+      n >>= 1;
+   }
+   return result;
+}
+
+// Si n est multiple de 2500 f(n*5) = f(n) ;
+// Soit Mno10(n) contient le produit des nombres k <=n  avec k^10 = 1 Mod 100000
+// a noter qu'il n'y a que des multpiles impairs non multiple de 5
+// pour n > 100000 Mno10(n) = Mno10(n % 100000) (car Mno10(100000) = 1)
+//         1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+// M[15] = 1x1x3x1x1x3x7x1x9x1x 11x 1x13x 1x 1
+// On peut accelerer les calculs en notant :
+// Mno10(kx500) = Mno10(500)^k
+// (se demontre en notant (500k+1)(500k+3)... (500k+493)(500k+497)(500k+499)=1x3x...x493x497x499 Mod 5^5
+// Even(n) = produit des nombres <=n pair ss puissance de 2 ni 5 Mod 100000
+//           2   4   6   8   10     12   14
+// Even(15])  1 x 1 x 3 x 1 x 1   x  3 x  7 = f(7)
+// odd(n) = produit des nombres <=n impair ss puissance de 2 ni 5 Mod 100000
+//         1   3   5   7   9   11  13  15
+// odd(15)=1 x 3 x 1 x 7 x 9 x 11 x 13x 3
+// f(n) = n! ss puissance de 2 ni 5 Mod 100000
+//         1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+// f(15) = 1x1x3x1x1x3x7x1x9x1x 11x 3x13x 7x3
+// f(15) = odd(15) x Even(15)
+// f(n) = Odd[n] x Even[n]
+// Even[n] = f(n/2)
+// odd(n) = odd(n/5) * M[n]
+// (odd(n/5) correspond a la partie du aux multiples de 5 <=n.
+// Le complementaire est les nombres impairs sans 5 donc M[n]
+//
+int32_t Mno10(int64_t N) {
+   N = N % PB160_MOD ;
+ //   on met +1 car Mno10(k500+499)=Mno10((k+1)500)
+ //   donc on gagne la boucle des multiplications.
+   int64_t p = (N+1) / 500 ;
+   int64_t N1=p*500 ;
+   int64_t res = PowerMod(63001,p ,PB160_MOD) ;
+   while(N1+9 <= N) {
+      res = (res * (N1+1)*(N1+3)) % PB160_MOD;
+      res = (res * (N1+7)*(N1+9)) % PB160_MOD;
+      N1 += 10 ;
+   }
+   if(N1+1 <= N) {
+      res = (res * (N1+1)) % PB160_MOD;
+      if(N1+3 <= N) {
+         res = (res * (N1+3)) % PB160_MOD;
+         if(N1+7 <= N) {
+            res = (res * (N1+7)) % PB160_MOD;
+        }
+      }
+   }
+   return (int32_t) res ;
+}
+
 int PB160(PB_RESULT *pbR) {
-   int32_t S = 0 ;
-   pbR->nbClock = clock() ;
-   int64_t pow2=2 ;
-   int64_t exp2 = 0 ;
-   while(pow2<=PB160_FACT) {
-      exp2 += PB160_FACT / pow2 ;
-      pow2 *=2 ;
+    pbR->nbClock = clock() ;
+   int64_t NVAL= PB160_FACT ;
+   while ((NVAL % 12500) == 0) NVAL /= 5 ;
+   int64_t cumPow2v = 0 ;
+   int64_t n1 ;
+   for(n1=NVAL/2;n1>1;n1 /=2) {
+      cumPow2v += n1 ;
    }
-   int64_t pow5=5 ;
-   int64_t exp5 = 0 ;
-   while(pow5<=PB160_FACT) {
-      exp5 += PB160_FACT / pow5 ;
-      pow5 *=5 ;
+   for(n1=NVAL/5;n1>1;n1 /=5) {
+      cumPow2v -= n1 ;
    }
-   printf("Exp2=%lld Exp5=%lld \n",exp2,exp5) ;
+   int64_t N = NVAL ;
+  int64_t res = 1 ;
+   while(N>1) {
+//      if(pbR->isVerbose) fprintf(stdout,"\tPB%s %lld-> ",pbR->ident,N) ;
+      int64_t p = (N&1) ? N : N-1 ;
+      while(p>1) {
+         // p = q * PB160_MOD + r ; of(p) = of(p/5) * M[r] * M[PB160_MOD]^q ; M[PB160_MOD]=1
+         int32_t MNO = Mno10(p) ;
+         res  = (res * MNO ) %  PB160_MOD;
+//         if(pbR->isVerbose) fprintf(stdout,"Mno[%lld]=%d ",p,MNO) ;
+         p /= 5 ;
+      }
+//      if(pbR->isVerbose) fprintf(stdout,"Res=%lld\n",res) ;
+      N /=2 ;
+   }
+   res =  ( res  * PowerMod(2, cumPow2v, PB160_MOD)  ) % PB160_MOD ;
    
    pbR->nbClock = clock() - pbR->nbClock ;
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",S) ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",res) ;
    return 1 ;
 }
+
+
+/*
+int PB161(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int8_t   Case[PB161_ROW*PB161_LINE] ;
+   int64_t nbSol=0 ;
+   memset(Case,0,PB161_ROW*PB161_LINE*sizeof(Case[0]));
+   int case2row [PB161_ROW*PB161_LINE] ;
+   int case2line [PB161_ROW*PB161_LINE] ;
+   int levelCase[(PB161_ROW*PB161_LINE)/3] ;
+   int levelTri[(PB161_ROW*PB161_LINE)/3] ;
+   int rowLine0[PB161_ROW] ;
+   int SumRowLine0[PB161_ROW+1] ;
+   int nbLine = PB161_LINE ;
+   int64_t nbFact, nbNoFact,nbV ;
+   int64_t nbSolLine[PB161_LINE+1] ;
+   nbSolLine[0] = 0 ;
+   int i ;
+   for(i=0;i<PB161_ROW*PB161_LINE;i++) {
+      case2line[i] = i /PB161_ROW ;
+      case2row[i] = i - case2line[i] * PB161_ROW ;
+      
+   }
+   for(nbLine=1;nbLine <=PB161_LINE;nbLine++) {
+      int nbT=0 ;
+      nbSol=0 ;
+      nbFact = nbNoFact = nbV = 0 ;
+      int curCase = 0 ;
+      while (nbT >= 0) {
+         //     printf("level %d \n",nbT);
+         //      int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');         }
+         
+         if(nbT >= (PB161_ROW*nbLine)/3) {
+            nbSol++ ;
+            
+            int nbCaseLine0 ;
+            int i ;
+            SumRowLine0[0]=0 ;
+            for(nbCaseLine0=0;nbCaseLine0 < nbT && levelCase[nbCaseLine0]< PB161_ROW;nbCaseLine0++) {
+               rowLine0[nbCaseLine0] = levelCase[nbCaseLine0] ;
+               if(levelTri[nbCaseLine0]==6 ) rowLine0[nbCaseLine0]-- ;
+               SumRowLine0[nbCaseLine0+1] = 1 ;
+            }
+            for(i=nbCaseLine0;i<nbT;i++) {
+               int row = case2row[levelCase[i]] ;
+               if(levelTri[i]==6) row-- ;
+               if(row < rowLine0[nbCaseLine0-1]) {
+                  int j ;
+                  for(j=nbCaseLine0-1;j > 0 && row<rowLine0[j-1];j--) ;
+                  SumRowLine0[j]++ ;
+               }
+            }
+            int Sum = SumRowLine0[0] ;
+            int rowV = 0 ;
+            int isVertical = 0 ;
+            for(i=1;i<nbCaseLine0;i++) {
+               Sum += SumRowLine0[i] ;
+               SumRowLine0[i] = Sum ;
+               if(3*Sum == rowLine0[i]*nbLine) {
+                  isVertical = 1 ; rowV = rowLine0[i] ;
+                  break ;
+               }
+            }
+            
+            if(!isVertical) nbNoFact++ ;
+            else nbV++ ;
+            
+            if(!isVertical){
+               printf("%c %d\n",isVertical ? 'V' : '+',i);
+               for(i=0;i<nbCaseLine0;i++) printf("%d->%d ",rowLine0[i],SumRowLine0[i] ) ;
+               printf("\n") ;
+               for(i=0;i<PB161_ROW*nbLine;i++) {
+                  printf("%d%c",Case[i],(i+1==rowV)? '|' :   ((i+1) % PB161_ROW) ? ' ' : '\n');
+               }
+            }
+            
+         } else {
+            while(Case[curCase]) curCase++ ;
+            //            int curLine =  curCase / PB161_ROW ;
+            //            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            if(curLine && curRow == 0 && curCase == 3 * nbT) {
+               nbSol += nbSolLine[nbLine - curLine] ; nbFact += nbSolLine[nbLine - curLine];
+            } else
+            {
+               if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+                  // T1 o x x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 1 ;
+                  Case[curCase+1]=Case[curCase+2]=1 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                  // T2 o
+                  //    x
+                  //    x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 2 ;
+                  Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else if(curLine < nbLine - 1) {
+                  // T3 ou T4 ou T5 ou T6
+                  if(curRow < PB161_ROW - 1) {
+                     if (Case[curCase+1] == 0 ) {
+                        if ( Case[curCase+PB161_ROW] == 0 ) {
+                           // T3 o x
+                           //    x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 3 ;
+                           Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                           nbT++ ; curCase ++ ; continue ;
+                        } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                           // T4 o x
+                           //      x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 4 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                           nbT++ ; curCase++ ; continue ;
+                        }
+                     } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; continue ;
+                     }
+                  }
+                  if ( curRow > 0 && Case[curCase+PB161_ROW] == 0  && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; continue ;
+                  }
+               }
+            }
+         }
+         int isNew = 0 ;
+         while(!isNew && nbT-- > 0 ) {
+            int level = levelTri[nbT] ;
+            curCase = levelCase[nbT] ;
+            //            int curLine =  curCase / PB161_ROW ;
+            //            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            switch(level) {
+               case 1 :
+                  Case[curCase+1]=Case[curCase+2]=0 ;
+                  if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                     // T2 o
+                     //    x
+                     //    x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 2 ;
+                     Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                     nbT++ ; curCase++ ; isNew=1 ;continue ;
+                  } else if(curLine < nbLine - 1) {
+                     // T3 ou T4 ou T5 ou T6
+                     if(curRow < PB161_ROW - 1) {
+                        if (Case[curCase+1] == 0 ) {
+                           if ( Case[curCase+PB161_ROW] == 0 ) {
+                              // T3 o x
+                              //    x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 3 ;
+                              Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                              nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                           } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                              // T4 o x
+                              //      x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 4 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           } else if (Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                              // T5 o
+                              //    x  x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 5 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        }
+                     }
+                     if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                     break ;
+                  case 2 :
+                     Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=0 ;
+                     if(curRow < PB161_ROW - 1) {
+                        if (Case[curCase+1] == 0 ) {
+                           if ( Case[curCase+PB161_ROW] == 0 ) {
+                              // T3 o x
+                              //    x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 3 ;
+                              Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                              nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                           } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                              // T4 o x
+                              //      x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 4 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                           // T5 o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 5 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                           nbT++ ; curCase++ ; isNew=1 ; continue ;
+                        }
+                     }
+                     if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                     break ;
+                  case 3 :
+                     Case[curCase+PB161_ROW]=Case[curCase+1]=0 ;
+                     if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                        // T4 o x
+                        //      x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 4 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     } else if( Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     }  else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                     }
+                     break ;
+                  case 4 :
+                     Case[curCase+PB161_ROW+1]=Case[curCase+1]=0 ;
+                     if( Case[curCase+PB161_ROW] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     } else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                     }
+                     break ;
+                  case 5 :
+                     Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=0 ;
+                     if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     }
+                     break ;
+                  case 6 :
+                     Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=0 ;
+                     continue ;
+                  }
+            }
+         }
+      }
+      nbSolLine[nbLine] = nbSol ;
+      printf("(%.3f)%dx%d->%lld/%lld,%lld=(%lld+%lld) ",(float)  (clock() - pbR->nbClock)/ CLOCKS_PER_SEC,PB161_ROW,nbLine,nbSol,nbFact,nbSol-nbFact,nbNoFact,nbV);
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
+   return 1 ;
+}
+
+
+*/
+
+#define PB161_ROW 9
+#define PB161_LINE   12
+
+#define numC(row,line)  ((line)*PB161_ROW+(row))
+// triominoes
+// T1 o x x   T2 o  T3 o x   T4 o x  T5 o    T6   o
+//               x     x          x     x x     x x
+//               x
+
+#define EXP(hash) (hash)/729,((hash)%729)
+
+int PB161(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int8_t   Case[PB161_ROW*(PB161_LINE+2)] ;
+   int64_t nbSol=0 ;
+   memset(Case,0,PB161_ROW*(PB161_LINE+2)*sizeof(Case[0]));
+   int case2row [PB161_ROW*PB161_LINE] ;
+   int case2line [PB161_ROW*PB161_LINE] ;
+   int levelCase[(PB161_ROW*PB161_LINE)/3] ;
+   int levelTri[(PB161_ROW*PB161_LINE)/3] ;
+   int levelHash[(PB161_ROW*PB161_LINE)/3] ;
+   int nbLine = PB161_LINE ;
+   int64_t nbFact, nbNoFact,nbV ;
+   int64_t nbSolLine[PB161_LINE+1] ;
+   int sizeHash = PB161_ROW*PB161_LINE ;
+   int i ;for(i=0;i<PB161_ROW;i++) sizeHash *= 3 ;
+   int64_t * hashC = calloc(sizeHash,sizeof(hashC[0])) ;
+   nbSolLine[0] = 0 ;
+   for(i=0;i<PB161_ROW*PB161_LINE;i++) {
+      case2line[i] = i /PB161_ROW ;
+      case2row[i] = i - case2line[i] * PB161_ROW ;
+      
+   }
+   nbLine =PB161_LINE ;
+   {
+      int nbT=0 ;
+      nbSol=0 ;
+      nbFact = nbNoFact = nbV = 0 ;
+      int curCase = 0 ;
+      while (nbT >= 0) {
+         //     printf("level %d \n",nbT);
+         //      int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');         }
+         
+         if(nbT >= (PB161_ROW*nbLine)/3) {
+            nbSol++ ;
+ //           printf("End=%d H=%dx%d=1  S=%lld\n",curCase-1,EXP(levelHash[nbT-1]),nbSol);
+ //           int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');         }
+
+            hashC[levelHash[nbT-1]] = 1 ;
+         } else {
+            while(Case[curCase]) curCase++ ;
+            //            int curLine =  curCase / PB161_ROW ;
+            //            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            int curHash = curCase ;
+            for(i=1;i<=PB161_ROW;i++) {
+               curHash *= 3 ;
+               if(Case[curCase+i]) {
+                  if(Case[curCase+PB161_ROW+i]) curHash += 2 ;
+                  else curHash +=1 ;
+               }
+            }
+            if(hashC[curHash]) {
+ 
+               levelHash[nbT] = curHash ;
+               if(hashC[curHash] > 0) nbSol += hashC[curHash] ;
+ //              printf("Merge C=%d H=%dx%d=%lld S=%lld \n",curCase,EXP(curHash),hashC[curHash],nbSol);
+ //              int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');         }
+            } else {
+ //              printf("Init H=%dx%d to -1\n",EXP(curHash));
+               hashC[curHash] = -1 ;
+               if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+                  // T1 o x x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 1 ;
+                  levelHash[nbT] = curHash ;
+                  Case[curCase+1]=Case[curCase+2]=1 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                  // T2 o
+                  //    x
+                  //    x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 2 ;
+                  levelHash[nbT] = curHash ;
+                  Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else if(curLine < nbLine - 1) {
+                  // T3 ou T4 ou T5 ou T6
+                  if(curRow < PB161_ROW - 1) {
+                     if (Case[curCase+1] == 0 ) {
+                        if ( Case[curCase+PB161_ROW] == 0 ) {
+                           // T3 o x
+                           //    x
+                           levelCase[nbT] = curCase ;
+                           levelHash[nbT] = curHash ;
+                           levelTri[nbT] = 3 ;
+                           Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                           nbT++ ; curCase ++ ; continue ;
+                        } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                           // T4 o x
+                           //      x
+                           levelCase[nbT] = curCase ;
+                           levelHash[nbT] = curHash ;
+                           levelTri[nbT] = 4 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                           nbT++ ; curCase++ ; continue ;
+                        }
+                     } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelHash[nbT] = curHash ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; continue ;
+                     }
+                  }
+                  if ( curRow > 0 && Case[curCase+PB161_ROW] == 0  && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelHash[nbT] = curHash ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; continue ;
+                  }
+               }
+               levelHash[nbT] = 0 ;
+            }
+         }
+         int isNew = 0 ;
+         while(!isNew && nbT-- > 0 ) {
+            int curHash = levelHash[nbT] ;
+            if(levelHash[nbT+1] && hashC[levelHash[nbT+1]] > 0) {
+               if(hashC[curHash] > 0) {
+                  hashC[curHash] += hashC[levelHash[nbT+1]] ;
+               } else {
+                  hashC[curHash] = hashC[levelHash[nbT+1]] ;
+               }
+ //              printf("add H=%dx%d +%lld to H=%dx%d->%lld\n",EXP(levelHash[nbT+1]),hashC[levelHash[nbT+1]],EXP(curHash),hashC[curHash]) ;
+            }
+            int level = levelTri[nbT] ;
+            curCase = levelCase[nbT] ;
+            //            int curLine =  curCase / PB161_ROW ;
+            //            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            switch(level) {
+               case 1 :
+                  Case[curCase+1]=Case[curCase+2]=0 ;
+                  if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                     // T2 o
+                     //    x
+                     //    x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 2 ;
+                     Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                     nbT++ ; curCase++ ; isNew=1 ;continue ;
+                  } else if(curLine < nbLine - 1) {
+                     // T3 ou T4 ou T5 ou T6
+                     if(curRow < PB161_ROW - 1) {
+                        if (Case[curCase+1] == 0 ) {
+                           if ( Case[curCase+PB161_ROW] == 0 ) {
+                              // T3 o x
+                              //    x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 3 ;
+                              Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                              nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                           } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                              // T4 o x
+                              //      x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 4 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           } else if (Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                              // T5 o
+                              //    x  x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 5 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        }
+                     }
+                     if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                     break ;
+                  case 2 :
+                     Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=0 ;
+                     if(curRow < PB161_ROW - 1) {
+                        if (Case[curCase+1] == 0 ) {
+                           if ( Case[curCase+PB161_ROW] == 0 ) {
+                              // T3 o x
+                              //    x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 3 ;
+                              Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                              nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                           } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                              // T4 o x
+                              //      x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 4 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                           // T5 o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 5 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                           nbT++ ; curCase++ ; isNew=1 ; continue ;
+                        }
+                     }
+                     if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                     break ;
+                  case 3 :
+                     Case[curCase+PB161_ROW]=Case[curCase+1]=0 ;
+                     if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                        // T4 o x
+                        //      x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 4 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     } else if( Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     }  else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                     }
+                     break ;
+                  case 4 :
+                     Case[curCase+PB161_ROW+1]=Case[curCase+1]=0 ;
+                     if( Case[curCase+PB161_ROW] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     } else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                     }
+                     break ;
+                  case 5 :
+                     Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=0 ;
+                     if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                     }
+                     break ;
+                  case 6 :
+                     Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=0 ;
+                     continue ;
+                  }
+            }
+         }
+      }
+      nbSolLine[nbLine] = nbSol ;
+      printf("(%.3f)%dx%d->%lld/%lld,%lld=(%lld+%lld) ",(float)  (clock() - pbR->nbClock)/ CLOCKS_PER_SEC,PB161_ROW,nbLine,nbSol,nbFact,nbSol-nbFact,nbNoFact,nbV);
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
+   return 1 ;
+}
+
+
+/*
+int PB161(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int8_t   Case[PB161_ROW*PB161_LINE] ;
+   int64_t nbSol=0 ;
+   memset(Case,0,PB161_ROW*PB161_LINE*sizeof(Case[0]));
+   int case2row [PB161_ROW*PB161_LINE] ;
+   int case2line [PB161_ROW*PB161_LINE] ;
+   int levelCase[(PB161_ROW*PB161_LINE)/3] ;
+   int levelTri[(PB161_ROW*PB161_LINE)/3] ;
+   int sizeMask = 1 << (2*PB161_ROW) ;
+   int64_t *countM = calloc(sizeMask,sizeof(countM[0])) ;
+   int64_t *countMrev = calloc(sizeMask,sizeof(countMrev[0])) ;
+   int nbLine  ;
+    int i ;
+   for(i=0;i<PB161_ROW*PB161_LINE;i++) {
+      case2line[i] = i /PB161_ROW ;
+      case2row[i] = i - case2line[i] * PB161_ROW ;
+
+   }
+   nbLine = (PB161_LINE-2)/2 + 1 ;
+   {
+      int nbT=0 ;
+      nbSol=0 ;
+      int curCase = 0 ;
+      while (nbT >= 0) {
+         while(Case[curCase]) curCase++ ;
+         //            int curLine =  curCase / PB161_ROW ;
+         //            int curRow = curCase - curLine * PB161_ROW  ;
+         int curLine =  case2line[curCase] ;
+         int curRow = case2row[curCase] ;
+         if(curLine>=nbLine) {
+            int32_t masq = 0 ;
+            int i ;
+            for(i=0;i<2*PB161_ROW;i++) {
+               masq = (masq << 1) |  ( Case[(nbLine-2)*PB161_ROW+i] ? 0 : 1 ) ;
+            }
+   //         printf("%x ",masq) ;
+            countM[masq]++ ;
+
+  //         if(masq)
+            {
+               printf("+%x\n",masq);
+               for(i=0;i<PB161_ROW*nbLine;i++) {
+                  printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');
+               }
+            }
+
+            
+         } else {
+            if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+               // T1 o x x
+               levelCase[nbT] = curCase ;
+               levelTri[nbT] = 1 ;
+               Case[curCase]=Case[curCase+1]=Case[curCase+2]=1 ;
+               nbT++ ; curCase++ ; continue ;
+            } else if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+               // T2 o
+               //    x
+               //    x
+               levelCase[nbT] = curCase ;
+               levelTri[nbT] = 2 ;
+               Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+               nbT++ ; curCase++ ; continue ;
+            } else if(curLine < nbLine - 1) {
+               // T3 ou T4 ou T5 ou T6
+               if(curRow < PB161_ROW - 1) {
+                  if (Case[curCase+1] == 0 ) {
+                     if ( Case[curCase+PB161_ROW] == 0 ) {
+                        // T3 o x
+                        //    x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 3 ;
+                        Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                        nbT++ ; curCase ++ ; continue ;
+                     } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                        // T4 o x
+                        //      x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 4 ;
+                        Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                        nbT++ ; curCase++ ; continue ;
+                     }
+                  } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                     // T5 o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 5 ;
+                     Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                     nbT++ ; curCase++ ; continue ;
+                  }
+               }
+               if ( curRow > 0 && Case[curCase+PB161_ROW] == 0  && Case[curCase+PB161_ROW-1] == 0) {
+                  // T6    o
+                  //    x  x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 6 ;
+                  Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                  nbT++ ; curCase++ ; continue ;
+               }
+            } else if(curLine >= nbLine -2) {
+               curCase++ ; continue ;
+            }
+         }
+         int isNew = 0 ;
+         while(!isNew && nbT-- > 0 ) {
+            int level = levelTri[nbT] ;
+            curCase = levelCase[nbT] ;
+//            int curLine =  curCase / PB161_ROW ;
+//            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            switch(level) {
+               case 1 :
+                  Case[curCase]=Case[curCase+1]=Case[curCase+2]=0 ;
+                  if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                     // T2 o
+                     //    x
+                     //    x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 2 ;
+                     Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                     nbT++ ; curCase++ ; isNew=1 ;continue ;
+                  } else if(curLine < nbLine - 1)  {
+                     // T3 ou T4 ou T5 ou T6
+                     if(curRow < PB161_ROW - 1) {
+                        if (Case[curCase+1] == 0 ) {
+                           if ( Case[curCase+PB161_ROW] == 0 ) {
+                              // T3 o x
+                              //    x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 3 ;
+                              Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                              nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                           } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                              // T4 o x
+                              //      x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 4 ;
+                              Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           } else if (Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                              // T5 o
+                              //    x  x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 5 ;
+                              Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        }
+                     }
+                     if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                        // T6    o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 6 ;
+                        Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                     break ;
+               case 2 :
+                  Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=0 ;
+                  if(curRow < PB161_ROW - 1) {
+                     if (Case[curCase+1] == 0 ) {
+                        if ( Case[curCase+PB161_ROW] == 0 ) {
+                           // T3 o x
+                           //    x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 3 ;
+                           Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                           nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                        } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                           // T4 o x
+                           //      x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 4 ;
+                           Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                           nbT++ ; curCase++ ; isNew=1 ; continue ;
+                        }
+                     } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; isNew=1 ; continue ;
+                     }
+                  }
+                  if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; isNew=1 ; continue ;
+                  }
+                  break ;
+               case 3 :
+                  Case[curCase]=Case[curCase+PB161_ROW]=Case[curCase+1]=0 ;
+                  if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                     // T4 o x
+                     //      x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 4 ;
+                     Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                     nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                  } else if( Case[curCase+PB161_ROW+1] == 0) {
+                     // T5 o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 5 ;
+                     Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                     nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                  }  else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                  }
+                  break ;
+               case 4 :
+                  Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+1]=0 ;
+                  if( Case[curCase+PB161_ROW] == 0) {
+                     // T5 o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 5 ;
+                     Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                     nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                  } else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0 && Case[curCase+PB161_ROW] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                  }
+                  break ;
+               case 5 :
+                  Case[curCase]=Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=0 ;
+                  if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                  }
+                  break ;
+               case 6 :
+                  Case[curCase]=Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=0 ;
+                  continue ;
+               }
+            }
+         }
+      }
+      
+      nbLine = (PB161_LINE-2)/2 +1;
+      {
+         int nbT=0 ;
+         nbSol=0 ;
+         int curCase = 0 ;
+         while (nbT >= 0) {
+            while(Case[curCase]) curCase++ ;
+            //            int curLine =  curCase / PB161_ROW ;
+            //            int curRow = curCase - curLine * PB161_ROW  ;
+            int curLine =  case2line[curCase] ;
+            int curRow = case2row[curCase] ;
+            if(curLine>=nbLine) {
+               int32_t masq = 0 ;
+               int i ;
+               for(i=2*PB161_ROW-1;i>=0;i--) {
+                  masq = (masq << 1) |  ( Case[nbLine*PB161_ROW+i] ? 1 : 0 ) ;
+               }
+               //         printf("%x ",masq) ;
+               countMrev[masq]++ ;
+
+ //               if(masq)
+                {
+                   printf("%x\n",masq);
+                   for(i=0;i<PB161_ROW*(nbLine+2);i++) {
+                      printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');
+                   }
+                }
+
+               
+               
+            } else {
+               if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+                  // T1 o x x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 1 ;
+                  Case[curCase+1]=Case[curCase+2]=1 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else if(Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                  // T2 o
+                  //    x
+                  //    x
+                  levelCase[nbT] = curCase ;
+                  levelTri[nbT] = 2 ;
+                  Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                  nbT++ ; curCase++ ; continue ;
+               } else {
+                  // T3 ou T4 ou T5 ou T6
+                  if(curRow < PB161_ROW - 1) {
+                     if (Case[curCase+1] == 0 ) {
+                        if ( Case[curCase+PB161_ROW] == 0 ) {
+                           // T3 o x
+                           //    x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 3 ;
+                           Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                           nbT++ ; curCase ++ ; continue ;
+                        } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                           // T4 o x
+                           //      x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 4 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                           nbT++ ; curCase++ ; continue ;
+                        }
+                     } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                        // T5 o
+                        //    x  x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 5 ;
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                        nbT++ ; curCase++ ; continue ;
+                     }
+                  }
+                  if ( curRow > 0 && Case[curCase+PB161_ROW] == 0  && Case[curCase+PB161_ROW-1] == 0) {
+                     // T6    o
+                     //    x  x
+                     levelCase[nbT] = curCase ;
+                     levelTri[nbT] = 6 ;
+                     Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                     nbT++ ; curCase++ ; continue ;
+                  }
+               }
+            }
+            int isNew = 0 ;
+            while(!isNew && nbT-- > 0 ) {
+               int level = levelTri[nbT] ;
+               curCase = levelCase[nbT] ;
+               //            int curLine =  curCase / PB161_ROW ;
+               //            int curRow = curCase - curLine * PB161_ROW  ;
+               int curLine =  case2line[curCase] ;
+               int curRow = case2row[curCase] ;
+               switch(level) {
+                  case 1 :
+                     Case[curCase+1]=Case[curCase+2]=0 ;
+                     if(Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                        // T2 o
+                        //    x
+                        //    x
+                        levelCase[nbT] = curCase ;
+                        levelTri[nbT] = 2 ;
+                        Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=2 ;
+                        nbT++ ; curCase++ ; isNew=1 ;continue ;
+                     } else  {
+                        // T3 ou T4 ou T5 ou T6
+                        if(curRow < PB161_ROW - 1) {
+                           if (Case[curCase+1] == 0 ) {
+                              if ( Case[curCase+PB161_ROW] == 0 ) {
+                                 // T3 o x
+                                 //    x
+                                 levelCase[nbT] = curCase ;
+                                 levelTri[nbT] = 3 ;
+                                 Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                                 nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                              } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                                 // T4 o x
+                                 //      x
+                                 levelCase[nbT] = curCase ;
+                                 levelTri[nbT] = 4 ;
+                                 Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                                 nbT++ ; curCase++ ; isNew=1 ; continue ;
+                              } else if (Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                                 // T5 o
+                                 //    x  x
+                                 levelCase[nbT] = curCase ;
+                                 levelTri[nbT] = 5 ;
+                                 Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                                 nbT++ ; curCase++ ; isNew=1 ; continue ;
+                              }
+                           }
+                        }
+                        if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                           // T6    o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 6 ;
+                           Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                           nbT++ ; curCase++ ; isNew=1 ; continue ;
+                        }
+                        break ;
+                     case 2 :
+                        Case[curCase+PB161_ROW]=Case[curCase+2*PB161_ROW]=0 ;
+                        if(curRow < PB161_ROW - 1) {
+                           if (Case[curCase+1] == 0 ) {
+                              if ( Case[curCase+PB161_ROW] == 0 ) {
+                                 // T3 o x
+                                 //    x
+                                 levelCase[nbT] = curCase ;
+                                 levelTri[nbT] = 3 ;
+                                 Case[curCase+PB161_ROW]=Case[curCase+1]=3 ;
+                                 nbT++ ; curCase ++ ; isNew=1 ; continue ;
+                              } else if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                                 // T4 o x
+                                 //      x
+                                 levelCase[nbT] = curCase ;
+                                 levelTri[nbT] = 4 ;
+                                 Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                                 nbT++ ; curCase++ ; isNew=1 ; continue ;
+                              }
+                           } else if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                              // T5 o
+                              //    x  x
+                              levelCase[nbT] = curCase ;
+                              levelTri[nbT] = 5 ;
+                              Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                              nbT++ ; curCase++ ; isNew=1 ; continue ;
+                           }
+                        }
+                        if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                           // T6    o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 6 ;
+                           Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                           nbT++ ; curCase++ ; isNew=1 ; continue ;
+                        }
+                        break ;
+                     case 3 :
+                        Case[curCase+PB161_ROW]=Case[curCase+1]=0 ;
+                        if ( Case[curCase+PB161_ROW+1] == 0 ) {
+                           // T4 o x
+                           //      x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 4 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+1]=4 ;
+                           nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                        }  else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                           // T6    o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 6 ;
+                           Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                           nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                        }
+                        break ;
+                     case 4 :
+                        Case[curCase+PB161_ROW+1]=Case[curCase+1]=0 ;
+                        if( Case[curCase+PB161_ROW] == 0) {
+                           // T5 o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 5 ;
+                           Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=5 ;
+                           nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                        } else if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0  && Case[curCase+PB161_ROW] == 0) {
+                           // T6    o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 6 ;
+                           Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                           nbT++ ; curCase++ ; isNew= 1 ; continue ;
+                        }
+                        break ;
+                     case 5 :
+                        Case[curCase+PB161_ROW+1]=Case[curCase+PB161_ROW]=0 ;
+                        if(curRow > 0  && Case[curCase+PB161_ROW-1] == 0) {
+                           // T6    o
+                           //    x  x
+                           levelCase[nbT] = curCase ;
+                           levelTri[nbT] = 6 ;
+                           Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=6 ;
+                           nbT++ ; curCase++ ; isNew = 1 ; continue ;
+                        }
+                        break ;
+                     case 6 :
+                        Case[curCase+PB161_ROW-1]=Case[curCase+PB161_ROW]=0 ;
+                        continue ;
+                     }
+               }
+            }
+         }
+      }
+
+      
+      
+      nbSol = 0 ;
+      for(i=0;i<sizeMask;i++) {
+         if(countM[i]) {
+            printf("%x->%lld,%lld ",i,countM[i],countMrev[i]) ;
+            nbSol += countM[i] * countMrev[i];
+         }
+        
+      }
+      printf("(%.3f)%dx%d->%lld\n",(float)  (clock() - pbR->nbClock)/ CLOCKS_PER_SEC,PB161_ROW,nbLine,nbSol);
+   }
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
+   return 1 ;
+}
+*/
+
 
 int64_t Pow(int64_t a,int exp) {
    int64_t pow = 1;
