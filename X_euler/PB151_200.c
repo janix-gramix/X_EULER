@@ -2062,6 +2062,112 @@ int PB161(PB_RESULT *pbR) {
       nbSol=0 ;
       nbFact = nbNoFact = nbV = 0 ;
       int curCase = 0 ;
+//      levelHash[nbT] = -1 ;
+ //     levelHash[nbT] = 0 ;
+      int isBack = 0;
+      while (nbT >= 0) {
+         
+  //            printf("level %d nb=%lld\n",nbT,nbSol);
+  //             int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');     }
+
+  //       int curLine =  case2line[curCase] ;
+  //       int curRow = case2row[curCase] ;
+         int curLine,curRow ;
+         int curHash  ;
+         int level ;
+//         if(levelHash[nbT]>=0) {
+ //       if(levelHash[nbT]) {
+         if(isBack) {
+            curCase = levelCase[nbT] ;
+            curHash = levelHash[nbT] ;
+            level = levelTri[nbT] ;
+         } else {
+            curHash = curCase ;
+            for(i=1;i<=PB161_ROW;i++) {
+               curHash *= 3 ;
+               if(Case[curCase+i]) {
+                  if(Case[curCase+PB161_ROW+i]) curHash += 2 ;
+                  else curHash +=1 ;
+               }
+            }
+            if(hashC[curHash]) {
+               if(hashC[curHash] > 0) {
+                  nbSol += hashC[curHash] ;
+                  int curHash1 = levelHash[nbT-1] ;
+                  if(hashC[curHash1] > 0) {
+                     hashC[curHash1] += hashC[curHash] ;
+                  } else {
+                     hashC[curHash1] = hashC[curHash] ;
+                  }
+               }
+               nbT-- ; isBack = 1 ;     continue ;
+            } else {
+               hashC[curHash] = -1 ;   level = 0 ;
+            }
+         }
+         int nxtLevel = 0 ;
+         curLine =  case2line[curCase] ;
+         curRow = case2row[curCase] ;
+         if(level ){   Case[curCase+off1Tri[level]] = Case[curCase+off2Tri[level]] = 0 ; }
+         switch(level) {
+            case 0 :
+               if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+                  // T1 o x x
+                  nxtLevel = 1 ; break ;
+               }
+            case 1 :
+               if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
+                  nxtLevel = 2 ; break ;
+               } else if (curLine >=  nbLine - 1) break ;
+            case 2 :
+               if(curRow == PB161_ROW - 1) {
+                  if ( Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                     nxtLevel = 6 ; break ;
+                  } break ;
+               }
+               if (Case[curCase+1] == 0 && Case[curCase+PB161_ROW] == 0 ) {
+                  nxtLevel = 3 ; break ;
+               }
+            case 3:
+               if ( Case[curCase+1] == 0 &&Case[curCase+PB161_ROW+1] == 0 ) {
+                  nxtLevel = 4 ; break ;
+               }
+            case 4 :
+               if (Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW+1] == 0) {
+                  nxtLevel = 5 ; break ;
+               }
+            case 5 :
+               if ( curRow > 0  &&  Case[curCase+PB161_ROW] == 0 && Case[curCase+PB161_ROW-1] == 0) {
+                  nxtLevel = 6 ; break ;
+               }
+            default  :
+               break ;
+         }
+         if(nxtLevel) {
+            if(!isBack) levelHash[nbT] = curHash ;
+            levelTri[nbT] = nxtLevel ;
+            levelCase[nbT] = curCase ;
+//               Case[curCase+off1Tri[nxtLevel]] = Case[curCase+off2Tri[nxtLevel]] = nxtLevel ;
+            if(nbT >= (PB161_ROW*nbLine)/3-1) {
+               nbSol++ ;   hashC[levelHash[nbT]] = 1 ;  isBack = 1 ;
+            } else {
+               Case[curCase+off1Tri[nxtLevel]] = Case[curCase+off2Tri[nxtLevel]] = nxtLevel ;
+               isBack = 0 ;   while(Case[++curCase]){ }; nbT++ ;   continue ;
+            }
+         } else {
+            if(isBack  && hashC[levelHash[nbT]] > 0) {
+               int curHash = levelHash[nbT-1] ;
+               if(hashC[curHash] > 0) {
+                  hashC[curHash] += hashC[levelHash[nbT]] ;
+               } else {
+                  hashC[curHash] = hashC[levelHash[nbT]] ;
+               }
+            }
+            nbT-- ;isBack = 1 ;
+         }
+      }
+   }
+/*
       while (nbT >= 0) {
          //     printf("level %d \n",nbT);
          //      int i ; for(i=0;i<PB161_ROW*PB161_LINE;i++) {            printf("%d%c",Case[i],((i+1) % PB161_ROW) ? ' ' : '\n');         }
@@ -2162,6 +2268,10 @@ int PB161(PB_RESULT *pbR) {
             int curRow = case2row[curCase] ;
             Case[curCase+off1Tri[level]] = Case[curCase+off2Tri[level]] = 0 ;
             switch(level) {
+               case 0 :
+                  if(curRow < PB161_ROW - 2 && Case[curCase+1] == 0 && Case[curCase+2] == 0) {
+                     // T1 o x x
+                     nxtLevel = 1 ; break ;
                case 1 :
                   if(curLine < nbLine - 2 && Case[curCase+PB161_ROW] == 0 && Case[curCase+2*PB161_ROW] == 0) {
                      nxtLevel = 2 ; break ;
@@ -2201,7 +2311,7 @@ int PB161(PB_RESULT *pbR) {
       nbSolLine[nbLine] = nbSol ;
       printf("(%.3f)%dx%d->%lld/%lld,%lld=(%lld+%lld) ",(float)  (clock() - pbR->nbClock)/ CLOCKS_PER_SEC,PB161_ROW,nbLine,nbSol,nbFact,nbSol-nbFact,nbNoFact,nbV);
    }
-   
+*/
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",nbSol) ;
    return 1 ;
