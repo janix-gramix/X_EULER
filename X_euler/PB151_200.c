@@ -2662,6 +2662,150 @@ int PB167a(PB_RESULT *pbR) {
    return 1 ;
 }
 
+#define PB168_PMAX 100
+#define PB168_ND  5
+typedef struct DIV168 {
+   int m ;
+   int m10 ;
+   int delta0 ;
+} DIV168 ;
+/*  m > 1
+     d0 x 10^p + q = (10 x q + d0) m
+ <=> d0 (10^p - m) = q (10m -1)          ;  x10
+ <=> d0 (10^p - m) x 10 = 10q (10m -1)
+ <=> d0 10^(p+1) = 10q (10m -1) + d0 x 10m ;  -d0
+ <=> d0 (10^(p+1)-1) = (10q+d0) (10m -1)
+ if (10m-1) prime : (10m-1) | (10^p - m) <=> (10m-1) | (10^(p+1)-1)
+ if (10m-1) not prime.
+  - For m=4 39=3x13 and m=4 69=3x23
+    no solutions added by 13(resp 23) as p13 = p39 (resp p23=p69)
+  - For m=5 we must add solutions from p7 (p7 + 1 = 6) for d0=7 unique multiple of 7)
+    and remove common solutions (multiples of p49 + 1 = 42)
+ For m, if n(1)=10q+d1 = (10^(p+1)-1) / (10m -1)
+ for d0>=2 n(d0)= d0(10q+d1) is candidate for d0
+ The solutions are valid only if d0 >= m  (to avoid leading zero in n)
+ and longuest solutions are derivated by repeating the decimal representation of n(d0)
+*/
+
+int PB168(PB_RESULT *pbR) {
+#define T9  ((9*10)/2)
+   pbR->nbClock = clock() ;
+   DIV168 div[] = {
+      {2,19,1},
+      {3,29,1},
+      {4,39,1}, //{4,13,3},
+      {5,49,1}, {5,7,7},
+      {6,59,1},
+      {7,69,1}, //{7,23,3},
+      {8,79,1},
+      {9,89,1},
+      {0,1,1}
+   } ;
+   int pow10[PB168_ND+1] ;
+   int i ;
+   int p10 ;
+   int64_t Sp10 , SSp10=0  ;
+   pow10[0]= p10 =Sp10 = 1 ;
+   for(i=1;i<=PB168_ND;i++){
+      p10 *= 10;
+      Sp10 += p10 ;
+      if(i<PB168_ND)SSp10+= Sp10 ;
+      pow10[i] = p10 ;
+   }
+   int64_t SN = T9 * SSp10 ;
+   SN += ( T9 * Sp10 * (PB168_PMAX - PB168_ND) ) % pow10[PB168_ND] ;
+   int m , is ;
+   
+   for(m=2,is=0;m<=9;m++) {
+      for(;div[is].m == m;is++)  {
+         int ie,S1,dn ;
+         dn=S1= div[is].delta0 ;
+         int carry = 0 ;
+         for(ie=1;;ie++) {
+            dn = carry + m*dn ;
+            carry = dn/10 ; dn -= carry * 10 ;
+            if(ie<=5) S1 += dn * pow10[ie] ;
+            if(carry==0 && dn==div[is].delta0) break ;
+         }
+         int nbOcc ;
+         if(div[is].delta0 > 1) {
+            int nm = 9/div[is].delta0 ;
+            nbOcc = (PB168_PMAX/ie - PB168_PMAX/ie/div[is].delta0)*(nm*(nm+1)/2) ;
+         } else {
+            nbOcc = (PB168_PMAX/ie)*(T9 - m*(m-1)/2)  ;
+         }
+         SN += S1 * nbOcc ;
+ //        if(pbR->isVerbose) fprintf(stdout,"\tPB%s m=%d(%% %2d) lg=%2d SN+= %6d x %d\n",pbR->ident,m,div[is].m10,ie,S1 % pow10[PB168_ND],nbOcc);
+      }
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",SN % pow10[PB168_ND]) ;
+   return 1 ;
+}
+
+
+int PB168a(PB_RESULT *pbR) {
+#define T9  ((9*10)/2)
+   pbR->nbClock = clock() ;
+    DIV168 div[] = {
+      {2,19,1},
+      {3,29,1},
+      {4,39,1},{4,13,3},
+      {5,49,1}, {5,7,7},
+      {6,59,1},
+      {7,69,1}, {7,23,3},
+      {8,79,1},
+      {9,89,1},
+      {0,1,1}
+   } ;
+   int pow10[PB168_ND+1] ;
+   int i ;
+   int p10 ;
+   int64_t Sp10 , SSp10=0  ;
+   pow10[0]= p10 =Sp10 = 1 ;
+   for(i=1;i<=PB168_ND;i++){
+      p10 *= 10;
+      Sp10 += p10 ;
+      if(i<PB168_ND)SSp10+= Sp10 ;
+      pow10[i] = p10 ;
+   }
+   int64_t SN = T9 * SSp10 ;
+   SN += ( T9 * Sp10 * (PB168_PMAX - PB168_ND) ) % pow10[PB168_ND] ;
+   int m , is ;
+
+   for(m=2,is=0;m<=9;m++) {
+      for(;div[is].m == m;is++)  {
+         int m10 = div[is].m10 ; // 10*d -1 ;
+         int ie,p10m10 ;
+         for(ie=1,p10m10=1 ; p10m10!=m ;ie++) {
+            p10m10 = (10 * p10m10) % m10 ;
+         }
+         int S1, i ,dn ;
+         dn=S1= div[is].delta0 ;
+         int carry = 0 ;
+         for(i=1;i<=PB168_ND;i++) {
+            dn = carry + m*dn ;
+            carry = dn/10 ; dn -= carry * 10 ;
+            S1 += dn * pow10[i] ;
+         }
+         int nbOcc ;
+         if(div[is].delta0 > 1) {
+            int nm = 9/div[is].delta0 ;
+            nbOcc = (PB168_PMAX/ie - PB168_PMAX/ie/div[is].delta0)*(nm*(nm+1)/2) ;
+         } else {
+            nbOcc = (PB168_PMAX/ie)*(T9 - m*(m-1)/2)  ;
+         }
+         SN += S1 * nbOcc ;
+ //
+         if(pbR->isVerbose) fprintf(stdout,"\tPB%s m=%d(%% %2d) lg=%2d SN+= %6d x %d\n",pbR->ident,m,div[is].m10,ie,S1 % pow10[PB168_ND],nbOcc);
+     }
+   }
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",SN % pow10[PB168_ND]) ;
+   return 1 ;
+}
+
+
 #define PB169_NP    25
 // solution tres rapide
 // on cherche la position des 1 en partant du poids le plus faible
@@ -3159,6 +3303,119 @@ int PB181a(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
+#define PB184_R   105
+typedef struct PT184 {
+   int x ;
+   int y ;
+} PT184 ;
+int CmpPt184 ( const void *e1, const void *e2) {
+   PT184 *p1 = (PT184 *)e1 ;
+   PT184 *p2 = (PT184 *)e2 ;
+   return p1->y * p2->x - p1->x * p2->y ;
+   
+}
+int PB184(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   PT184 *pt = malloc((PB184_R*PB184_R*8)/5 * sizeof(pt[0])) ;
+   int *angle = malloc((PB184_R*PB184_R*8)/5 * sizeof(angle[0])) ;
+   int r2 = PB184_R * PB184_R ;
+   int nbPt = 0 ;
+   int i,j;
+   for(i=1;i<PB184_R;i++) {
+      pt[nbPt++] = (PT184) { i, 0} ;
+      pt[nbPt++] = (PT184) { 0, i} ;
+   }
+   for(i=1;i<PB184_R;i++) {
+      for(j=1;i*i+j*j< r2;j++) {
+         pt[nbPt++] = (PT184) { i, j} ;
+         pt[nbPt++] = (PT184) { i, -j} ;
+     }
+   }
+   printf("nbp=%d\n",nbPt);
+   qsort(pt,nbPt,sizeof(pt[0]),CmpPt184) ;
+//   for(i=0;i<nbPt;i++) printf("(%d,%d)",pt[i].x,pt[i].y) ;
+   int nbAngle = 0 ;
+   int nb ;
+   for(i=1,nb=1;i<nbPt;i++) {
+      if(CmpPt184(pt+i-1,pt+i) != 0) {
+         angle[nbAngle++]=nb ;
+         nb=1 ;
+      } else {
+         nb++ ;
+      }
+   }
+   angle[nbAngle++]=nb ;
+   printf("\n");
+    printf("nbAngle=%d\n",nbAngle) ;
+ //  for(i=0;i<nbAngle;i++) printf("%d ",angle[i]) ;
+   int64_t S =0 ;
+   int64_t sumj = angle[1] ;
+   int64_t sumjj = 0 ;
+   for(j=2;j<nbAngle;j++) {
+      sumjj += sumj * angle[j] ;
+      sumj += angle[j] ;
+   }
+   S += angle[0] * sumjj ;
+   for(i=1;i<nbAngle-2;i++) {
+      sumj -= angle[i] ;
+      sumjj -= angle[i]*sumj ;
+      
+      S += angle[i] * sumjj ;
+   }
+   S = 2*S ;
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
+int PB184a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int *angle = malloc((PB184_R*PB184_R*8)/5 * sizeof(angle[0])) ;
+   
+   FRACTrec FRrec ;
+   FRC_init(&FRrec,PB184_R-1  , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
+   int nbAngle = 0 ;
+   angle[nbAngle++] = PB184_R-1 ;
+   do{
+ //     printf("%d/%d ",FRrec.fr1.n,FRrec.fr1.d) ;
+      int norm = FRrec.fr1.n*FRrec.fr1.n+FRrec.fr1.d*FRrec.fr1.d ;
+      if(norm < PB184_R*PB184_R ) {
+         angle[nbAngle++] = sqrt((PB184_R*PB184_R-1)/norm) ;
+      }
+    } while(FRC_getNext(&FRrec)) ;
+   angle[nbAngle++]=sqrt((PB184_R*PB184_R)/2) ;
+   int nbH = nbAngle ;
+   int i,j ;
+   for(i=0;i<nbH-2;i++) angle[i+nbH]= angle[nbH-i-2] ;
+   nbH = 2*nbH-2;
+   for(i=0;i<nbH;i++) angle[i+nbH]= angle[i] ;
+   nbAngle = 2*nbH ;
+   printf("\n") ;
+
+   int nbp =0 ;
+   for(i=0;i<nbAngle;i++) nbp+= angle[i] ;
+   printf("nbAngle=%d nbp=%d\n",nbAngle,nbp) ;
+   int64_t S =0 ;
+   int64_t sumj = angle[1] ;
+   int64_t sumjj = 0 ;
+   for(j=2;j<nbAngle;j++) {
+      sumjj += sumj * angle[j] ;
+      sumj += angle[j] ;
+   }
+   S += angle[0] * sumjj ;
+   for(i=1;i<nbAngle-2;i++) {
+      sumj -= angle[i] ;
+      sumjj -= angle[i]*sumj ;
+      
+      S += angle[i] * sumjj ;
+   }
+   S = 2*S ;
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
+   return 1 ;
+}
+
 
 //#define PB187_MAX   2000000000
 #define PB187_MAX   100000000
