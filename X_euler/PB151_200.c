@@ -3304,7 +3304,7 @@ int PB181a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB184_R   105
+#define PB184_R 105LL
 typedef struct PT184 {
    int x ;
    int y ;
@@ -3315,61 +3315,307 @@ int CmpPt184 ( const void *e1, const void *e2) {
    return p1->y * p2->x - p1->x * p2->y ;
    
 }
-int PB184(PB_RESULT *pbR) {
-   pbR->nbClock = clock() ;
-   PT184 *pt = malloc((PB184_R*PB184_R*8)/5 * sizeof(pt[0])) ;
-   int *angle = malloc((PB184_R*PB184_R*8)/5 * sizeof(angle[0])) ;
-   int r2 = PB184_R * PB184_R ;
-   int nbPt = 0 ;
-   int i,j;
-   for(i=1;i<PB184_R;i++) {
-      pt[nbPt++] = (PT184) { i, 0} ;
-      pt[nbPt++] = (PT184) { 0, i} ;
+
+// compute Sigma 1 for x^2+y^2 <= N x>0, y>0
+// on decoupe en 3 zones
+/*. ...
+ |  Z3   .
+ |---------.
+ |       . |  .
+ |    Z1 . |   .
+ |  .      | Z2 .
+ |_________|____.
+ */
+
+
+
+int64_t Nbx184PointsInCirle(int64_t N) {
+   int64_t sqrN2 =  Sqrt64(N/2) ;
+   int64_t sqrN = Sqrt64(N) ;
+//   int64_t S = sqrN2*(sqrN2+1) ; // Z1
+  int64_t S = sqrN2*(sqrN2) ; // Z1
+   int64_t i ;
+   for(i=sqrN2+1;i<=sqrN;i++) {
+      int64_t sqrY = Sqrt64(N-i*i) ;
+//      S += 2* sqrY+1  ;   // Z2 + Z3
+     S += 2* sqrY  ;   // Z2 + Z3
    }
-   for(i=1;i<PB184_R;i++) {
-      for(j=1;i*i+j*j< r2;j++) {
-         pt[nbPt++] = (PT184) { i, j} ;
-         pt[nbPt++] = (PT184) { i, -j} ;
-     }
+   return S ;
+}
+
+typedef struct COUNTCIRC {
+   int64_t N ;
+   int64_t n1 ;
+   int64_t * tbCircleLow ;
+   int64_t * tbCircleHigh ;
+   int64_t * tbPrimeLow ;
+   int64_t * tbPrimeHigh ;
+} COUNTCIRC ;
+
+COUNTCIRC * CountC_Alloc(int64_t N) {
+   COUNTCIRC * cc = calloc(1,sizeof(cc[0]));
+   cc->N = N ;
+   cc->n1 = Sqrt64(N) ;
+   cc->tbCircleLow = calloc(cc->n1+1,sizeof(cc->tbCircleLow[0]));
+   cc->tbCircleHigh = calloc((cc->n1+1),sizeof(cc->tbCircleHigh[0]));
+   cc->tbPrimeLow = malloc((cc->n1+1)*sizeof(cc->tbPrimeLow[0])); ;
+   cc->tbPrimeHigh = malloc((cc->n1+1)*sizeof(cc->tbPrimeHigh[0])); ;
+   int i ;
+   cc->tbCircleLow[0]=cc->tbCircleHigh[0]=cc->tbPrimeLow[0]=cc->tbPrimeHigh[0]=0 ;
+   return cc ;
+}
+
+int64_t CounC_CalcPrimeL(COUNTCIRC *cc,int iL) {
+//   printf("L%d->",iL) ;
+   if(iL && cc->tbCircleLow[iL]) {
+//     printf("%lld ",cc->tbCircleLow[iL]);
+
+      return cc->tbPrimeLow[iL] ;
    }
-   printf("nbp=%d\n",nbPt);
-   qsort(pt,nbPt,sizeof(pt[0]),CmpPt184) ;
-//   for(i=0;i<nbPt;i++) printf("(%d,%d)",pt[i].x,pt[i].y) ;
-   int nbAngle = 0 ;
-   int nb ;
-   for(i=1,nb=1;i<nbPt;i++) {
-      if(CmpPt184(pt+i-1,pt+i) != 0) {
-         angle[nbAngle++]=nb ;
-         nb=1 ;
+   int64_t S = cc->tbCircleLow[iL] = Nbx184PointsInCirle(iL);
+   int64_t j ;
+   // remove pgcd(x,y)=j
+   for(j=2;2*j*j<=iL;j++) {
+//      CounC_CalcPrimeL(cc,iL/(j*j)) ;
+//      S -=  cc->tbPrimeLow[iL/(j*j)] ;
+      S -= CounC_CalcPrimeL(cc,iL/(j*j)) ;
+   }
+   cc->tbPrimeLow[iL] = S ;
+//   printf("%lld.",S);
+  return S ;
+}
+
+int64_t CounC_CalcPrimeH(COUNTCIRC *cc,int iH) {
+ //  printf("H%d->",iH) ;
+   if(iH && cc->tbCircleHigh[iH]) {
+ //     printf("%lld ",cc->tbCircleHigh[iH]);
+      return cc->tbPrimeHigh[iH] ;
+   }
+   int64_t i1 = cc->N/iH ;
+   
+   int64_t S = cc->tbCircleHigh[iH] = Nbx184PointsInCirle(i1);
+   int64_t j ;
+   for(j=2;2*j*j<=i1;j++) {
+      int64_t j1 = i1 / (j*j) ;
+      if(j1 > cc->n1) { // H or L ?
+         // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
+         S -= CounC_CalcPrimeH(cc,(int)(iH*j*j)) ;
       } else {
-         nb++ ;
+         S -= CounC_CalcPrimeL(cc,(int)j1) ;
       }
    }
-   angle[nbAngle++]=nb ;
+   
+   cc->tbPrimeHigh[iH] = S ;
+ //   printf("%lld.",S);
+   return S ;
+ }
+
+
+
+void PB184_compCircle(int64_t N,int64_t * tbCircle,int64_t * tbPrime) {
+   
+    int64_t i ;
+   int64_t n1= Sqrt64(N) ;
+
+   int64_t * tbCircleLow = malloc((n1+1)*sizeof(tbCircleLow[0]));
+   int64_t * tbCircleHigh = malloc((n1+1)*sizeof(tbCircleHigh[0]));
+   int64_t * tbPrimeLow = malloc((n1+1)*sizeof(tbPrimeLow[0])); ;
+   int64_t * tbPrimeHigh = malloc((n1+1)*sizeof(tbPrimeHigh[0])); ;
+
+   tbCircleLow[0]=tbCircleHigh[0]=tbPrimeLow[0]=tbPrimeHigh[0]=0 ;
+   for(i=1;i<=n1;i++) {
+      tbCircleLow[i] = Nbx184PointsInCirle(i);
+      tbCircleHigh[i] = Nbx184PointsInCirle(N/i);
+   }
+
+   // compute small values
+   for(i=1;i<=n1;i++) {
+      int64_t S = tbCircleLow[i]  ; // printf("\nL(%lld)<-",i) ;
+      int64_t j ;
+      // remove pgcd(x,y)=j
+      for(j=2;2*j*j<=i;j++) {
+         S -=  tbPrimeLow[i/(j*j)] ;  // printf("L%lld ",i/(j*j));
+      }
+      tbPrimeLow[i] = S ;
+   }
+   // compute big values N/i  (ascending order => i descending , for recursion)
+   for(i=n1;i>0;i--) {
+      int64_t i1 = N/i ;
+      int64_t S =  tbCircleHigh[i]  ;  // printf("\nH(%lld)<-",i1) ;
+      int64_t j ;
+      for(j=2;2*j*j<=i1;j++) {
+         int64_t j1 = i1 / (j*j) ;
+         if(j1 > n1) { // H or L ?
+            // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
+            S -=  tbPrimeHigh[(i*j*j)] ;  // printf("H%lld ",N/(i*j*j));
+         } else {
+            S -=  tbPrimeLow[j1] ;  // printf("L%lld ",j1);
+         }
+      }
+      tbPrimeHigh[i] = S ;
+   }
+   /*
+   printf("\nCir=");
+   for(i=1;i<=n1;i++) printf("%lld ",tbCircleLow[i]);
+   printf(" H=");
+   for(i=n1;i>0;i--) printf("%lld ",tbCircleHigh[i]);
+
+   printf("\nPrim=");
+   for(i=1;i<=n1;i++) printf("%lld ",tbPrimeLow[i]);
+   printf(" H=");
+   for(i=n1;i>0;i--) printf("%lld ",tbPrimeHigh[i]);
+*/
+   
+   for(i=1;i<=n1;i++) {
+      int64_t j = N/(i*i);
+      if(j<i*i) {
+  //       tbCircle[i] = tbCircleLow[j]+sqrt(j) ;
+         tbPrime[i] = tbPrimeLow[j] ;
+      } else {
+  //       tbCircle[i] = tbCircleHigh[i*i]+sqrt(j) ;
+         tbPrime[i] = tbPrimeHigh[i*i] ;
+      }
+   }
+   
+}
+
+int PB184b(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int64_t i ;
+   uint64_t *C = calloc(PB184_R,sizeof(C[0])) ;
+   int nbDir = 0 ;
+   
+   COUNTCIRC * cc = CountC_Alloc( PB184_R*PB184_R-1);
+   int64_t n1=PB184_R;
+   
+ 
+   /*
+    printf("\nCircle= ");
+    for(i=0;i<30 && i < PB184_R;i++) printf("%lld ",tbCircle[i]) ;
+    printf("\nPrimeCircle= ");
+    for(i=0;i<30 && i < PB184_R;i++) printf("%lld ",tbPrime[i]) ;
+    */
    printf("\n");
-    printf("nbAngle=%d\n",nbAngle) ;
- //  for(i=0;i<nbAngle;i++) printf("%d ",angle[i]) ;
-   int64_t S =0 ;
-   int64_t sumj = angle[1] ;
-   int64_t sumjj = 0 ;
-   for(j=2;j<nbAngle;j++) {
-      sumjj += sumj * angle[j] ;
-      sumj += angle[j] ;
+   //  for(i=1; i < PB184_R-1;i++) printf("%lld ",tbPrime[i]-tbPrime[i+1]) ;
+   
+   int64_t * tbPrime = malloc((n1+1)*sizeof(tbPrime[0]));
+//   for(i=1;i<PB184_R-1;i++) {
+   for(i=1;i<PB184_R;i++) {
+      int64_t j = ( PB184_R*PB184_R-1)/(i*i);
+      if(j<i*i) {
+ //        printf("\n ask %lld->L%lld : ",i,j);
+         tbPrime[i] = CounC_CalcPrimeL(cc,(int) j) ;
+      } else {
+ //        printf("\n ask %lld->H%lld : ",i,i*i);
+       tbPrime[i] = CounC_CalcPrimeH(cc,(int) (i*i)) ;
+      }
+
+   
    }
-   S += angle[0] * sumjj ;
-   for(i=1;i<nbAngle-2;i++) {
-      sumj -= angle[i] ;
-      sumjj -= angle[i]*sumj ;
+   
+   for(i=1; i < PB184_R-1;i++) {
       
-      S += angle[i] * sumjj ;
+      C[i]= tbPrime[i]-tbPrime[i+1];
    }
+   C[PB184_R-1]=1 ;
+   uint64_t n2 = PB184_R*PB184_R ;
+   uint64_t F=0;
+   {
+      int64_t i ;
+      for(i=1;i<PB184_R;i++)  {
+         F+=1+(int64_t) sqrt(n2-1-i*i);
+      }
+   }
+  // F*=4;
+   printf("F=%lld nbDir=%d\n",F,nbDir);
+   
+   uint64_t S=0;
+   {
+      uint64_t i ;
+      /*      for(i=1;i<PB184_R;i++)  {
+       for(j=i;j<PB184_R;j++)  {
+       if(i!=j)  S+=(int64_t) i*j*C[i]*2*C[j]*(F-2*i-2*j);
+       else      S+=(int64_t) i*i*C[i]*(2*C[i]-1)*(F-4*i)/2;
+       }
+       }
+       */
+      uint64_t S1 = 0, S2 = 0 , S3 = 0;
+      for(i=0;i<PB184_R;i++)  { S1 += i * C[i] ; S2 += i * i * C[i] ; S3 += i*i*i*C[i]; }
+//      S += 2*S1*S1*F-S2*F -8 * S1*S2+4*S3 ;
+//    S = 2*S1*S1*F-S2*F -2 * S1*S2+S3 ;
+      S = 2*F*F*F -3*S2*F +S3 ;
+      printf("S=%llu F=%llu , S1=%llu S2=%llu\n",S,F,S1,S2) ;
+      S *= 4 ;
+  }
+ //   S = 2*S ;
+   S/=3;
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",S) ;
+   return 1 ;
+}
+
+
+
+
+int PB184a(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+      int i ;
+   int64_t *C = calloc(PB184_R,sizeof(C[0])) ;
+   int nbDir = 0 ;
+
+ 
+      int64_t n1=PB184_R;
+      int64_t * tbPrime = malloc((n1+1)*sizeof(tbPrime[0]));
+      int64_t * tbCircle = malloc((n1+1)*sizeof(tbCircle[0]));
+   
+      
+   
+      PB184_compCircle(PB184_R*PB184_R-1,tbCircle,tbPrime) ;
+   /*
+   printf("\nCircle= ");
+   for(i=0;i<30 && i < PB184_R;i++) printf("%lld ",tbCircle[i]) ;
+   printf("\nPrimeCircle= ");
+   for(i=0;i<30 && i < PB184_R;i++) printf("%lld ",tbPrime[i]) ;
+*/
+   printf("\n");
+ //  for(i=1; i < PB184_R-1;i++) printf("%lld ",tbPrime[i]-tbPrime[i+1]) ;
+   for(i=1; i < PB184_R-1;i++) C[i]= tbPrime[i]-tbPrime[i+1];
+   C[PB184_R-1]=1 ;
+   int n2 = PB184_R*PB184_R ;
+   int32_t F=0;
+   {
+      int i ;
+      for(i=1;i<PB184_R;i++)  {
+         F+=1+(int) sqrt(n2-1-i*i);
+      }
+   }
+   printf("F=%d nbDir=%d\n",F,nbDir);
+   F*=4;
+
+   int64_t S=0;
+   {
+      int i,j ;
+/*      for(i=1;i<PB184_R;i++)  {
+         for(j=i;j<PB184_R;j++)  {
+            if(i!=j)  S+=(int64_t) i*j*C[i]*2*C[j]*(F-2*i-2*j);
+            else      S+=(int64_t) i*i*C[i]*(2*C[i]-1)*(F-4*i)/2;
+         }
+      }
+ */
+      int64_t S1 = 0, S2 = 0 , S3 = 0;
+      for(i=0;i<PB184_R;i++)  { S1 += i * C[i] ; S2 += i * i * C[i] ; S3 += i*i*i*C[i];  }
+      S += S1*S1*F-S2*F/2 -4 * S1*S2+2*S3 ;
+   }
+   S/=3;
+
    S = 2*S ;
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
    return 1 ;
 }
 
-int PB184a(PB_RESULT *pbR) {
+int PB184(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
    int *angle = malloc((PB184_R*PB184_R*8)/5 * sizeof(angle[0])) ;
    
@@ -3387,10 +3633,13 @@ int PB184a(PB_RESULT *pbR) {
    angle[nbAngle++]=sqrt((PB184_R*PB184_R)/2) ;
    int nbH = nbAngle ;
    int i,j ;
+
    for(i=0;i<nbH-2;i++) angle[i+nbH]= angle[nbH-i-2] ;
    nbH = 2*nbH-2;
+   nbAngle = nbH ;
    for(i=0;i<nbH;i++) angle[i+nbH]= angle[i] ;
    nbAngle = 2*nbH ;
+
    printf("\n") ;
 
    int nbp =0 ;
