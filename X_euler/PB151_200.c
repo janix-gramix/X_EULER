@@ -3304,7 +3304,7 @@ int PB181a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB184_R 105LL
+#define PB184_R 1200LL
 typedef struct PT184 {
    int x ;
    int y ;
@@ -3346,9 +3346,7 @@ int64_t Nbx184PointsInCirle(int64_t N) {
 typedef struct COUNTCIRC {
    int64_t N ;
    int64_t n1 ;
-   int64_t * tbCircleLow ;
-   int64_t * tbCircleHigh ;
-   int64_t * tbPrimeLow ;
+    int64_t * tbPrimeLow ;
    int64_t * tbPrimeHigh ;
 } COUNTCIRC ;
 
@@ -3356,23 +3354,21 @@ COUNTCIRC * CountC_Alloc(int64_t N) {
    COUNTCIRC * cc = calloc(1,sizeof(cc[0]));
    cc->N = N ;
    cc->n1 = Sqrt64(N) ;
-   cc->tbCircleLow = calloc(cc->n1+1,sizeof(cc->tbCircleLow[0]));
-   cc->tbCircleHigh = calloc((cc->n1+1),sizeof(cc->tbCircleHigh[0]));
    cc->tbPrimeLow = malloc((cc->n1+1)*sizeof(cc->tbPrimeLow[0])); ;
    cc->tbPrimeHigh = malloc((cc->n1+1)*sizeof(cc->tbPrimeHigh[0])); ;
-   int i ;
-   cc->tbCircleLow[0]=cc->tbCircleHigh[0]=cc->tbPrimeLow[0]=cc->tbPrimeHigh[0]=0 ;
+   cc->tbPrimeLow[0]=cc->tbPrimeLow[1]=cc->tbPrimeHigh[0]=0 ;
    return cc ;
 }
 
 int64_t CounC_CalcPrimeL(COUNTCIRC *cc,int iL) {
 //   printf("L%d->",iL) ;
-   if(iL && cc->tbCircleLow[iL]) {
+   if(iL < 2 || cc->tbPrimeLow[iL]) {
 //     printf("%lld ",cc->tbCircleLow[iL]);
 
       return cc->tbPrimeLow[iL] ;
    }
-   int64_t S = cc->tbCircleLow[iL] = Nbx184PointsInCirle(iL);
+//   int64_t S = cc->tbCircleLow[iL] = Nbx184PointsInCirle(iL);
+   int64_t S = Nbx184PointsInCirle(iL);
    int64_t j ;
    // remove pgcd(x,y)=j
    for(j=2;2*j*j<=iL;j++) {
@@ -3387,13 +3383,15 @@ int64_t CounC_CalcPrimeL(COUNTCIRC *cc,int iL) {
 
 int64_t CounC_CalcPrimeH(COUNTCIRC *cc,int iH) {
  //  printf("H%d->",iH) ;
-   if(iH && cc->tbCircleHigh[iH]) {
+//   if(iH && cc->tbCircleHigh[iH]) {
+  if(iH < 1 || cc->tbPrimeHigh[iH]) {
  //     printf("%lld ",cc->tbCircleHigh[iH]);
       return cc->tbPrimeHigh[iH] ;
    }
    int64_t i1 = cc->N/iH ;
    
-   int64_t S = cc->tbCircleHigh[iH] = Nbx184PointsInCirle(i1);
+//   int64_t S = cc->tbCircleHigh[iH] = Nbx184PointsInCirle(i1);
+   int64_t S = Nbx184PointsInCirle(i1);
    int64_t j ;
    for(j=2;2*j*j<=i1;j++) {
       int64_t j1 = i1 / (j*j) ;
@@ -3617,49 +3615,29 @@ int PB184a(PB_RESULT *pbR) {
 
 int PB184(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
-   int *angle = malloc((PB184_R*PB184_R*8)/5 * sizeof(angle[0])) ;
-   
+    int64_t *C = calloc(PB184_R,sizeof(C[0]));
    FRACTrec FRrec ;
    FRC_init(&FRrec,PB184_R-1  , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
-   int nbAngle = 0 ;
-   angle[nbAngle++] = PB184_R-1 ;
-   do{
+    do{
  //     printf("%d/%d ",FRrec.fr1.n,FRrec.fr1.d) ;
       int norm = FRrec.fr1.n*FRrec.fr1.n+FRrec.fr1.d*FRrec.fr1.d ;
       if(norm < PB184_R*PB184_R ) {
-         angle[nbAngle++] = sqrt((PB184_R*PB184_R-1)/norm) ;
+         int ic = sqrt((PB184_R*PB184_R-1)/norm) ;
+          C[ic] += 2 ;
       }
     } while(FRC_getNext(&FRrec)) ;
-   angle[nbAngle++]=sqrt((PB184_R*PB184_R)/2) ;
-   int nbH = nbAngle ;
-   int i,j ;
+    int i ;
+   C[PB184_R-1] =1 ;
+   C[(int) (PB184_R/sqrt(2))]++ ;
+   
+   int64_t F = 0, S2 = 0 , S3 = 0;
+   for(i=0;i<PB184_R;i++)  { F += i * C[i] ; S2 += i * i * C[i] ; S3 += i*i*i*C[i];  }
+   F *= 2;
+   uint64_t S = F*F*F -6*S2*F +4*S3 ;
+ //  S *= 4 ;
+   S/=3;
+   printf("S=%llu F=%llu  S2=%llu S3=%llu\n",S,F,S2,S3) ;
 
-   for(i=0;i<nbH-2;i++) angle[i+nbH]= angle[nbH-i-2] ;
-   nbH = 2*nbH-2;
-   nbAngle = nbH ;
-   for(i=0;i<nbH;i++) angle[i+nbH]= angle[i] ;
-   nbAngle = 2*nbH ;
-
-   printf("\n") ;
-
-   int nbp =0 ;
-   for(i=0;i<nbAngle;i++) nbp+= angle[i] ;
-   printf("nbAngle=%d nbp=%d\n",nbAngle,nbp) ;
-   int64_t S =0 ;
-   int64_t sumj = angle[1] ;
-   int64_t sumjj = 0 ;
-   for(j=2;j<nbAngle;j++) {
-      sumjj += sumj * angle[j] ;
-      sumj += angle[j] ;
-   }
-   S += angle[0] * sumjj ;
-   for(i=1;i<nbAngle-2;i++) {
-      sumj -= angle[i] ;
-      sumjj -= angle[i]*sumj ;
-      
-      S += angle[i] * sumjj ;
-   }
-   S = 2*S ;
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
    return 1 ;
