@@ -3305,7 +3305,7 @@ int PB181a(PB_RESULT *pbR) {
 }
 
 // #define PB184_R 100000000LL
-#define PB184_R 100000000LL
+#define PB184_R 105LL
 
 
 // compute Sigma 1 for x^2+y^2 <= N x>0, y>0
@@ -3329,91 +3329,14 @@ int64_t Nbx184PointsInCirle(int64_t N) {
    int64_t S1 = 0 ;
    int64_t i ;
 //   int64_t Ni = N - S ;
-   for(i=sqrN2+1;i<=sqrN;i++) {
- //        Ni  -= 2 * i - 1 ;
-      int64_t sqrY = Sqrt64(N-i*i) ;
- //     int64_t sqrY = Sqrt64(Ni) ;
+  for(i=sqrN2+1;i<=sqrN;i++) {
+     int64_t sqrY = Sqrt64(N-i*i) ;
      S1 += sqrY  ;   // Z2 + Z3
+      
    }
    
    return S+2*S1 ;
 }
-
-typedef struct COUNTCIRC {
-   uint64_t N ;
-   uint32_t n1 ;
-   int64_t * nbPrime ;
-   int32_t *histo ;
-} COUNTCIRC ;
-
-COUNTCIRC * CountC_Alloc(int64_t N) {
-   COUNTCIRC * cc = calloc(1,sizeof(cc[0]));
-   cc->N = N ;
-   cc->n1 = (uint32_t) Sqrt64(N+1) ;
-   cc->nbPrime = calloc(2*cc->n1,sizeof(cc->nbPrime[0])) ;
-   cc->histo = calloc(2*cc->n1,sizeof(cc->histo[0])) ;
-  cc->nbPrime[0] = 0 ;
-   return cc ;
-}
-COUNTCIRC * CountC_Free(COUNTCIRC *cc) {
-   if(cc) {
-      free(cc->nbPrime);
-      free(cc);
-   }
-   return NULL ;
-}
-int64_t CounC_CalcNbPrime(COUNTCIRC *cc,int64_t in) ;
-
-int64_t CounC_CalcNbPrimeI(COUNTCIRC *cc,int64_t ih) {
- //  printf("I%lld->",ih) ;
-   if(ih>=cc->n1) {
-      return CounC_CalcNbPrime(cc,(uint32_t) (cc->N/ih)) ;
-   }
-   cc->histo[ih+cc->n1+1]++ ;
-   if(cc->nbPrime[ih+cc->n1+1]) {
-      return cc->nbPrime[ih+cc->n1+1] ;
-   }
-   int64_t S = Nbx184PointsInCirle(cc->N/ih);
-   uint64_t j ;
-   for(j=2;2 * j*j*ih <= cc->N ;j++) {
-     uint64_t j1 = ih*j*j ;
-     if(j1 < cc->n1) { // H or L ?
-         // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
-         S -= CounC_CalcNbPrimeI(cc,j1) ;
-     } else {
-        S -= CounC_CalcNbPrime(cc, cc->N/j1 ) ;
-     }
-   }
-   cc->nbPrime[ih+cc->n1+1] = S ;
- //  printf("I(%d)=%lld ",ih,S);
-   return S ;
-}
-
-
-
-
-int64_t CounC_CalcNbPrime(COUNTCIRC *cc,int64_t in) {
-//   printf("D%lld->",in) ;
-
-   if(in>cc->n1) {
-      return CounC_CalcNbPrimeI(cc,(uint32_t) (cc->N/in)) ;
-   }
-   cc->histo[in]++ ;
-   if(in==0 || cc->nbPrime[in]) {
-        return cc->nbPrime[in] ;
-   } else {
-      int64_t S = Nbx184PointsInCirle(in);
-      int64_t j ;
-      // remove pgcd(x,y)=j
-      for(j=2;2*j*j<=in;j++) {
-          S -= CounC_CalcNbPrime(cc,in/(j*j)) ;
-      }
-       cc->nbPrime[in] = S ;
- //     printf("D(%d)=%lld ",in,S);
-      return S ;
-   }
-}
-
 
 
 typedef struct COUNTCIRC2 {
@@ -3421,7 +3344,8 @@ typedef struct COUNTCIRC2 {
    uint32_t nl ;
    uint32_t nh ;
    int64_t * nbPrime ;
-   int32_t *histo ;
+   int64_t * nbPoints ;
+ //  int32_t *histo ;
 } COUNTCIRC2 ;
 int64_t CounC2_CalcNbPrime(COUNTCIRC2 *cc,int64_t in) ;
 int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) ;
@@ -3438,7 +3362,8 @@ COUNTCIRC2 * CountC2_Alloc(int64_t N) {
    cc->nl =(int32_t) ( N / (np * np) );
    cc->nl++ ;
    cc->nbPrime = calloc(cc->nl + cc->nh,sizeof(cc->nbPrime[0])) ;
-   cc->histo = calloc(cc->nl + cc->nh,sizeof(cc->histo[0])) ;
+   cc->nbPoints = calloc(cc->nl + cc->nh,sizeof(cc->nbPoints[0])) ;
+//   cc->histo = calloc(cc->nl + cc->nh,sizeof(cc->histo[0])) ;
    cc->nbPrime[0] = 0 ;
    int i ;
 //   for(i=1;i<cc->nl;i++)CounC2_CalcNbPrime(cc,i) ;
@@ -3452,139 +3377,8 @@ COUNTCIRC2 * CountC2_Free(COUNTCIRC2 *cc) {
    return NULL ;
 }
 
-/*
-int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
-    printf("I%lld->",ih) ;
-   if(ih>=cc->nh) {
-      int32_t il = (int32_t) (cc->N/(ih*ih) );
-      if(cc->nbPrime[il]) return cc->nbPrime[il] ;
-      return CounC2_CalcNbPrime(cc,il) ;
-   }
-  cc->histo[ih+cc->nl]++ ;
-   if(cc->nbPrime[ih+cc->nl]) {
-      return cc->nbPrime[ih+cc->nl] ;
-   }
-   int64_t ih2 = (int64_t) ih * ih ;
-   int64_t S = Nbx184PointsInCirle(cc->N/ih2);
-   printf("initS=%lld->",S) ;
-   uint64_t j ;
-   for(j=2*ih;2*j*j <= cc->N ;j+=ih) {
- //     uint64_t j1 = ih*j ;
-      if(j < cc->nh) { // H or L ?
-         // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
-         if(cc->nbPrime[j+cc->nl]) {
-            S -= cc->nbPrime[j+cc->nl] ;
-         }else {
-            S -= CounC2_CalcNbPrimeI(cc,j) ;
-         }
-         printf("SubI->%lld",S) ;
-      } else {
-         uint32_t il = (int32_t)(cc->N/(j*j))  ;
-//         S -= CounC2_CalcNbPrime(cc, il ) ;
-         if(cc->nbPrime[il]) {
-            S -= cc->nbPrime[il] ;
-         } else {
-            S -= CounC2_CalcNbPrime(cc, il ) ;
-         }
-         printf("Sub->%lld",S) ;
-      }
-   }
-   cc->nbPrime[ih+cc->nl] = S ;
-     printf("C(%d)=%lld ",(int)(ih+cc->nl),S);
-   return S ;
-}
- 
- 
 
 
-int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
-   //   printf("I%lld->",ih) ;
-   int64_t in ;
-   int64_t S ;
-   int64_t j ;
-
-   if(ih<cc->nh) {
-      in = ih+cc->nl ;
-      cc->histo[in]++ ;
-      if(cc->nbPrime[in]) {
-         return cc->nbPrime[in] ;
-      }
-      int64_t ih2 = (int64_t) ih * ih ;
-      S = Nbx184PointsInCirle(cc->N/ih2);
- //     printf("initS(%d)=%lld->",(int)ih,S) ;
-      for(j=2*ih;2*j*j <= cc->N ;j+=ih) {
-         //     uint64_t j1 = ih*j ;
-         if(j < cc->nh) { // H or L ?
-            // i1/(j*j) = (N/i)/(j*j) = N/(i*j*j)
-            if(cc->nbPrime[j+cc->nl]) {
-               S -= cc->nbPrime[j+cc->nl] ;
-            }else {
-               S -= CounC2_CalcNbPrimeI(cc,j) ;
-            }
- //           printf("SubI->%lld",S) ;
-         } else {
-              break ;
-         }
-      }
-//      il = (int32_t)(cc->N/(ih*ih))  ;
- //     printf("break(%d,il=%d)",(int)j,il) ;
-
- //     cc->nbPrime[ih+cc->nl] = S ;
-      
-   } else {
-      in  = (cc->N/(ih*ih) );
-      if(in==0 || cc->nbPrime[in]) {
-         return cc->nbPrime[in] ;
-      }
-      S = Nbx184PointsInCirle(in);
-      j = 2*ih ;
-   }
-   // remove pgcd(x,y)=j
-   for(;2*j*j<=cc->N;j+= ih) {
-      int64_t j1 =  (cc->N/(j*j)) ;
-      if(cc->nbPrime[j1]) {
-         S -= cc->nbPrime[j1] ;
-      } else {
-//         S -= CounC2_CalcNbPrime(cc,j1) ;
-         S -= CounC2_CalcNbPrimeI(cc,j) ;
-      }
- //     printf("Sub(%d)->%lld",(int)j,S) ;
-   }
-   cc->nbPrime[in] = S ;
- //             printf("C(%d)=%lld< ",(int)in,S);
-   return S ;
-
-   
-}
-
-
-
-*/
-/*
-int64_t CounC2_CalcNbPrime(COUNTCIRC2 *cc,int64_t in) {
-     printf("D%lld->",in) ;
-
-   cc->histo[in]++ ;
-   if(in==0 || cc->nbPrime[in]) {
-      return cc->nbPrime[in] ;
-   } else {
-      int64_t S = Nbx184PointsInCirle(in);
-      int64_t j ;
-      // remove pgcd(x,y)=j
-      for(j=2;2*j*j<=in;j++) {
-         int32_t j1 = (int32_t) (in/(j*j)) ;
-         if(cc->nbPrime[j1]) {
-            S -= cc->nbPrime[j1] ;
-         } else {
-            S -= CounC2_CalcNbPrime(cc,j1) ;
-         }
-      }
-      cc->nbPrime[in] = S ;
-           printf("cc(%d)=%lld ",(int)in,S);
-      return S ;
-   }
-}
-*/
 
 int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
    int64_t in ;
@@ -3594,13 +3388,24 @@ int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
 //   printf("I(%d)->",(int)ih);
    if(ih<cc->nh) {
         in = ih+cc->nl ;
-      cc->histo[in]++ ;
+ //     cc->histo[in]++ ;
       if(cc->nbPrime[in]) {
          return cc->nbPrime[in] ;
       }
       ih2 = ih * ih ;
-      S = Nbx184PointsInCirle(cc->N/ih2);
-      for(j=2*ih;j < cc->nh ;j+=ih) {
+      
+      if(cc->nbPoints[in]==0) {
+         cc->nbPoints[in] = Nbx184PointsInCirle(cc->N/ih2) ;
+      }
+      int in2 = (2*ih < cc->nh) ? cc->nl+2*ih : cc->N/(4*ih2) ;
+      if(in2 && cc->nbPoints[in2]==0) {
+         cc->nbPoints[in2] = Nbx184PointsInCirle(cc->N/(4*ih2)) ;
+      }
+       S = cc->nbPoints[in] - cc->nbPoints[in2] ;
+      
+//      S = Nbx184PointsInCirle(cc->N/ih2) - Nbx184PointsInCirle(cc->N/(4*ih2)) ;
+      // for(j=2*ih;j < cc->nh ;j+=ih) {
+      for(j=3*ih;j < cc->nh ;j+=2*ih) {
          if(cc->nbPrime[j+cc->nl]) {
             S -= cc->nbPrime[j+cc->nl] ;
          } else {
@@ -3614,12 +3419,21 @@ int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
       if(in<=1 || cc->nbPrime[in]) {
          return cc->nbPrime[in] ;
       }
-      S = Nbx184PointsInCirle(in);
-      j = 2*ih ;
+      
+      if(cc->nbPoints[in]==0) {
+         cc->nbPoints[in] = Nbx184PointsInCirle(in) ;
+      }
+      if(in>=4 && cc->nbPoints[in/4]==0) {
+         cc->nbPoints[in/4] = Nbx184PointsInCirle(in/4) ;
+      }
+      S =  cc->nbPoints[in] - cc->nbPoints[in/4] ;
+      
+//      S = Nbx184PointsInCirle(in) - Nbx184PointsInCirle(in/4)  ;
+      j = 3*ih ;
    }
    // remove pgcd(x,y)=j
    int64_t j2 =j*j ;
-   for(;2*j2<=cc->N;j2+= 2*j*ih+ih2,j+= ih) {
+   for(;2*j2<=cc->N;j2+= 4*j*ih+4*ih2,j+= 2*ih) {
       int64_t j1 =  (cc->N/j2) ;
       if(cc->nbPrime[j1]) {
          S -= cc->nbPrime[j1] ;
@@ -3637,54 +3451,6 @@ int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
 }
 
 
-
-int PB184b(PB_RESULT *pbR) {
-   pbR->nbClock = clock() ;
-   int64_t i ;
-   COUNTCIRC * cc = CountC_Alloc( PB184_R*PB184_R-1);
-   uint64_t S=0;
-   uint64_t F = 0, S2 = 0 , S3 = 0;
-   int64_t antNbPrime = CounC_CalcNbPrimeI(cc,1) ;
-//   for(i=1; i < PB184_R-1;i++) {
-   for(i=1; i < PB184_R;i++) {
- //     printf("\nAsk(%lld) ",(i+1)*(i+1));
-      int64_t newNbPrime = CounC_CalcNbPrimeI(cc,(i+1)*(i+1)) ;
-      int64_t Ci= antNbPrime -newNbPrime ;
-      if(i==PB184_R-1) Ci++ ;
- //     printf("C[%lld]=%lld ",i,Ci);
-      F += i * Ci ; S2 += i * Ci * i ; S3 += i*Ci*i*i ;
-      antNbPrime = newNbPrime ;
-   }
-   printf("N=%lld, n1=%d\n",cc->N,cc->n1);
-/*   {
-      int i;
-      for(i=1;i<cc->n1+1;i++) {
-         int64_t j = (cc->N)/i ;
-         while(cc->N/(j-1) == i) {
-            if(j==Sqrt64(j)*Sqrt64(j)) break ;
-            j-- ;
-         }
-          if(cc->histo[i]) printf("(%dx%d)%lld->%d ",i,(int)Sqrt64(j),j,cc->histo[i]);
-      }
-      printf("\nHihgt : ");
-      for(i=cc->n1+1;i<2*cc->n1+1;i++)  {
-         if(cc->histo[i]) printf("%d->%d ",i-(cc->n1+1),cc->histo[i]);
-      }
-      printf("\n");
-   }
-*/
- //  F += PB184_R-1  ; S2 += (PB184_R-1) * (PB184_R-1)  ; S3 += (PB184_R-1)*(PB184_R-1)*(PB184_R-1) ;
-   
-   F *= 2 ; // quarter => half circle
-   S = F*F*F -6*S2*F +4*S3 ;
-   S/=3;
-
-   printf("S=%llu F=%llu , S2=%llu S3=%llu\n",S,F,S2,S3) ;
-   
-   pbR->nbClock = clock() - pbR->nbClock ;
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",S) ;
-   return 1 ;
-}
 
 int PB184a(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
@@ -3761,8 +3527,9 @@ int PB184(PB_RESULT *pbR) {
       F += i * C[i] ; S2 += i * i * C[i] ; S3 += i*i*i*C[i];
       
    }
-   F *= 2;
-   uint64_t S = F*F*F -6*S2*F +4*S3 ;
+   F *= 2 ; S2 = 2*S2 ; S3 = 2*S3 ; // quarter => half circle
+
+   uint64_t S = F*F*F -3*S2*F +2*S3 ;
  //  S *= 4 ;
    S/=3;
    printf("S=%llu F=%llu  S2=%llu S3=%llu\n",S,F,S2,S3) ;
