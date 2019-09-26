@@ -3304,8 +3304,8 @@ int PB181a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-// #define PB184_R 100000000LL
-#define PB184_R 105LL
+#define PB184_R 10000000LL
+// #define PB184_R 105LL
 
 
 // compute Sigma 1 for x^2+y^2 <= N x>0, y>0
@@ -3347,28 +3347,9 @@ typedef struct COUNTCIRC2 {
    int64_t * nbPoints ;
  //  int32_t *histo ;
 } COUNTCIRC2 ;
-int64_t CounC2_CalcNbPrime(COUNTCIRC2 *cc,int64_t in) ;
-int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) ;
 
-COUNTCIRC2 * CountC2_Alloc(int64_t N) {
-   COUNTCIRC2 * cc = calloc(1,sizeof(cc[0]));
-   cc->N = N ;
-   uint64_t np = pow(2*N,1/3.0) ;
-   if(np < 1) np = 2 ;
-   if(np * 4 * np * np  < N ) np++ ;
-   cc->nh = (int32_t) (np+1) ;
-//   cc->nl = (int32_t) np/2 ;
-//   while( np * np * cc->nl < N ) cc->nl++ ;
-   cc->nl =(int32_t) ( N / (np * np) );
-   cc->nl++ ;
-   cc->nbPrime = calloc(cc->nl + cc->nh,sizeof(cc->nbPrime[0])) ;
-   cc->nbPoints = calloc(cc->nl + cc->nh,sizeof(cc->nbPoints[0])) ;
-//   cc->histo = calloc(cc->nl + cc->nh,sizeof(cc->histo[0])) ;
-   cc->nbPrime[0] = 0 ;
-   int i ;
-//   for(i=1;i<cc->nl;i++)CounC2_CalcNbPrime(cc,i) ;
-   return cc ;
-}
+
+
 COUNTCIRC2 * CountC2_Free(COUNTCIRC2 *cc) {
    if(cc) {
       free(cc->nbPrime);
@@ -3378,88 +3359,206 @@ COUNTCIRC2 * CountC2_Free(COUNTCIRC2 *cc) {
 }
 
 
+static inline int64_t * CounC2_nbPrime(COUNTCIRC2 *cc,uint32_t ih,int64_t iR) {
+   if(ih<cc->nh) return cc->nbPrime+cc->nl+ih ;
+   return cc->nbPrime+iR ;
+}
 
 
-int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,int64_t ih) {
-   int64_t in ;
-   int64_t S ;
-   int64_t j ;
-   int64_t ih2 ;
-//   printf("I(%d)->",(int)ih);
-   if(ih<cc->nh) {
-        in = ih+cc->nl ;
- //     cc->histo[in]++ ;
-      if(cc->nbPrime[in]) {
-         return cc->nbPrime[in] ;
-      }
-      ih2 = ih * ih ;
-      
-      if(cc->nbPoints[in]==0) {
-         cc->nbPoints[in] = Nbx184PointsInCirle(cc->N/ih2) ;
-      }
-      int in2 = (2*ih < cc->nh) ? cc->nl+2*ih : cc->N/(4*ih2) ;
-      if(in2 && cc->nbPoints[in2]==0) {
-         cc->nbPoints[in2] = Nbx184PointsInCirle(cc->N/(4*ih2)) ;
-      }
-       S = cc->nbPoints[in] - cc->nbPoints[in2] ;
-      
-//      S = Nbx184PointsInCirle(cc->N/ih2) - Nbx184PointsInCirle(cc->N/(4*ih2)) ;
-      // for(j=2*ih;j < cc->nh ;j+=ih) {
-      for(j=3*ih;j < cc->nh ;j+=2*ih) {
-         if(cc->nbPrime[j+cc->nl]) {
-            S -= cc->nbPrime[j+cc->nl] ;
-         } else {
-            S -= CounC2_CalcNbPrimeI(cc,j) ;
-         }
- //        printf("+I%d,",(int)j) ;
-      }
-   } else {
-      ih2 = ih * ih ;
-      in  = (cc->N/(ih2) );
-      if(in<=1 || cc->nbPrime[in]) {
-         return cc->nbPrime[in] ;
-      }
-      
-      if(cc->nbPoints[in]==0) {
-         cc->nbPoints[in] = Nbx184PointsInCirle(in) ;
-      }
-      if(in>=4 && cc->nbPoints[in/4]==0) {
-         cc->nbPoints[in/4] = Nbx184PointsInCirle(in/4) ;
-      }
-      S =  cc->nbPoints[in] - cc->nbPoints[in/4] ;
-      
-//      S = Nbx184PointsInCirle(in) - Nbx184PointsInCirle(in/4)  ;
-      j = 3*ih ;
-   }
+static inline int64_t CounC2_nbPoints(COUNTCIRC2 *cc,uint32_t ih,int64_t iR) {
+   int32_t in = (ih<cc->nh) ? ih+cc->nl : (int32_t)iR  ;
+   int64_t inR = (ih<cc->nh) ? iR : in ;
+   if(cc->nbPoints[in]==0) {  cc->nbPoints[in] = Nbx184PointsInCirle(inR) ; }
+   return cc->nbPoints[in] ;
+}
+
+
+
+int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,uint32_t ih) ;
+
+COUNTCIRC2 * CountC2_Alloc(int64_t N) {
+   COUNTCIRC2 * cc = calloc(1,sizeof(cc[0]));
+   cc->N = N ;
+   uint64_t np = pow(N,1/3.0) ;
+   if(np < 1) np = 2 ;
+   cc->nh = (int32_t) (np+1) ;
+   cc->nl =(int32_t) ( N / (np * np) );
+   cc->nl++ ;
+   cc->nbPrime = calloc(cc->nl + cc->nh,sizeof(cc->nbPrime[0])) ;
+  cc->nbPoints = calloc(cc->nl + cc->nh,sizeof(cc->nbPoints[0])) ;
+   cc->nbPrime[0] = 0 ;
+   return cc ;
+}
+
+COUNTCIRC2 * CountC2_Alloc_b(int64_t N) {
+   COUNTCIRC2 * cc = calloc(1,sizeof(cc[0]));
+   cc->N = N ;
+   uint64_t np = pow(N,0.3)+1 ;
+
+//   cc->nh = (int32_t) (np+1) ;
+   cc->nh = (int32_t) (np) ;
+   cc->nl =(int32_t) ( N / (np * np) );
+   cc->nl++ ;
+   cc->nbPrime = calloc(cc->nl + cc->nh,sizeof(cc->nbPrime[0])) ;
+   cc->nbPoints = calloc(cc->nl + cc->nh,sizeof(cc->nbPoints[0])) ;
+   cc->nbPrime[0] = 0 ;
+   return cc ;
+}
+
+int64_t CounC2_CalcNbPrimeI(COUNTCIRC2 *cc,uint32_t ih) {
+   int32_t j ;
+   int64_t S , *ptS ;
+   int64_t ih2 = (uint64_t)ih * ih  ;
+   if(ih2*2 > cc->N) return 0 ;
+   int64_t iR = cc->N/ih2 ;
+   ptS = CounC2_nbPrime(cc,ih,iR) ;
+   if(*ptS ) return *ptS ;
+   S = CounC2_nbPoints(cc,ih,iR) - CounC2_nbPoints(cc,ih*2,iR/4) ;
+   // mode ih < pivot=cc->nh
+   for(j=3*ih;j < cc->nh ;j+=2*ih) {    S -= CounC2_CalcNbPrimeI(cc,j) ; }
    // remove pgcd(x,y)=j
-   int64_t j2 =j*j ;
-   for(;2*j2<=cc->N;j2+= 4*j*ih+4*ih2,j+= 2*ih) {
-      int64_t j1 =  (cc->N/j2) ;
-      if(cc->nbPrime[j1]) {
-         S -= cc->nbPrime[j1] ;
-      } else {
+   int64_t j2 =(int64_t)j*j ;
+   // mode ih >= pivot=cc->nh
+   for(;2*j2<=cc->N;j2+= 4LL*(j+ih)*ih,j+= 2*ih) {
+      int32_t in =  (int32_t)(cc->N/j2) ;
+     if(cc->nbPrime[in]){
+            S -= cc->nbPrime[in] ;
+     }   else  {
          S -= CounC2_CalcNbPrimeI(cc,j) ;
+     }
+   }
+
+   return *ptS = S ;
+   
+   
+   
+}
+
+int64_t CounC2_CalcNbPrimeI_b(COUNTCIRC2 *cc,uint32_t ih) {
+   int32_t j ;
+   int64_t S , *ptS ;
+   int64_t ih2 = (uint64_t)ih * ih  ;
+   if(ih2*2 > cc->N) return 0 ;
+   int64_t iR = cc->N/ih2 ;
+   if(ih>=cc->nh) return cc->nbPrime[iR] ;
+   ptS = CounC2_nbPrime(cc,ih,iR) ;
+   if(*ptS ) return *ptS ;
+   S = CounC2_nbPoints(cc,ih,iR) - CounC2_nbPoints(cc,ih*2,iR/4) ;
+   // mode ih < pivot=cc->nh
+   for(j=3*ih;j < cc->nh ;j+=2*ih) {    S -= CounC2_CalcNbPrimeI_b(cc,j) ; }
+   // remove pgcd(x,y)=j
+   int64_t j2 =(int64_t)j*j ;
+   // mode ih >= pivot=cc->nh
+   for(;2*j2<=cc->N;j2+= 4LL*(j+ih)*ih,j+= 2*ih) {
+     int32_t in =  (int32_t)(cc->N/j2) ;
+ //     if(cc->nbPrime[in])
+      {
+         S -= cc->nbPrime[in] ;
       }
- //     printf("+%d(%d),",(int)j,(int)j1) ;
+//      else{
+//         S -= CounC2_CalcNbPrimeI_b(cc,j) ;
+//      }
    }
    
-   cc->nbPrime[in] = S ;
-  //  printf("<-%d\n",(int)ih);
-   return S ;
+   return  *ptS=S ;
    
    
+   
+}
+
+int PB184b(PB_RESULT *pbR) {
+   pbR->nbClock = clock() ;
+   int32_t i ;
+   COUNTCIRC2 * cc = CountC2_Alloc_b( PB184_R*PB184_R-1);
+   uint64_t S=0;
+   uint64_t F = 0, S2 = 0 , S3 = 0;
+   int32_t in ;
+   
+   {
+      FRACTrec FRrec ;
+      FRC_init(&FRrec,Sqrt32(cc->nl)  , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
+      if(cc->nl  > 2) do{
+         int64_t norm = FRrec.fr1.n*(int64_t)FRrec.fr1.n+FRrec.fr1.d*(int64_t)FRrec.fr1.d ;
+         if(norm < cc->nl ) {
+            cc->nbPrime[norm] +=2 ;
+         }
+      } while(FRC_getNext(&FRrec)) ;
+      int i ;
+//      cc->nbPrime[1] =1 ;
+      cc->nbPrime[2] =1 ;
+      int antInv = 0 ;
+      int64_t A = 0 ;
+      
+      for(i=1;i<cc->nl;i++) {
+         int64_t Ci = cc->nbPrime[i] ;
+         if(i==1)Ci++ ;
+         if(Ci) {
+            int64_t j = Sqrt64(cc->N/i) ;
+            if(j>=cc->nh)
+            {
+               F += j * Ci ; S2 += j * Ci * j ; S3 += j*Ci*j*j ;
+ //              printf("(%d)+%lldx%lld ",i,j,Ci) ;
+            } else { printf("%d<>%d ",i,j);}
+         }
+         cc->nbPrime[i] += cc->nbPrime[i-1] ;
+      }
+      printf("\n");
+   }
+   int64_t antNbPrime = CounC2_CalcNbPrimeI_b(cc,1) ;
+   int32_t nbDiff=0 ;
+/*   for(in=1;in<cc->nl;in++) {
+      printf("%d->%lld ",in,cc->nbPrime[in]) ;
+      if(cc->nbPrime[in]!=cc->nbPrime1[in]){
+         nbDiff++ ; printf("[(%d)%lld!=%lld]",in,cc->nbPrime[in],cc->nbPrime1[in]);
+      }
+   }
+*/
+   
+//   for(i=1; i < PB184_R;i++) {
+   for(i=1; i < cc->nh;i++) {
+      int64_t newNbPrime = CounC2_CalcNbPrimeI_b(cc,i+1) ;
+      int64_t Ci= antNbPrime -newNbPrime ;
+     if(i==PB184_R-1) Ci++ ;
+      if(Ci) {
+        // if(i>=cc->nh)
+ //        printf("*+%dx%lld=%lld-%lld ",i,Ci,antNbPrime,newNbPrime) ;
+//         else
+         {
+            F += i * Ci ; S2 += i * Ci * i ; S3 += i*Ci*i*i ;
+         }
+         antNbPrime = newNbPrime ;
+         
+      }
+   }
+   
+   printf("N=%lld, nl=%d nh=%d nbDiff=%d\n",cc->N,cc->nl,cc->nh,nbDiff);
+   
+   F *= 2 ; S2 = 2*S2 ; S3 = 2*S3 ; // quarter => half circle
+   S = F*F*F -3*S2*F +2*S3 ;
+   S/=3;
+   
+   printf("S=%llu F=%llu , S2=%llu S3=%llu\n",S,F,S2,S3) ;
+   
+   pbR->nbClock = clock() - pbR->nbClock ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%llu",S) ;
+   return 1 ;
 }
 
 
 
 int PB184a(PB_RESULT *pbR) {
    pbR->nbClock = clock() ;
-   int64_t i ;
+   int32_t i ;
    COUNTCIRC2 * cc = CountC2_Alloc( PB184_R*PB184_R-1);
    uint64_t S=0;
    uint64_t F = 0, S2 = 0 , S3 = 0;
+   int32_t in ;
    int64_t antNbPrime = CounC2_CalcNbPrimeI(cc,1) ;
-   
+   int32_t nbDiff=0 ;
+   for(in=1;in<cc->nl;in++) {
+      if(cc->nbPrime[in]!=cc->nbPrime[in-1])nbDiff++ ;
+   }
+
 
    for(i=1; i < PB184_R;i++) {
       int64_t newNbPrime = CounC2_CalcNbPrimeI(cc,i+1) ;
@@ -3471,26 +3570,8 @@ int PB184a(PB_RESULT *pbR) {
       }
    }
 
-   printf("N=%lld, nl=%d nh=%d\n",cc->N,cc->nl,cc->nh);
-/*   {
-      int i;
-      for(i=1;i<cc->nl && i < 200 ;i++) {
-         int64_t j = (cc->N)/i ;
- //        while(cc->N/(j-1) == i) {
- //           if(j==Sqrt64(j)*Sqrt64(j)) break ;
- //           j-- ;
- //        }
-         if(cc->histo[i]) printf("(%dx%d)%lld->%d ",i,(int)Sqrt64(j),j,cc->histo[i]);
-      }
-      printf("\nHihgt : ");
-      for(i=cc->nl;i<cc->nl+cc->nh && i<cc->nl+200;i++)  {
-         if(cc->histo[i]) printf("%d->%d,%lld ",i-(cc->nl),cc->histo[i],cc->nbPrime[i]);
-      }
-      printf("\n");
-   }
-*/
-   //  F += PB184_R-1  ; S2 += (PB184_R-1) * (PB184_R-1)  ; S3 += (PB184_R-1)*(PB184_R-1)*(PB184_R-1) ;
-   
+   printf("N=%lld, nl=%d nh=%d nbDiff=%d\n",cc->N,cc->nl,cc->nh,nbDiff);
+
    F *= 2 ; S2 = 2*S2 ; S3 = 2*S3 ; // quarter => half circle
    S = F*F*F -3*S2*F +2*S3 ;
    S/=3;
@@ -3510,7 +3591,7 @@ int PB184(PB_RESULT *pbR) {
    FRC_init(&FRrec,PB184_R-1  , (FRACTRED){0,1}, (FRACTRED){1,1}) ;
     if(PB184_R > 2) do{
 //     printf("%d/%d ",FRrec.fr1.n,FRrec.fr1.d) ;
-      int64_t norm = FRrec.fr1.n*FRrec.fr1.n+FRrec.fr1.d*FRrec.fr1.d ;
+      int64_t norm = FRrec.fr1.n*(int64_t)FRrec.fr1.n+FRrec.fr1.d*(int64_t)FRrec.fr1.d ;
       if(norm < PB184_R*PB184_R ) {
          int ic = sqrt((PB184_R*PB184_R-1)/norm) ;
           C[ic] += 2 ;
@@ -3521,8 +3602,8 @@ int PB184(PB_RESULT *pbR) {
    C[(int) (PB184_R/sqrt(2))]++ ;
    
    int64_t F = 0, S2 = 0 , S3 = 0;
-   for(i=0;i<PB184_R;i++)  {
-//      printf("C[%d]=%lld ",i,C[i]);
+   for(i=1;i<PB184_R;i++)  {
+//      if(C[i])printf("C[%d],%d=%lld ",i,Sqrt32((PB184_R*PB184_R-1)/i),C[i]);
 
       F += i * C[i] ; S2 += i * i * C[i] ; S3 += i*i*i*C[i];
       
