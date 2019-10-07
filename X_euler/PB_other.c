@@ -11,6 +11,7 @@
 
 #define M_PI 3.14159265358979323846264338327950288
 
+#include "euler_utils.h"
 #include "PB_other.h"
 
 #define PB495_NCOLOR    2
@@ -110,6 +111,49 @@ int PB495(PB_RESULT *pbR) {
     
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",nbConf);
     pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+#define PB500_MAX   500500
+#define PB500_MOD 500500507
+int Cmp500(const void *e1,const void *e2){
+    return ((int *)e1)[0] - ((int *)e2)[0] ;
+}
+int PB500(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrimeNb(PB500_MAX)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int lastP = tbPrime[nbPrime-1] ;
+    int lastP2 = Sqrt32(lastP)+1 ;
+    int *powP2=malloc(lastP2*sizeof(powP2[0])) ;
+    int nbPow = 0 ;
+    int i,p;
+    for(i=0;(p=tbPrime[i]) < lastP2;i++) {
+        do {
+            p = p*p ;
+            powP2[nbPow++]=p ;
+        } while(p<lastP2) ;
+    }
+    powP2[nbPow] = lastP ;
+    qsort(powP2, nbPow,sizeof(powP2[0]), Cmp500);
+    int ip,ipp,is;
+    int64_t res=1 ;
+    for(ip=0,ipp=0,is=0;is<PB500_MAX;is++) {
+        if(tbPrime[ip]<powP2[ipp]) {
+            res = (res * tbPrime[ip++]) % PB500_MOD ;
+        } else {
+            res = (res * powP2[ipp++]) % PB500_MOD ;
+        }
+    }
+    if(pbR->isVerbose)fprintf(stdout,"\t PB%s last prime (n°%d)=%d last p^n(N°%d)=%d\n",pbR->ident, ip,tbPrime[ip-1],ipp,powP2[ipp-1] );
+    Free_tablePrime(ctxP) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",res) ;
     return 1 ;
 }
 
@@ -930,4 +974,164 @@ int PB1000(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+#define PB681_MAXA  1000000LL
+#define PB681_MAXDIV    2000
 
+#define MAX_DIVISOR 20
+typedef struct Divisors {
+    int P[MAX_DIVISOR];
+    int EXP[MAX_DIVISOR] ;
+    int nbP ;
+    int curE[MAX_DIVISOR] ;
+    int64_t curD[MAX_DIVISOR] ;
+    int maxD ;
+} Divisors ;
+
+int64_t DIV_Init(Divisors * div, int maxD) {
+    int i ;
+    for(i=0;i<div->nbP;i++) { div->curE[i] = 0 ; div->curD[i] = 1 ; }
+    div->maxD = maxD ;
+    return 1 ;
+}
+int64_t DIV_getnext(Divisors * div) {
+    int i ;
+    for(i=0;i<div->nbP;i++) {
+        if(div->curE[i]<div->EXP[i]) {
+            int64_t curD=div->curD[i] * div->P[i] ;
+            if(curD<=div->maxD) {
+               int j  = i ;
+               div->curD[j] = curD ;
+               div->curE[j--]++ ;
+                for(;j>=0;j--) {
+                    div->curE[j] = 0 ;
+                    div->curD[j] = curD ;
+               }
+               return curD ;
+            }
+        }
+    }
+    div->curD[0] = 0 ;
+    return 0 ;
+}
+
+int PB681(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrime(PB681_MAXA)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+
+    int64_t  sumS = 0 ;
+    int64_t n ;
+    Divisors divL ;
+    for(n=1;n<=PB681_MAXA;n++) {
+        divL.nbP = 0 ;
+        int64_t n1 ;
+        int ip ;
+        for(ip=0,n1=n;ip<nbPrime;ip++) {
+            int p = tbPrime[ip] ;
+            if(p*p>n) break ;
+            if ((n1 % p ) == 0 ) {
+                divL.P[divL.nbP] = p ;
+                divL.EXP[divL.nbP] = 1 ;
+                n1 /= p ;
+                while ((n1 % p ) == 0 ) {
+                    divL.EXP[divL.nbP]++ ;
+                    n1 /= p ;
+                }
+                divL.nbP++ ;
+                if(n1==1) break ;
+            }
+        }
+        if(n1 > 1) {
+            divL.P[divL.nbP] = n1 ;
+            divL.EXP[divL.nbP++] = 1 ;
+        }
+        int i ;
+        for(i=0;i<divL.nbP;i++)divL.EXP[i] <<= 1 ;
+        int64_t dl,dh;
+        dl = DIV_Init(&divL,n) ;
+ //       printf("\n%lld->",n) ;
+        do {
+            int64_t n2 = n*n ;
+            Divisors divH ;
+            dh = n2/dl ;
+//            if(dl*dh != n2) continue ;
+            int64_t a,b,c,d ;
+            int i;
+            divH.nbP = 0;
+            for(i=0;i<divL.nbP;i++) {
+                if(divL.curE[i] < divL.EXP[i]) {
+                    divH.P[divH.nbP] = divL.P[i] ;
+                    divH.EXP[divH.nbP++] = divL.EXP[i] - divL.curE[i] ;
+                }
+            }
+            int cMax = Sqrt64(dh) ;
+            for(a=1;a*a<=dl;a++) {
+                b= dl/a ;
+                if(a*b != dl) continue ;
+                int64_t Sab = a+b ;
+                c = DIV_Init(&divH,cMax);
+                do {
+                    if(c>=b) {
+                        d = dh/c ;
+ //                   if(c*d != dh) continue ;
+                        int64_t S = Sab+c ;
+                        if(S<=d) continue ;
+                        S +=d ;
+                        if((S&1)==0) {
+                            sumS += S ;
+//                            S >>= 1 ;
+//                               printf("%lld+%lld+%lld+%lld S=%lld A=%lld sumS=%lld\n"
+//                                      ,S-d,S-c,S-b,S-a,S,n,sumS) ;
+                        }
+                    }
+                    
+                }while((c=DIV_getnext(&divH)) != 0) ;
+            }
+        
+        }while((dl=DIV_getnext(&divL)) != 0) ;
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",sumS);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+/*
+int PB681(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t maxA2 = PB681_MAXA *  PB681_MAXA ;
+    int64_t  sumS = 0 ;
+    int64_t a,b,c,d,db,d0,Sb,Sc,S,A ;
+    int32_t maxL = Sqrt64(PB681_MAXA) ;
+    for(a=1;a<=maxL ;a++) {
+      for(b=a;b<=PB681_MAXA ;b++) {
+            Sb= a + b ;
+            db = a^b ;
+            for(c=b;c<=PB681_MAXA;c++) {
+                Sc = Sb + c ;
+                d0 = c  + ((db ) & 1) ;
+                for(d=d0;d<=PB681_MAXA;d+=2) {
+                    if((Sc+d)&1) printf(".");
+                    S = (Sc + d)/ 2 ;
+                    A = (S-a)*(S-b)*(S-c)*(S-d);
+                    if(A<=0) continue ;
+                    if(A > maxA2) { continue ;}
+                    int32_t Asq = Sqrt64(A);
+                    if(A == Asq*Asq) {
+                        sumS += 2*S ;
+                        printf("%c%04lld %lld+%lld+%lld+%lld S=%lld A=%lld  sumS=%lld\n"
+                               ,(a!=b && b!=c && c!=d)?'D':' ',Asq,a,b,c,d,S,A,sumS) ;
+                    }
+                }
+            }
+        }
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",sumS);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+*/
