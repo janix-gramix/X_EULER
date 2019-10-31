@@ -3763,87 +3763,36 @@ typedef struct P185in {
 } P185in ;
 
 #define CANDxCAND(nc1,nc2) ((nc1)*NCAND+(nc2))
+
 typedef struct P185a {
    //  int64_t  val ;
    int8_t  dig[PB185_NDIG] ;
-   int  nbOK ;
+ //  int  nbOK ;
    int8_t ident[PB185_NCAND*PB185_NDIG*PB185_MAXIDENT] ;
-   int8_t digOK[PB185_NDIG] ;
+//   int8_t digOK[PB185_NDIG] ;
+   uint32_t digBad ;
    
 } P185a ;
 
 typedef struct P185a_ctx {
    int8_t constraint[PB185_NCAND] ;
    int8_t candValues[PB185_NDIG] ;
-   int   nbD ;
    int64_t sol ;
 }   P185a_ctx ;
 
-
-void NextConstrainta(P185a *tbP, P185a_ctx *ctx) {
-   static nbGuess = 0 ;
+void NextConstrainta(P185a *tbP, int nc,P185a_ctx *ctx) {
+   static int nGuess = 0 ;
+   static int minNc = 100*PB185_NDIG ;
    int16_t ic2id[PB185_NDIG] ;
    int ic = 0 ;
+   int id = 0 ;
    ic2id[0] = -1 ;
-   int nc ;
-   int i ;
-   int minC = PB185_NDIG ;
-   int maxC = 0;
-   
-   int8_t   nbPos[PB185_NCAND] ;
-   int32_t status[PB185_NCAND] ;
-   nbGuess++ ;
-   memset(status,0,sizeof(status));
-   for(i=0;i<PB185_NCAND;i++) nbPos[i] = PB185_NDIG - ctx->nbD ;
-   int id ;
-   for(id=0;id<PB185_NDIG;id++) {
-      if(ctx->candValues[id] < PB185_NCAND) continue ;
-      int nc1 ;
-      for(nc1=0;nc1<PB185_NCAND;nc1++) {
-         if(ctx->constraint[nc1]) continue ;
-         int is,ic2 ;
-         for(is=IDENT(nc1,id);(ic2=tbP[nc1].ident[is])>=0;is++) {
-            if(ctx->constraint[ic2]> 0 ) {
-               status[ic2] |= 1<<id ;
-            }
-         }
-      }
-   }
-   for(i=0;i<PB185_NCAND;i++) {
-      int st = status[i];
-      while(st) {
-         if(st & 1) nbPos[i]-- ;
-         st >>= 1 ;
-      }
-   }
-   
-   
-   for(i=0;i<PB185_NCAND;i++) {
-      if(nbPos[i] < ctx->constraint[i]) { return ;}
-      if(ctx->constraint[i] && nbPos[i] && (nbPos[i]<minC) ) {
-         nc = i ;
-         minC = nbPos[i] ;
-        }
-      if(ctx->constraint[i]>maxC ) {
-        maxC = ctx->constraint[i] ;
-     }
-   }
-/*
-   int j ;
-   printf("\n[%d,%d,%d]",nc,minC,maxC);
-   for(j=0;j<PB185_NDIG;j++) {
-      if(ctx->candValues[j]==PB185_NCAND) {
-         printf("X ");
-      }   else {
-         printf("%d ",tbP[ctx->candValues[j]].dig[j]);
-      }
-   }
-//   for(j=0;j<PB185_NCAND;j++) printf("%d",ctx->constraint[j]);
-   for(j=0;j<PB185_NCAND;j++) printf("%x",nbPos[j]);
-*/
-   
-   if(maxC==0) {
+   nGuess++ ;
+   for(;nc<PB185_NCAND && ctx->constraint[nc]==0;nc++) ;
+   P185a *curTbP = tbP + nc ;
+   if(nc >= PB185_NCAND) {
       int j ;
+      printf("\nNGuess=%d [%d]",nGuess,nc) ;
       int values[PB185_NDIG];
       for(j=0;j<PB185_NDIG;j++) {
          if(ctx->candValues[j]==PB185_NCAND) {
@@ -3857,35 +3806,60 @@ void NextConstrainta(P185a *tbP, P185a_ctx *ctx) {
          }
       }
       ctx->sol = 0 ;
-      printf("\n nbGuess=%d ",nbGuess);
       for(j=0;j<PB185_NDIG;j++) {
-         printf("%d ",values[j] );
-         ctx->sol = 10 * ctx->sol + values[j]  ;
+         ctx->sol = 10 * ctx->sol + values[j] ;
+         if(values[j]==-1) printf("X ");
+         else printf("%d ",values[j]);
       }
+      for(j=0;j<PB185_NCAND;j++)printf("%d",ctx->constraint[j]);
+      printf(" *** ");
       return ;
    }
 
-   for(id=0;id<PB185_NDIG;id++) {
-//      if((ctx->status[nc] & (1<<id)) == 0) {
-     if(ctx->candValues[id] == PB185_NCAND ) {
-         int isOK = 1 ;
-         int is ;
-         for(is=IDENT(nc,id);tbP[nc].ident[is]>=0;is++) {
-            if(ctx->constraint[tbP[nc].ident[is]]> 0 ) {
-               ctx->constraint[tbP[nc].ident[is]]-- ;
+   while(ic>=0) {
+      int is ;
+      int isOK = 1;
+      id = ic2id[ic]+1 ;
+      while(id < PB185_NDIG && ( ctx->candValues[id] < nc || (curTbP->digBad & (1<<id))) ) id++ ;
+      ic2id[ic] = id ;
+      if(id >= PB185_NDIG) {
+         isOK = 0;
+      } else {
+         for(is=IDENT(nc,id);curTbP->ident[is]>=0;is++) {
+            if(ctx->constraint[curTbP->ident[is]]> 0 ) {
+               ctx->constraint[curTbP->ident[is]]-- ;
             } else {
                while(--is >= IDENT(nc,id)) {
-                  ctx->constraint[tbP[nc].ident[is]]++ ;
+                  ctx->constraint[curTbP->ident[is]]++ ;
                }
                isOK=0 ; break ;
             }
          }
          if(isOK) {
-            ctx->candValues[id] = nc ; ctx->nbD++ ; // printf(" +%d",id);
-            NextConstrainta(tbP,ctx); // if(ctx->sol)break ;
-            ctx->nbD-- ;
-            ctx->candValues[id] = PB185_NCAND ;
-            for(is=IDENT(nc,id);tbP[nc].ident[is]>=0;is++)ctx->constraint[tbP[nc].ident[is]]++ ;
+            ctx->candValues[id] = nc ;
+            ic2id[ic+1] = id ;
+         }
+      }      
+      if(isOK) {
+         if(ic>=ctx->constraint[nc]-1) {
+            NextConstrainta(tbP,nc+1,ctx);
+            isOK = 0 ;
+            ctx->candValues[ic2id[ic]] = PB185_NCAND ;
+            for(is=IDENT(nc,ic2id[ic]);curTbP->ident[is]>=0;is++) {
+               ctx->constraint[curTbP->ident[is]]++ ;
+            }
+         } else {
+            ic++ ;
+         }
+      } else {
+         if(id>=PB185_NDIG) {
+            ic-- ;
+            if(ic >=0) {
+               ctx->candValues[ic2id[ic]] = PB185_NCAND ;
+               for(is=IDENT(nc,ic2id[ic]);curTbP->ident[is]>=0;is++) {
+                  ctx->constraint[curTbP->ident[is]]++ ;
+               }
+            }
          }
       }
    }
@@ -3902,53 +3876,53 @@ int PB185a(PB_RESULT *pbR) {
       pow10[i] = N ;
    }
    P185in tbPin[PB185_NCAND] = {
-
-      {5616185650518293LL ,2}
-      ,{3847439647293047LL ,1}
+      /*
+       {5616185650518293LL ,2}
+       ,{3847439647293047LL ,1}
+       ,{5855462940810587LL ,3}
+       ,{9742855507068353LL ,3}
+       ,{4296849643607543LL ,3}
+       ,{3174248439465858LL ,1}
+       ,{4513559094146117LL ,2}
+       ,{7890971548908067LL ,3}
+       ,{8157356344118483LL ,1}
+       ,{2615250744386899LL ,2}
+       ,{8690095851526254LL ,3}
+       ,{6375711915077050LL ,1}
+       ,{6913859173121360LL ,1}
+       ,{6442889055042768LL ,2}
+       ,{2321386104303845LL ,0}
+       ,{2326509471271448LL ,2}
+       ,{5251583379644322LL ,2}
+       ,{1748270476758276LL ,3}
+       ,{4895722652190306LL ,1}
+       ,{3041631117224635LL ,3}
+       ,{1841236454324589LL ,3}
+       ,{2659862637316867LL ,2}
+       */
+      {2321386104303845LL ,0}
       ,{5855462940810587LL ,3}
       ,{9742855507068353LL ,3}
       ,{4296849643607543LL ,3}
-      ,{3174248439465858LL ,1}
-      ,{4513559094146117LL ,2}
       ,{7890971548908067LL ,3}
-      ,{8157356344118483LL ,1}
-      ,{2615250744386899LL ,2}
       ,{8690095851526254LL ,3}
-      ,{6375711915077050LL ,1}
-      ,{6913859173121360LL ,1}
-      ,{6442889055042768LL ,2}
-      ,{2321386104303845LL ,0}
-      ,{2326509471271448LL ,2}
-      ,{5251583379644322LL ,2}
       ,{1748270476758276LL ,3}
-      ,{4895722652190306LL ,1}
       ,{3041631117224635LL ,3}
       ,{1841236454324589LL ,3}
+      ,{5616185650518293LL ,2}
+      ,{6442889055042768LL ,2}
+      ,{2326509471271448LL ,2}
+      ,{5251583379644322LL ,2}
+      ,{2615250744386899LL ,2}
+      ,{4513559094146117LL ,2}
       ,{2659862637316867LL ,2}
-  /*
-       {5855462940810587LL ,3}
-       ,{9742855507068353LL ,3}
-       ,{4296849643607543LL ,3}
-       ,{7890971548908067LL ,3}
-       ,{8690095851526254LL ,3}
-       ,{1748270476758276LL ,3}
-       ,{3041631117224635LL ,3}
-       ,{1841236454324589LL ,3}
-       ,{8157356344118483LL ,1}
-       ,{6375711915077050LL ,1}
-       ,{6913859173121360LL ,1}
-       ,{4895722652190306LL ,1}
-       ,{3174248439465858LL ,1}
-       ,{3847439647293047LL ,1}
-       ,{5616185650518293LL ,2}
-       ,{6442889055042768LL ,2}
-       ,{2326509471271448LL ,2}
-       ,{5251583379644322LL ,2}
-       ,{2615250744386899LL ,2}
-       ,{4513559094146117LL ,2}
-       ,{2659862637316867LL ,2}
-       ,{2321386104303845LL ,0}
-   */
+      ,{8157356344118483LL ,1}
+      ,{6375711915077050LL ,1}
+      ,{6913859173121360LL ,1}
+      ,{4895722652190306LL ,1}
+      ,{3174248439465858LL ,1}
+      ,{3847439647293047LL ,1}
+
       
       /*
        {90342 ,2}
@@ -3968,20 +3942,45 @@ int PB185a(PB_RESULT *pbR) {
          tbP[i].dig[j] = (tbPin[i].val % pow10[PB185_NDIG-j-1]) /pow10[PB185_NDIG-j-2];
       }
       tbP[i].dig[PB185_NDIG-1] = tbPin[i].val % pow10[0] ;
-      tbP[i].nbOK = tbPin[i].nbOK ;
    }
    for(i=0;i<PB185_NCAND;i++) {
       int j,k ;
+      tbP[i].digBad = 0 ;
       for(j=0;j<PB185_NDIG;j++) {
          int is = IDENT(i,j) ;
-         for(k=0;k<PB185_NCAND;k++) {
+         for(k=PB185_NCAND-1;k>i;k--) {
             if(tbP[k].dig[j] == tbP[i].dig[j]) {
                tbP[i].ident[is++] = k ;
             }
          }
          tbP[i].ident[is++] = -1 ;
+ //        tbP[i].digOK[j] = 1 ;
+         for(k=0;k<i;k++) {
+            if(tbP[k].dig[j] == tbP[i].dig[j]) {
+//               tbP[i].digOK[j] = 0 ;
+               tbP[i].digBad |= 1 << j ;
+               break ;
+            }
+         }
       }
    }
+/*
+   for(i=0;i<PB185_NCAND;i++) {
+      int j,k ;
+      if(tbPin[i].nbOK == 0) {
+         for(j=0;j<PB185_NDIG;j++) {
+            int dj = tbP[i].dig[j] ;
+            for(k=0;k<PB185_NCAND;k++) {
+               if(tbP[k].dig[j] == dj) {
+                  if((tbP[k].digBad & (1 << j)) == 0) printf("%d<-%d->%d ",i,j,k) ;
+                  tbP[k].digBad |= 1 << j ;
+               }
+
+            }
+         }
+      }
+   }
+*/
    P185a_ctx ctx ;
    for(i=0;i<PB185_NCAND;i++) {
       ctx.constraint[i] = tbPin[i].nbOK ;
@@ -3989,15 +3988,14 @@ int PB185a(PB_RESULT *pbR) {
    for(i=0;i<PB185_NDIG;i++) {
       ctx.candValues[i] = PB185_NCAND ;
    }
-   ctx.sol = 0 ;
-   ctx.nbD = 0 ;
-   NextConstrainta(tbP,&ctx) ;
+   NextConstrainta(tbP,0,&ctx) ;
    
-   if(pbR->isVerbose) fprintf(stdout,"\tPB%s sol=%lld \n",pbR->ident,ctx.sol);
+   //   if(pbR->isVerbose) fprintf(stdout,"\tPB%s r=%lld S=%lld\n",pbR->ident,r,S);
    pbR->nbClock = clock() - pbR->nbClock ;
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ctx.sol) ;
    return 1 ;
 }
+
 
 
 typedef struct P185 {
