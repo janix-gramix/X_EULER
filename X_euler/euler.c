@@ -243,18 +243,74 @@ static PB_CALL ALL_calls[] = {
 //    ,PROTO_CALL(135,4989,'Same differences')
     ,PROTO_CALL(135a,4989,'Same differences')
     ,PROTO_CALL(136,2544559,'Singleton difference')
+    ,PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
+
+    ,PROTO_CALL(138,1118049290473932,'Special isosceles triangles')
+
 //  ,PROTO_CALL(139,10057761,'Pythagorean tiles')
     ,PROTO_CALL(139a,10057761,'Pythagorean tiles')
+    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
+
+//    ,PROTO_CALL(141c,878454337159,'Investigating progressive numbers, n, which are also square')
+   ,PROTO_CALL(141b,878454337159,'Investigating progressive numbers, n, which are also square')
+//    ,PROTO_CALL(141,878454337159,'Investigating progressive numbers, n, which are also square')
+    ,PROTO_CALL(142,1006193,'Perfect Square Collection')
 
 //    ,PROTO_CALL(143,30758397,'Investigating the Torricelli point of a triangle')
     ,PROTO_CALL(143a,30758397,'Investigating the Torricelli point of a triangle')
+//    ,PROTO_CALL(144,354,'Investigating multiple reflections of a laser beam')
+    ,PROTO_CALL(144a,354,'Investigating multiple reflections of a laser beam')
 
     ,PROTO_CALL(145a,608720,'How many reversible numbers are there below one-billion?')
  // ,PROTO_CALL(145,608720,'How many reversible numbers are there below one-billion?')
+    ,PROTO_CALL(146a,676333270,'Investigating a Prime Pattern')
+ //   ,PROTO_CALL(146,676333270,'Investigating a Prime Pattern')
 
     ,PROTO_CALL(147,846910284,'Rectangles in cross-hatched grids')
+    ,PROTO_CALL(148,2129970655314432,'Exploring Pascal''s triangle')
+    ,PROTO_CALL(149,52852124,'Searching for a maximum-sum subsequence')
+    ,PROTO_CALL(150,-271248680,'Searching a triangular array for a sub-triangle having minimum-sum')
+
+//    ,PROTO_CALL(151,0.464399,'Paper sheets of standard sizes: an expected-value problem')
+    ,PROTO_CALL(151a,0.464399,'Paper sheets of standard sizes: an expected-value problem')
+
+    ,PROTO_CALL(152c,301,'Writing 1/2 as a sum of inverse squares')
+//    ,PROTO_CALL(152a,301,'Writing 1/2 as a sum of inverse squares')
+//    ,PROTO_CALL(152,301,'Writing 1/2 as a sum of inverse squares')
+    ,PROTO_CALL(153c,17971254122360635,'Investigating Gaussian Integers')
+//    ,PROTO_CALL(153b,17971254122360635,'Investigating Gaussian Integers')
+//    ,PROTO_CALL(153a,17971254122360635,'Investigating Gaussian Integers')
+//    ,PROTO_CALL(153,17971254122360635,'Investigating Gaussian Integers')
+
+     ,PROTO_CALL(154a,479742450,'Exploring Pascal''s pyramid')
+//    ,PROTO_CALL(154,479742450,'Exploring Pascal''s pyramid')
+
+    ,PROTO_CALL(155,3857447,'Counting Capacitor Circuits')
+    ,PROTO_CALL(156,21295121502550,'Counting Digits')
+    ,PROTO_CALL(157,53490,'Solving the diophantine equation 1/a+1/b= p/10n')
+    ,PROTO_CALL(158,409511334375,'Exploring strings for which only one character comes lexicographically after its neighbour to the left')
+//    ,PROTO_CALL(159,14489159,'Digital root sums of factorisations')
+//    ,PROTO_CALL(159a,14489159,'Digital root sums of factorisations')
+    ,PROTO_CALL(159b,14489159,'Digital root sums of factorisations')
+    ,PROTO_CALL(160,16576,'Factorial trailing digits')
+    ,PROTO_CALL(161,20574308184277971,'Triominoes')
+    ,PROTO_CALL(162,3D58725572C62302,'Hexadecimal numbers')
+
+    ,PROTO_CALL(164,378158756814587,'Numbers for which no three consecutive digits have a sum greater than a given value')
+    ,PROTO_CALL(165,2868868,'Intersections')
+    ,PROTO_CALL(166,7130034,'Criss Cross')
+//    ,PROTO_CALL(167,3916160068885,'Investigating Ulam sequences')
+    ,PROTO_CALL(167a,3916160068885,'Investigating Ulam sequences')
+//    ,PROTO_CALL(168,59206,'Number Rotations')
+    ,PROTO_CALL(168a,59206,'Number Rotations')
+
+    ,PROTO_CALL(169b,178653872807,'Exploring the number of different ways a number can be expressed as a sum of powers of 2')
+//   ,PROTO_CALL(169a,178653872807,'Exploring the number of different ways a number can be expressed as a sum of powers of 2')
+//    ,PROTO_CALL(169,178653872807,'Exploring the number of different ways a number can be expressed as a sum of powers of 2')
+
     ,PROTO_CALL(173,1572729,'Using up to one million tiles how many different "hollow" square laminae can be formed?')
     ,PROTO_CALL(174,209566,'Counting the number of "hollow" square laminae that can form one, two, three, ... distinct arrangements')
+    ,PROTO_CALL(175,'1,13717420,8','Fractions involving the number of different ways a number can be expressed as a sum of powers of 2')
 
     ,PROTO_CALL(179c,986262,'Consecutive positive divisors')
 //    ,PROTO_CALL(179b,986262,'Consecutive positive divisors')
@@ -263,6 +319,13 @@ static PB_CALL ALL_calls[] = {
 
     ,PROTO_CALL(181,83735848679360680,'Investigating in how many ways objects of two different colours can be grouped')
 //    ,PROTO_CALL(181a,83735848679360680,'Investigating in how many ways objects of two different colours can be grouped')
+    ,PROTO_CALL(182,399788195976,'RSA encryption')
+    ,PROTO_CALL(183,48861552,'Maximum product of parts')
+
+//    ,PROTO_CALL(184a,1725323624056,'Triangles containing the origin')
+    ,PROTO_CALL(184b,1725323624056,'Triangles containing the origin')
+//    ,PROTO_CALL(184,1725323624056,'Triangles containing the origin')
+    ,PROTO_CALL(185,4640261571849533,'Number Mind')
 
 //    ,PROTO_CALL(187,17427258,'Semiprimes')
     ,PROTO_CALL(187a,17427258,'Semiprimes')
@@ -320,6 +383,10 @@ static PB_CALL ALL_calls[] = {
 //    ,PROTO_CALL(357a,1739023853137,'Prime generating integers')
 //    ,PROTO_CALL(357,1739023853137,'Prime generating integers')
 
+    ,PROTO_CALL(500,35407281,'Problem 500!!!')
+    ,PROTO_CALL(540a,500000000002845,'Counting primitive Pythagorean triples')
+    ,PROTO_CALL(540,500000000002845,'Counting primitive Pythagorean triples')
+
     ,PROTO_CALL(579,3805524,'Lattice points in lattice cubes')
     ,PROTO_CALL(597_gmpy,50018178282,'Torpids')
     ,PROTO_CALL(620a,1470337306,'Planetary Gears')
@@ -339,11 +406,11 @@ static PB_CALL CUR_calls[] = {
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
 
-//    PROTO_CALL(137,1120149658760,'Fibonacci golden nuggets')
-//    ,PROTO_CALL(140,5673835352990,'Modified Fibonacci golden nuggets')
-
-    PROTO_CALL(138,1118049290473932,'Special isosceles triangles')
-//    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')
+    
+    PROTO_CALL(345,???,'Matrix Sum')
+ //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
+//   ,PROTO_CALL(681,2611227421428,'Maximal Area')
+ //    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')
 
 
 
@@ -367,7 +434,7 @@ int main(int argc, const char * argv[]) {
     ttr.nbPBerror  = ttr.nbPBOK = 0 ;
     ttr.TotalClock = 0 ;
     clock_t debut = clock() ;
-//    char * isALL = "300" ;
+//    char * isALL = "151" ;
     char * isALL = NULL ;
     char  * pbMax = (isALL == NULL) ? "ZZZZ" : isALL ;
     for(ptCall = (isALL==NULL) ? CUR_calls : ALL_calls ; ptCall->ident != NULL && strcmp(ptCall->ident,pbMax) < 0 ; ptCall++) {

@@ -3925,7 +3925,7 @@ int PB185(PB_RESULT *pbR) {
          if(ctx.sol[i][j]<PB185_NCAND) {
             curDig = tbP[ctx.sol[i][j]].dig[j] ;
          } else {
-            int masqDig = 0 ;// search no forbidden digit
+            int masqDig = 0 ;// search no forbidden digit   
             for(k=0;k<PB185_NCAND;k++) masqDig |= 1<< tbP[k].dig[j]  ;
             for(curDig=0;curDig<10 && (masqDig ^ (1 << curDig)) != 0x3ff ;curDig++);
          }

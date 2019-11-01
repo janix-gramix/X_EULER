@@ -2810,8 +2810,8 @@ typedef  uint64_t bigInt141 ;
 
 
 #define PB141_MAX_ASK   1000000000000LL
-#define EXP_PB141_MAX   26
-
+// #define EXP_PB141_MAX   26
+#define EXP_PB141_MAX   12
 
 
 
@@ -3987,3 +3987,150 @@ int PB147(PB_RESULT *pbR) {
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S) ;
     return 1 ;
 }
+
+//#define PB148_NBROW 100
+#define PB148_NBROW 1000000000
+// Sierpinsky fractal 
+int PB148(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    uint64_t Pow7[12] , dig7[12] ;
+    uint64_t UPnz[12];
+    Pow7[0]=1 ;
+    int n7 = 1 ;
+    while((Pow7[n7] = 7 * Pow7[n7-1]) <= PB148_NBROW) {
+        n7++ ;
+    }int i ;
+    UPnz[0] = 1 ;
+    for(i=1;i<n7;i++) {
+        UPnz[i] = 28 * UPnz[i-1] ;
+    }
+    int  nr = PB148_NBROW ;
+    for(i=n7-1;i>=0;i--) {
+        dig7[i] = nr/Pow7[i] ;
+        nr -= Pow7[i] * dig7[i] ;
+    }
+    printf("n7=%d ",n7);
+    for(i=n7-1;i>=0;i--) printf("%lld ",dig7[i]);
+    printf("\n");
+    uint64_t sumnz=0 ;
+    uint64_t nbZone = 1 ;
+    for(i=n7-1;i>=0;i--) {
+        sumnz +=  nbZone * (dig7[i] * (dig7[i]+1) / 2 ) * UPnz[i] ;
+        nbZone = nbZone * (dig7[i]+1) ;
+    }
+    
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",sumnz) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+#define PB149_SIZE 2000
+
+static int PB149maxLine(int32_t *line,int inc, int length,int32_t max) {
+    int i ;
+    int32_t sp,sm ;
+    int8_t mode ;
+    int iend = length*inc ;
+    for(i=0,sp=0,sm=0,mode=1;i!=iend; ) {
+        int32_t v = line[i] ;i += inc ;
+        if(mode) {
+            if(v>=0) sp += v ;
+            else {
+                if(sp > max) max = sp ;
+                sm = v ;
+                mode = 0 ;
+            }
+        } else {
+            if(v<=0) sm += v;
+            else {
+                if(sm+sp >0) sp += sm+v ;
+                else sp = v ;
+                mode = 1 ;
+            }
+        }
+    }
+
+    if(mode) {
+        if(sp > max) max = sp ;
+    }
+    return max ;
+}
+
+int PB149(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int32_t *vals = malloc(PB149_SIZE*PB149_SIZE*sizeof(vals[0]));
+    int i ;
+    for(i=0;i<55;i++){
+        int64_t k =i+1 ;
+        vals[i] = ((100003 - 200003*k+300007*k*k*k) % 1000000) - 500000 ;
+    }
+    for(i=55;i<PB149_SIZE*PB149_SIZE;i++){
+        vals[i] = ((vals[i-24] + vals[i-55] + 1000000)  % 1000000) - 500000 ;
+    }
+    int32_t max = 0 ;
+    for(i=0;i<PB149_SIZE;i++) {
+        max = PB149maxLine(vals+i*PB149_SIZE,1,PB149_SIZE,max) ;
+        max = PB149maxLine(vals+i,PB149_SIZE,PB149_SIZE,max) ;
+        max = PB149maxLine(vals+i,PB149_SIZE+1,PB149_SIZE-i,max) ;
+        max = PB149maxLine(vals+i*PB149_SIZE,PB149_SIZE+1,PB149_SIZE-i,max) ;
+        max = PB149maxLine(vals+i,PB149_SIZE-1,i+1,max) ;
+        max = PB149maxLine(vals+i*PB149_SIZE+PB149_SIZE-1,PB149_SIZE-1,PB149_SIZE-i,max) ;
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",max) ;
+    free(vals) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+//#define PB150_SIZE 6
+#define PB150_SIZE 1000
+
+
+int PB150(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+  int64_t t = 0 ;
+  int32_t min = 0 ;
+    int32_t * vals = malloc(PB150_SIZE*(PB150_SIZE+1)/2 * sizeof(vals[0]));
+    int32_t line[PB150_SIZE] ;
+/*    int32_t vals[] = { 15
+        ,-14,-7
+        ,20,-13,-5
+        ,-3,8,23,-26
+        ,1,-4,-5,-18,5
+        ,-16,31,2,9,28,3
+    } ;
+*/
+    int i0 ;
+    for(i=0,i0=0;i<PB150_SIZE;i++, i0 += i ) {
+        int j ;
+        int32_t sl = 0 ;
+        for(j=0;j<i+1;j++) {
+            t = ((615949*t + 797807)) & (1048576-1) ;
+            int32_t v = (int32_t) t - 524288 ;
+            vals[i0+j] = line[j] = v ;
+            sl += v ;
+            if(v < min) min = v ;
+        }
+        int j0;
+        for(j=i,j0=0;j>0;j-- ) {
+            int k ;
+            int32_t sk = sl ;
+            for(k=0;k<i-j;k++) {
+                vals[j0] += sk ;
+                if(vals[j0] < min) min = vals[j0] ;
+                j0++ ;
+                sk += line[j+k+1] - line[k] ;
+            }
+            vals[j0] += sk ;
+            if(vals[j0] < min) min = vals[j0] ;
+            j0++ ;
+           sl -= line[j] ;
+        }
+    }
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",min) ;
+   pbR->nbClock = clock() - pbR->nbClock ;
+   return 1 ;
+}
+
