@@ -3751,485 +3751,193 @@ int PB184a(PB_RESULT *pbR) {
    pbR->nbClock = clock() - pbR->nbClock ;
    return 1 ;
 }
+
 //#define PB185_NDIG   5
 //#define PB185_NCAND   6
 #define PB185_NDIG   16
 #define PB185_NCAND   22
+#define PB185_MAXOK  4
 #define PB185_MAXIDENT  10
-#define IDENT(nc,nd) (nc*PB185_NDIG*PB185_MAXIDENT+nd*PB185_MAXIDENT)
+#define IDENT(nd) ((nd) * PB185_MAXIDENT)
+
+
 typedef struct P185in {
-   int64_t  val ;
+   char val[PB185_NDIG] ;
    int  nbOK ;
 } P185in ;
 
-#define CANDxCAND(nc1,nc2) ((nc1)*NCAND+(nc2))
-
-typedef struct P185a {
-   //  int64_t  val ;
-   int8_t  dig[PB185_NDIG] ;
- //  int  nbOK ;
-   int8_t ident[PB185_NCAND*PB185_NDIG*PB185_MAXIDENT] ;
-//   int8_t digOK[PB185_NDIG] ;
-   uint32_t digBad ;
-   
-} P185a ;
-
-typedef struct P185a_ctx {
-   int8_t constraint[PB185_NCAND] ;
-   int8_t candValues[PB185_NDIG] ;
-   int64_t sol ;
-}   P185a_ctx ;
-
-void NextConstrainta(P185a *tbP, int nc,P185a_ctx *ctx) {
-   static int nGuess = 0 ;
-   static int minNc = 100*PB185_NDIG ;
-   int16_t ic2id[PB185_NDIG] ;
-   int ic = 0 ;
-   int id = 0 ;
-   ic2id[0] = -1 ;
-   nGuess++ ;
-   for(;nc<PB185_NCAND && ctx->constraint[nc]==0;nc++) ;
-   P185a *curTbP = tbP + nc ;
-   if(nc >= PB185_NCAND) {
-      int j ;
-      printf("\nNGuess=%d [%d]",nGuess,nc) ;
-      int values[PB185_NDIG];
-      for(j=0;j<PB185_NDIG;j++) {
-         if(ctx->candValues[j]==PB185_NCAND) {
-            int val[10] ;
-            memset(val,0,sizeof(val));
-            int k ;
-            for(k=0;k<PB185_NCAND;k++) val[tbP[k].dig[j]] = 1 ;
-            for(k=0;k<10;k++) if(val[k] == 0) values[j] = k ;
-         }   else {
-            values[j]=tbP[ctx->candValues[j]].dig[j];
-         }
-      }
-      ctx->sol = 0 ;
-      for(j=0;j<PB185_NDIG;j++) {
-         ctx->sol = 10 * ctx->sol + values[j] ;
-         if(values[j]==-1) printf("X ");
-         else printf("%d ",values[j]);
-      }
-      for(j=0;j<PB185_NCAND;j++)printf("%d",ctx->constraint[j]);
-      printf(" *** ");
-      return ;
-   }
-
-   while(ic>=0) {
-      int is ;
-      int isOK = 1;
-      id = ic2id[ic]+1 ;
-      while(id < PB185_NDIG && ( ctx->candValues[id] < nc || (curTbP->digBad & (1<<id))) ) id++ ;
-      ic2id[ic] = id ;
-      if(id >= PB185_NDIG) {
-         isOK = 0;
-      } else {
-         for(is=IDENT(nc,id);curTbP->ident[is]>=0;is++) {
-            if(ctx->constraint[curTbP->ident[is]]> 0 ) {
-               ctx->constraint[curTbP->ident[is]]-- ;
-            } else {
-               while(--is >= IDENT(nc,id)) {
-                  ctx->constraint[curTbP->ident[is]]++ ;
-               }
-               isOK=0 ; break ;
-            }
-         }
-         if(isOK) {
-            ctx->candValues[id] = nc ;
-            ic2id[ic+1] = id ;
-         }
-      }      
-      if(isOK) {
-         if(ic>=ctx->constraint[nc]-1) {
-            NextConstrainta(tbP,nc+1,ctx);
-            isOK = 0 ;
-            ctx->candValues[ic2id[ic]] = PB185_NCAND ;
-            for(is=IDENT(nc,ic2id[ic]);curTbP->ident[is]>=0;is++) {
-               ctx->constraint[curTbP->ident[is]]++ ;
-            }
-         } else {
-            ic++ ;
-         }
-      } else {
-         if(id>=PB185_NDIG) {
-            ic-- ;
-            if(ic >=0) {
-               ctx->candValues[ic2id[ic]] = PB185_NCAND ;
-               for(is=IDENT(nc,ic2id[ic]);curTbP->ident[is]>=0;is++) {
-                  ctx->constraint[curTbP->ident[is]]++ ;
-               }
-            }
-         }
-      }
-   }
-}
-
-
-
-
-int PB185a(PB_RESULT *pbR) {
-   int64_t N = 1;
-   int64_t pow10[PB185_NDIG] ;
-   int i ; for(i=0;i<PB185_NDIG;i++) {
-      N *= 10 ;
-      pow10[i] = N ;
-   }
-   P185in tbPin[PB185_NCAND] = {
-      /*
-       {5616185650518293LL ,2}
-       ,{3847439647293047LL ,1}
-       ,{5855462940810587LL ,3}
-       ,{9742855507068353LL ,3}
-       ,{4296849643607543LL ,3}
-       ,{3174248439465858LL ,1}
-       ,{4513559094146117LL ,2}
-       ,{7890971548908067LL ,3}
-       ,{8157356344118483LL ,1}
-       ,{2615250744386899LL ,2}
-       ,{8690095851526254LL ,3}
-       ,{6375711915077050LL ,1}
-       ,{6913859173121360LL ,1}
-       ,{6442889055042768LL ,2}
-       ,{2321386104303845LL ,0}
-       ,{2326509471271448LL ,2}
-       ,{5251583379644322LL ,2}
-       ,{1748270476758276LL ,3}
-       ,{4895722652190306LL ,1}
-       ,{3041631117224635LL ,3}
-       ,{1841236454324589LL ,3}
-       ,{2659862637316867LL ,2}
-       */
-      {2321386104303845LL ,0}
-      ,{5855462940810587LL ,3}
-      ,{9742855507068353LL ,3}
-      ,{4296849643607543LL ,3}
-      ,{7890971548908067LL ,3}
-      ,{8690095851526254LL ,3}
-      ,{1748270476758276LL ,3}
-      ,{3041631117224635LL ,3}
-      ,{1841236454324589LL ,3}
-      ,{5616185650518293LL ,2}
-      ,{6442889055042768LL ,2}
-      ,{2326509471271448LL ,2}
-      ,{5251583379644322LL ,2}
-      ,{2615250744386899LL ,2}
-      ,{4513559094146117LL ,2}
-      ,{2659862637316867LL ,2}
-      ,{8157356344118483LL ,1}
-      ,{6375711915077050LL ,1}
-      ,{6913859173121360LL ,1}
-      ,{4895722652190306LL ,1}
-      ,{3174248439465858LL ,1}
-      ,{3847439647293047LL ,1}
-
-      
-      /*
-       {90342 ,2}
-       ,{51545 ,2}
-       ,{39458 ,2}
-       ,{34109 ,1}
-       ,{12531 ,1}
-       ,{70794 ,0}
-       */
-   } ;
-   pbR->nbClock = clock() ;
-   
-   P185a tbP[PB185_NCAND] ;
-   for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      for(j=0;j<PB185_NDIG-1;j++) {
-         tbP[i].dig[j] = (tbPin[i].val % pow10[PB185_NDIG-j-1]) /pow10[PB185_NDIG-j-2];
-      }
-      tbP[i].dig[PB185_NDIG-1] = tbPin[i].val % pow10[0] ;
-   }
-   for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      tbP[i].digBad = 0 ;
-      for(j=0;j<PB185_NDIG;j++) {
-         int is = IDENT(i,j) ;
-         for(k=PB185_NCAND-1;k>i;k--) {
-            if(tbP[k].dig[j] == tbP[i].dig[j]) {
-               tbP[i].ident[is++] = k ;
-            }
-         }
-         tbP[i].ident[is++] = -1 ;
- //        tbP[i].digOK[j] = 1 ;
-         for(k=0;k<i;k++) {
-            if(tbP[k].dig[j] == tbP[i].dig[j]) {
-//               tbP[i].digOK[j] = 0 ;
-               tbP[i].digBad |= 1 << j ;
-               break ;
-            }
-         }
-      }
-   }
-/*
-   for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      if(tbPin[i].nbOK == 0) {
-         for(j=0;j<PB185_NDIG;j++) {
-            int dj = tbP[i].dig[j] ;
-            for(k=0;k<PB185_NCAND;k++) {
-               if(tbP[k].dig[j] == dj) {
-                  if((tbP[k].digBad & (1 << j)) == 0) printf("%d<-%d->%d ",i,j,k) ;
-                  tbP[k].digBad |= 1 << j ;
-               }
-
-            }
-         }
-      }
-   }
-*/
-   P185a_ctx ctx ;
-   for(i=0;i<PB185_NCAND;i++) {
-      ctx.constraint[i] = tbPin[i].nbOK ;
-   }
-   for(i=0;i<PB185_NDIG;i++) {
-      ctx.candValues[i] = PB185_NCAND ;
-   }
-   NextConstrainta(tbP,0,&ctx) ;
-   
-   //   if(pbR->isVerbose) fprintf(stdout,"\tPB%s r=%lld S=%lld\n",pbR->ident,r,S);
-   pbR->nbClock = clock() - pbR->nbClock ;
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ctx.sol) ;
-   return 1 ;
-}
-
-
-
 typedef struct P185 {
- //  int64_t  val ;
    int8_t  dig[PB185_NDIG] ;
-    int  nbOK ;
-   int8_t ident[PB185_NCAND*PB185_NDIG*PB185_MAXIDENT] ;
-   int8_t digOK[PB185_NDIG] ;
-
+   int  nbIdent;
+   int nbOK ;
 } P185 ;
 
+typedef struct P185_nc {
+   int8_t constraint ;
+   int8_t ident[PB185_NDIG*PB185_MAXIDENT]; // digit index
+   int8_t digOK[(PB185_NDIG+1)];
+ } P185_nc ;
+
 typedef struct P185_ctx {
-   int8_t constraint[PB185_NCAND] ;
    int8_t candValues[PB185_NDIG] ;
-   int64_t sol ;
+   P185_nc NC[PB185_NCAND] ;
+   int    nbSol ;
+   int8_t sol[20][PB185_NDIG] ;
 }   P185_ctx ;
 
 void NextConstraint(P185 *tbP, int nc,P185_ctx *ctx) {
    static int nGuess = 0 ;
-   static int minNc = 100*PB185_NDIG ;
-   int16_t ic2id[PB185_NDIG] ;
+   int32_t ic2id[PB185_MAXOK] ;
    int ic = 0 ;
-   int id = 0 ;
-   ic2id[0] = -1 ;
    nGuess++ ;
-   while(ic>=0) {
-      int isOK = 1;
-      {
-         id = ic2id[ic]+1 ;
-         while(id < PB185_NDIG && ( ctx->candValues[id] < nc || tbP[nc].digOK[id] == 0) ) id++ ;
-         ic2id[ic] = id ;
-         if(id >= PB185_NDIG) {
-             isOK = 0;
-         } else {
-            int is ;
-            if(isOK) {
-               for(is=IDENT(nc,id);tbP[nc].ident[is]>=0;is++) {
-                  if(ctx->constraint[tbP[nc].ident[is]]> 0 ) {
-                     ctx->constraint[tbP[nc].ident[is]]-- ;
-                  } else {
-                     while(--is >= IDENT(nc,id)) {
-                        ctx->constraint[tbP[nc].ident[is]]++ ;
-                     }
-                     isOK=0 ; break ;
-                  }
-               }
-            }
-            if(isOK) {
-               ctx->candValues[id] = nc ;
-               ic2id[ic+1] = id ;
-            }
-         }
-      }
-      if(isOK) {
-         if(ic>=ctx->constraint[nc]-1) {
-            int maxC = 0 ;
-            int j ;
-            if(nc< PB185_NCAND) {
-               int nc1 ;
-               for(nc1=nc+1;nc1<PB185_NCAND && ctx->constraint[nc1]==0;nc1++) ;
-              if(nc1 < PB185_NCAND) NextConstraint(tbP,nc1,ctx);
-              else {
-                 
-                 printf("\nNGuess=%d [%d]",nGuess,nc) ;
-                 int values[PB185_NDIG];
-                 for(j=0;j<PB185_NDIG;j++) {
-                    if(ctx->candValues[j]>nc) {
-                       int val[10] ;
-                       memset(val,0,sizeof(val));
-                       int k ;
-                       for(k=0;k<PB185_NCAND;k++) val[tbP[k].dig[j]] = 1 ;
-                       for(k=0;k<10;k++) if(val[k] == 0) values[j] = k ;
-                    }   else {
-                       values[j]=tbP[ctx->candValues[j]].dig[j];
-                    }
-                 }
-                 ctx->sol = 0 ;
-                 for(j=0;j<PB185_NDIG;j++) {
-                    ctx->sol = 10 * ctx->sol + values[j] ;
-                    if(values[j]==-1) printf("X ");
-                    else printf("%d ",values[j]);
-                 }
-                 for(j=0;j<PB185_NCAND;j++)printf("%d",ctx->constraint[j]);
-                 printf(" *** ");
-              }
-               isOK = 0 ;
-               ctx->candValues[ic2id[ic]] = PB185_NCAND ;
-               int is ;
-               for(is=IDENT(nc,ic2id[ic]);tbP[nc].ident[is]>=0;is++) {
-                  ctx->constraint[tbP[nc].ident[is]]++ ;
-               }
-            }
-         } else {
-            ic++ ;
-         }
-      } else {
-         if(id>=PB185_NDIG) {
-            ic-- ;
-            if(ic >=0) {
-               ctx->candValues[ic2id[ic]] = PB185_NCAND ;
-               int is ;
-               for(is=IDENT(nc,ic2id[ic]);tbP[nc].ident[is]>=0;is++) {
-                  ctx->constraint[tbP[nc].ident[is]]++ ;
-               }
-            }
-         }
-      }
+   for(;nc<PB185_NCAND && ctx->NC[nc].constraint==0;nc++) ;
+   ic2id[0] = -1 ;
+   P185_nc *curNC = ctx->NC + nc ;
+   if(nc >= PB185_NCAND) {
+      printf("\nNGuess=%d [%d]",nGuess,nc) ;
+      memcpy(ctx->sol[ctx->nbSol],ctx->candValues,sizeof(ctx->candValues));
+      ctx->nbSol++ ;
+      return ;
    }
+   while(ic>=0) { // loop on number of good digits
+      int is,id ,isOK = 1;
+      int icd = ic2id[ic]+1 ;
+      // skeep assigned admissible digits
+      while((id=curNC->digOK[icd]) < PB185_NDIG && ( ctx->candValues[id] < nc ) ) icd++ ;
+      ic2id[ic]=icd ;
+      if(id >= PB185_NDIG) { //last possibility
+        if(--ic < 0) break ;
+         id = curNC->digOK[ic2id[ic]] ; // restart for predent good digit
+      } else {
+         for(is=IDENT(id);curNC->ident[is]>=0;is++) { // check for common valid digit with upper candidate
+            if(ctx->NC[curNC->ident[is]].constraint> 0 ) {
+               ctx->NC[curNC->ident[is]].constraint-- ;
+            } else { // exceed, the digit is not possible => rewind
+              while(--is >= IDENT(id)) ctx->NC[curNC->ident[is]].constraint++ ;
+                isOK=0 ; break ;
+            }
+         }
+         if(isOK==0) continue ; // next search of good digit
+         ctx->candValues[id] = nc ; // save the candidate
+         ic2id[ic+1] = icd ; // savec the progress
+         if(ic <curNC->constraint-1) {
+            ic++ ; continue ; // next good digit for this candidate
+         }
+         NextConstraint(tbP,nc+1,ctx); // all good digits found, next candiate
+      }
+      ctx->candValues[id] = PB185_NCAND ; // rewind
+      for(is=IDENT(id);curNC->ident[is]>=0;is++) {
+         ctx->NC[curNC->ident[is]].constraint++ ;
+      }
+   } // end loop on good digits for current candidate
 }
 
-
-
+// reverse order
+int cmp_tbP(const void *el1,const void *el2) {
+   return ((P185 *)el2)->nbIdent - ((P185 *)el1)->nbIdent ;
+}
 
 int PB185(PB_RESULT *pbR) {
-   int64_t N = 1;
-   int64_t pow10[PB185_NDIG] ;
-   int i ; for(i=0;i<PB185_NDIG;i++) {
-      N *= 10 ;
-      pow10[i] = N ;
-   }
+   int i,j,k ;
    P185in tbPin[PB185_NCAND] = {
- /*
-      {5616185650518293LL ,2}
-      ,{3847439647293047LL ,1}
-      ,{5855462940810587LL ,3}
-      ,{9742855507068353LL ,3}
-      ,{4296849643607543LL ,3}
-      ,{3174248439465858LL ,1}
-      ,{4513559094146117LL ,2}
-      ,{7890971548908067LL ,3}
-      ,{8157356344118483LL ,1}
-      ,{2615250744386899LL ,2}
-      ,{8690095851526254LL ,3}
-      ,{6375711915077050LL ,1}
-      ,{6913859173121360LL ,1}
-      ,{6442889055042768LL ,2}
-      ,{2321386104303845LL ,0}
-      ,{2326509471271448LL ,2}
-      ,{5251583379644322LL ,2}
-      ,{1748270476758276LL ,3}
-      ,{4895722652190306LL ,1}
-      ,{3041631117224635LL ,3}
-      ,{1841236454324589LL ,3}
-      ,{2659862637316867LL ,2}
-*/
-      {5855462940810587LL ,3}
-      ,{9742855507068353LL ,3}
-      ,{4296849643607543LL ,3}
-      ,{7890971548908067LL ,3}
-      ,{8690095851526254LL ,3}
-      ,{1748270476758276LL ,3}
-      ,{3041631117224635LL ,3}
-      ,{1841236454324589LL ,3}
-      ,{5616185650518293LL ,2}
-      ,{6442889055042768LL ,2}
-      ,{2326509471271448LL ,2}
-      ,{5251583379644322LL ,2}
-      ,{2615250744386899LL ,2}
-      ,{4513559094146117LL ,2}
-      ,{2659862637316867LL ,2}
-     ,{8157356344118483LL ,1}
-      ,{6375711915077050LL ,1}
-      ,{6913859173121360LL ,1}
-      ,{4895722652190306LL ,1}
-      ,{3174248439465858LL ,1}
-      ,{3847439647293047LL ,1}
-        ,{2321386104303845LL ,0}
-
+#if PB185_NDIG == 16
+      {"5616185650518293" ,2}
+      ,{"3847439647293047" ,1}
+      ,{"5855462940810587" ,3}
+      ,{"9742855507068353" ,3}
+      ,{"4296849643607543" ,3}
+      ,{"3174248439465858" ,1}
+      ,{"4513559094146117" ,2}
+      ,{"7890971548908067" ,3}
+      ,{"8157356344118483" ,1}
+      ,{"2615250744386899" ,2}
+      ,{"8690095851526254" ,3}
+      ,{"6375711915077050" ,1}
+      ,{"6913859173121360" ,1}
+      ,{"6442889055042768" ,2}
+      ,{"2321386104303845" ,0}
+      ,{"2326509471271448" ,2}
+      ,{"5251583379644322" ,2}
+      ,{"1748270476758276" ,3}
+      ,{"4895722652190306" ,1}
+      ,{"3041631117224635" ,3}
+      ,{"1841236454324589" ,3}
+      ,{"2659862637316867" ,2}
+#else
+       
+       {"90342" ,2}
+       ,{"51545" ,2}
+       ,{"39458" ,2}
+       ,{"34109" ,1}
+       ,{"12531" ,1}
+       ,{"70794" ,0}
+#endif
       
- /*
-       {90342 ,2}
-      ,{51545 ,2}
-      ,{39458 ,2}
-      ,{34109 ,1}
-      ,{12531 ,1}
-      ,{70794 ,0}
- */
-       } ;
+   } ;
    pbR->nbClock = clock() ;
-
    P185 tbP[PB185_NCAND] ;
    for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      for(j=0;j<PB185_NDIG-1;j++) {
-         tbP[i].dig[j] = (tbPin[i].val % pow10[PB185_NDIG-j-1]) /pow10[PB185_NDIG-j-2];
-       }
-      tbP[i].dig[PB185_NDIG-1] = tbPin[i].val % pow10[0] ;
-      tbP[i].nbOK = tbPin[i].nbOK ;
+      int j ; for(j=0;j<PB185_NDIG;j++) {     tbP[i].dig[j] = tbPin[i].val[j]-'0' ; }
+      tbP[i].nbIdent = 0 ;
    }
-   for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      for(j=0;j<PB185_NDIG;j++) {
-         int is = IDENT(i,j) ;
-         for(k=PB185_NCAND-1;k>i;k--) {
-            if(tbP[k].dig[j] == tbP[i].dig[j]) {
-               tbP[i].ident[is++] = k ;
-            }
-         }
-         tbP[i].ident[is++] = -1 ;
-         tbP[i].digOK[j] = 1 ;
-         for(k=0;k<i;k++) {
-            if(tbP[k].dig[j] == tbP[i].dig[j]) {
-               tbP[i].digOK[j] = 0 ;
-               break ;
-            }
-         }
-       }
-   }
-   
-   for(i=0;i<PB185_NCAND;i++) {
-      int j,k ;
-      if(tbP[i].nbOK == 0) {
+   for(i=0;i<PB185_NCAND;i++) { // search common digits
+      for(k=i+1;k<PB185_NCAND;k++) {
          for(j=0;j<PB185_NDIG;j++) {
-            int dj = tbP[i].dig[j] ;
-            for(k=0;k<PB185_NCAND;k++) {
-               if(tbP[k].dig[j] == dj) tbP[k].digOK[j] = 0 ;
+            if(tbP[k].dig[j] == tbP[i].dig[j]) {
+               tbP[i].nbIdent++ ; tbP[k].nbIdent++ ;
             }
          }
       }
+      tbP[i].nbOK = tbPin[i].nbOK ;
+      if(tbP[i].nbOK==0) tbP[i].nbIdent *= 8 ;
    }
+   qsort(tbP,PB185_NCAND,sizeof(tbP[0]),cmp_tbP) ; // reverse sort
    P185_ctx ctx ;
    for(i=0;i<PB185_NCAND;i++) {
-      ctx.constraint[i] = tbPin[i].nbOK ;
+      int isd = 0 ;
+      for(j=0;j<PB185_NDIG;j++) {
+         int is = IDENT(j) ;
+         for(k=PB185_NCAND-1;k>i;k--) { // common digit for upper candidates
+            if(tbP[k].dig[j] == tbP[i].dig[j]) {
+               ctx.NC[i].ident[is++] = k ;
+            }
+         }
+         ctx.NC[i].ident[is++] = -1 ; // end chain
+         
+         int32_t digOK = 1 ;
+         for(k=0;k<i;k++) {
+            if(tbP[k].dig[j] == tbP[i].dig[j]) {   digOK =  0 ;  break ;   }
+         }
+         if(digOK )ctx.NC[i].digOK[isd++] = j ; // chain of admissible digits not masked by lower candidate
+      }
+      ctx.NC[i].digOK[isd++] = PB185_NDIG ; // end chain
    }
-   for(i=0;i<PB185_NDIG;i++) {
-      ctx.candValues[i] = PB185_NCAND ;
-   }
+   ctx.nbSol = 0 ;
+   for(i=0;i<PB185_NCAND;i++) {  ctx.NC[i].constraint = tbP[i].nbOK ;   }
+   for(i=0;i<PB185_NDIG;i++) {  ctx.candValues[i] = PB185_NCAND ;   }
    NextConstraint(tbP,0,&ctx) ;
-   
-//   if(pbR->isVerbose) fprintf(stdout,"\tPB%s r=%lld S=%lld\n",pbR->ident,r,S);
+   if(pbR->isVerbose) fprintf(stdout,"\tPB%s nbSol=%d\n",pbR->ident,ctx.nbSol);
+   int64_t sol ;
+   for(i=0;i<ctx.nbSol;i++) {
+      sol = 0 ;
+        for(j=0;j<PB185_NDIG;j++) {
+         int curDig ;
+         if(ctx.sol[i][j]<PB185_NCAND) {
+            curDig = tbP[ctx.sol[i][j]].dig[j] ;
+         } else {
+            int masqDig = 0 ;// search no forbidden digit
+            for(k=0;k<PB185_NCAND;k++) masqDig |= 1<< tbP[k].dig[j]  ;
+            for(curDig=0;curDig<10 && (masqDig ^ (1 << curDig)) != 0x3ff ;curDig++);
+         }
+         sol = 10 * sol + curDig ;
+      }
+      fprintf(stdout,"\tPB%s =%lld\n",pbR->ident,sol);
+   }
    pbR->nbClock = clock() - pbR->nbClock ;
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ctx.sol) ;
+   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",sol) ;
    return 1 ;
 }
+
 
 
 //#define PB540_R2   (3141592653589793LL)
