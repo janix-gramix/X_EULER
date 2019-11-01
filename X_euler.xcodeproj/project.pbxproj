@@ -10,13 +10,11 @@
 		070E2D5B205689D600DCF21C /* libgmp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 070E2D5A205689D600DCF21C /* libgmp.a */; };
 		071F135F221DCB7200996EE9 /* tavl.c in Sources */ = {isa = PBXBuildFile; fileRef = 071F135E221DCB7100996EE9 /* tavl.c */; };
 		0722821F2277480500F4F53E /* pb141b_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0722821E2277480500F4F53E /* pb141b_main.c */; };
-		07228223227787C400F4F53E /* pb141b in CopyFiles */ = {isa = PBXBuildFile; fileRef = 07228222227787C400F4F53E /* pb141b */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		073BD27021739085003D08C9 /* PB201_250.c in Sources */ = {isa = PBXBuildFile; fileRef = 073BD26E21739085003D08C9 /* PB201_250.c */; };
 		0746BD0D2161FDA4004FD273 /* PB151_200.c in Sources */ = {isa = PBXBuildFile; fileRef = 0746BD0B2161FDA4004FD273 /* PB151_200.c */; };
 		074C5BB7222D7462005C09B0 /* pb152c_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 074C5BB6222D7462005C09B0 /* pb152c_main.c */; };
 		074C5BC4222D7604005C09B0 /* pb152a_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 074C5BC3222D7604005C09B0 /* pb152a_main.c */; };
 		074C5BC9222D7AC7005C09B0 /* pb152a in CopyFiles */ = {isa = PBXBuildFile; fileRef = 074C5BC8222D7AC7005C09B0 /* pb152a */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		074C5BCB222D7B54005C09B0 /* pb152c in CopyFiles */ = {isa = PBXBuildFile; fileRef = 074C5BCA222D7B54005C09B0 /* pb152c */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		074C5BD8222D7C02005C09B0 /* pb152_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 074C5BD7222D7C02005C09B0 /* pb152_main.c */; };
 		074C5BDA222D7E20005C09B0 /* pb152 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 074C5BD9222D7E20005C09B0 /* pb152 */; };
 		075970C921514122004DC20F /* p099_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 075970C721514122004DC20F /* p099_data.c */; };
@@ -25,7 +23,6 @@
 		075F0187214D8145006F3E7B /* p098_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 075F0185214D8145006F3E7B /* p098_data.c */; };
 		07616F0820604B990052ADB1 /* PB101_150.c in Sources */ = {isa = PBXBuildFile; fileRef = 07616F0620604B990052ADB1 /* PB101_150.c */; };
 		07616F0B206429100052ADB1 /* p105_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 07616F09206429100052ADB1 /* p105_data.c */; };
-		07A0DF012356146300F211FA /* pb184_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 07A0DF002356146300F211FA /* pb184_main.c */; };
 		07A0DF0323561B9700F211FA /* pb184 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 07A0DEF92356140C00F211FA /* pb184 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		07B6656C20568F7B00C85F9B /* X_euler in CopyFiles */ = {isa = PBXBuildFile; fileRef = 070E2D4420567E1C00DCF21C /* X_euler */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		07B665912056A08F00C85F9B /* euler.c in Sources */ = {isa = PBXBuildFile; fileRef = 07B6658D2056A08F00C85F9B /* euler.c */; };
@@ -66,7 +63,6 @@
 			dstPath = "/Users/jeannot/Google Drive/WORK/bin";
 			dstSubfolderSpec = 0;
 			files = (
-				07228223227787C400F4F53E /* pb141b in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,7 +72,6 @@
 			dstPath = "/Users/jeannot/Google Drive/WORK/bin";
 			dstSubfolderSpec = 0;
 			files = (
-				074C5BCB222D7B54005C09B0 /* pb152c in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,10 +130,8 @@
 		070E2D4420567E1C00DCF21C /* X_euler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = X_euler; sourceTree = BUILT_PRODUCTS_DIR; };
 		070E2D5A205689D600DCF21C /* libgmp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgmp.a; path = ../../../../usr/local/lib/libgmp.a; sourceTree = "<group>"; };
 		071F135E221DCB7100996EE9 /* tavl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tavl.c; path = "/Users/jeannot/Google Drive/WORK/X_euler/tavl.c"; sourceTree = "<absolute>"; };
-		071F1360221DCB7C00996EE9 /* tavl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tavl.h; path = "/Users/jeannot/Google Drive/WORK/X_euler/tavl.h"; sourceTree = "<absolute>"; };
 		07228215227746A400F4F53E /* pb141b */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pb141b; sourceTree = BUILT_PRODUCTS_DIR; };
 		0722821E2277480500F4F53E /* pb141b_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pb141b_main.c; sourceTree = "<group>"; };
-		07228222227787C400F4F53E /* pb141b */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = pb141b; path = ../build/Release/pb141b; sourceTree = "<group>"; };
 		073BD26E21739085003D08C9 /* PB201_250.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB201_250.c; path = X_euler/PB201_250.c; sourceTree = "<group>"; };
 		073BD26F21739085003D08C9 /* PB201_250.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB201_250.h; path = X_euler/PB201_250.h; sourceTree = "<group>"; };
 		0746BD0B2161FDA4004FD273 /* PB151_200.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = PB151_200.c; path = X_euler/PB151_200.c; sourceTree = "<group>"; };
@@ -148,7 +141,6 @@
 		074C5BBC222D75D1005C09B0 /* pb152a */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pb152a; sourceTree = BUILT_PRODUCTS_DIR; };
 		074C5BC3222D7604005C09B0 /* pb152a_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pb152a_main.c; sourceTree = "<group>"; };
 		074C5BC8222D7AC7005C09B0 /* pb152a */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = pb152a; path = ../build/Release/pb152a; sourceTree = "<group>"; };
-		074C5BCA222D7B54005C09B0 /* pb152c */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = pb152c; path = ../build/Release/pb152c; sourceTree = "<group>"; };
 		074C5BD0222D7BD0005C09B0 /* pb152 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pb152; sourceTree = BUILT_PRODUCTS_DIR; };
 		074C5BD7222D7C02005C09B0 /* pb152_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pb152_main.c; sourceTree = "<group>"; };
 		074C5BD9222D7E20005C09B0 /* pb152 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = pb152; path = ../build/Release/pb152; sourceTree = "<group>"; };
@@ -165,7 +157,6 @@
 		07616F09206429100052ADB1 /* p105_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = p105_data.c; path = X_euler/p105_data.c; sourceTree = "<group>"; };
 		07616F0A206429100052ADB1 /* p105_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = p105_data.h; path = X_euler/p105_data.h; sourceTree = "<group>"; };
 		07A0DEF92356140C00F211FA /* pb184 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pb184; sourceTree = BUILT_PRODUCTS_DIR; };
-		07A0DF002356146300F211FA /* pb184_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = pb184_main.c; path = pb184/pb184_main.c; sourceTree = "<group>"; };
 		07B6658D2056A08F00C85F9B /* euler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = euler.c; path = X_euler/euler.c; sourceTree = "<group>"; };
 		07B6658E2056A08F00C85F9B /* p042_words.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = p042_words.c; path = X_euler/p042_words.c; sourceTree = "<group>"; };
 		07B6658F2056A08F00C85F9B /* p067_data.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = p067_data.c; path = X_euler/p067_data.c; sourceTree = "<group>"; };
@@ -268,11 +259,8 @@
 		070E2D3B20567E1C00DCF21C = {
 			isa = PBXGroup;
 			children = (
-				07A0DF002356146300F211FA /* pb184_main.c */,
 				07CEFC6722A986CC00134149 /* pb151a */,
-				07228222227787C400F4F53E /* pb141b */,
 				074C5BD9222D7E20005C09B0 /* pb152 */,
-				074C5BCA222D7B54005C09B0 /* pb152c */,
 				074C5BC8222D7AC7005C09B0 /* pb152a */,
 				07B6657B20569DF700C85F9B /* X_euler */,
 				07DBC81220670E050007E147 /* try_pb103 */,
@@ -353,7 +341,6 @@
 		07B6657B20569DF700C85F9B /* X_euler */ = {
 			isa = PBXGroup;
 			children = (
-				071F1360221DCB7C00996EE9 /* tavl.h */,
 				071F135E221DCB7100996EE9 /* tavl.c */,
 				07F70B6020CEBA8500D7F97A /* p122_data.c */,
 				07B665952056A0AC00C85F9B /* p042_words.h */,
@@ -705,7 +692,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				07A0DF012356146300F211FA /* pb184_main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
