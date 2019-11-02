@@ -407,7 +407,7 @@ static PB_CALL CUR_calls[] = {
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
 
     
-    PROTO_CALL(345,???,'Matrix Sum')
+    PROTO_CALL(345a,13938,'Matrix Sum')
  //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
 //   ,PROTO_CALL(681,2611227421428,'Maximal Area')
  //    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')

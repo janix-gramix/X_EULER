@@ -14,6 +14,7 @@
 #include "euler_utils.h"
 
 PROTO_PB(345) ;
+PROTO_PB(345a) ;
 PROTO_PB(495) ;
 PROTO_PB(500) ;
 PROTO_PB(579) ;
