@@ -3,7 +3,6 @@
 //  X_euler
 //
 //  Created by Jeannot on 02/11/2019.
-
 //
 #include <stdlib.h>
 #include "p345_data.h"
