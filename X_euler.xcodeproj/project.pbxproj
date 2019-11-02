@@ -10,6 +10,9 @@
 		070E2D5B205689D600DCF21C /* libgmp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 070E2D5A205689D600DCF21C /* libgmp.a */; };
 		071F135F221DCB7200996EE9 /* tavl.c in Sources */ = {isa = PBXBuildFile; fileRef = 071F135E221DCB7100996EE9 /* tavl.c */; };
 		0722821F2277480500F4F53E /* pb141b_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0722821E2277480500F4F53E /* pb141b_main.c */; };
+		072B26DF236D9E6100382952 /* p345_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 072B26DE236D9E6100382952 /* p345_data.c */; };
+		072B26E1236DA0B900382952 /* pb345a_hung.c in Sources */ = {isa = PBXBuildFile; fileRef = 072B26E0236DA0B900382952 /* pb345a_hung.c */; };
+		072B26E4236DA1B300382952 /* hungarian.c in Sources */ = {isa = PBXBuildFile; fileRef = 072B26E3236DA1B300382952 /* hungarian.c */; };
 		073BD27021739085003D08C9 /* PB201_250.c in Sources */ = {isa = PBXBuildFile; fileRef = 073BD26E21739085003D08C9 /* PB201_250.c */; };
 		0746BD0D2161FDA4004FD273 /* PB151_200.c in Sources */ = {isa = PBXBuildFile; fileRef = 0746BD0B2161FDA4004FD273 /* PB151_200.c */; };
 		074C5BB7222D7462005C09B0 /* pb152c_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 074C5BB6222D7462005C09B0 /* pb152c_main.c */; };
@@ -132,6 +135,12 @@
 		071F135E221DCB7100996EE9 /* tavl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tavl.c; path = "/Users/jeannot/Google Drive/WORK/X_euler/tavl.c"; sourceTree = "<absolute>"; };
 		07228215227746A400F4F53E /* pb141b */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pb141b; sourceTree = BUILT_PRODUCTS_DIR; };
 		0722821E2277480500F4F53E /* pb141b_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pb141b_main.c; sourceTree = "<group>"; };
+		072B26DC236D9CCC00382952 /* tavl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tavl.h; path = X_euler/tavl.h; sourceTree = "<group>"; };
+		072B26DD236D9E6100382952 /* p345_data.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = p345_data.h; sourceTree = "<group>"; };
+		072B26DE236D9E6100382952 /* p345_data.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = p345_data.c; sourceTree = "<group>"; };
+		072B26E0236DA0B900382952 /* pb345a_hung.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = pb345a_hung.c; path = X_euler/pb345a_hung.c; sourceTree = "<group>"; };
+		072B26E2236DA1B300382952 /* hungarian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hungarian.h; path = X_euler/hungarian.h; sourceTree = "<group>"; };
+		072B26E3236DA1B300382952 /* hungarian.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hungarian.c; path = X_euler/hungarian.c; sourceTree = "<group>"; };
 		073BD26E21739085003D08C9 /* PB201_250.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = PB201_250.c; path = X_euler/PB201_250.c; sourceTree = "<group>"; };
 		073BD26F21739085003D08C9 /* PB201_250.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PB201_250.h; path = X_euler/PB201_250.h; sourceTree = "<group>"; };
 		0746BD0B2161FDA4004FD273 /* PB151_200.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = PB151_200.c; path = X_euler/PB151_200.c; sourceTree = "<group>"; };
@@ -341,6 +350,9 @@
 		07B6657B20569DF700C85F9B /* X_euler */ = {
 			isa = PBXGroup;
 			children = (
+				072B26DD236D9E6100382952 /* p345_data.h */,
+				072B26DE236D9E6100382952 /* p345_data.c */,
+				072B26DC236D9CCC00382952 /* tavl.h */,
 				071F135E221DCB7100996EE9 /* tavl.c */,
 				07F70B6020CEBA8500D7F97A /* p122_data.c */,
 				07B665952056A0AC00C85F9B /* p042_words.h */,
@@ -350,6 +362,9 @@
 				07B6658F2056A08F00C85F9B /* p067_data.c */,
 				07B665902056A08F00C85F9B /* p081_data.c */,
 				07B6658D2056A08F00C85F9B /* euler.c */,
+				072B26E3236DA1B300382952 /* hungarian.c */,
+				072B26E2236DA1B300382952 /* hungarian.h */,
+				072B26E0236DA0B900382952 /* pb345a_hung.c */,
 				07B7131B2057E4CB001BC2A9 /* euler_utils.c */,
 				07B7131C2057E4CB001BC2A9 /* euler_utils.h */,
 				07B7131E20580219001BC2A9 /* PB001_050.c */,
@@ -629,6 +644,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				07B7132620586C10001BC2A9 /* gmp_utils.c in Sources */,
+				072B26E4236DA1B300382952 /* hungarian.c in Sources */,
 				07E97FFF2075FE4B00BBB96E /* p107_data.c in Sources */,
 				075F0187214D8145006F3E7B /* p098_data.c in Sources */,
 				07B665912056A08F00C85F9B /* euler.c in Sources */,
@@ -640,6 +656,7 @@
 				075970C921514122004DC20F /* p099_data.c in Sources */,
 				07F70B6120CEBA8500D7F97A /* p122_data.c in Sources */,
 				07E980012076008100BBB96E /* pb103.c in Sources */,
+				072B26E1236DA0B900382952 /* pb345a_hung.c in Sources */,
 				07B665932056A08F00C85F9B /* p067_data.c in Sources */,
 				07616F0820604B990052ADB1 /* PB101_150.c in Sources */,
 				07B7132020580219001BC2A9 /* PB001_050.c in Sources */,
@@ -653,6 +670,7 @@
 				07B7132920586CAE001BC2A9 /* PB051_100.c in Sources */,
 				07E980072087A2AE00BBB96E /* p054_data.c in Sources */,
 				07616F0B206429100052ADB1 /* p105_data.c in Sources */,
+				072B26DF236D9E6100382952 /* p345_data.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
