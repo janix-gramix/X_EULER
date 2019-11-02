@@ -1,0 +1,7 @@
+*.idx
+*.timestamp
+*.pcm
+*.modulevalidation
+
+/X_euler.xcodeproj
+/DerivedData
