@@ -1244,3 +1244,213 @@ int PB681(PB_RESULT *pbR) {
     return 1 ;
 }
 */
+int cmpPlace( const void *el1, const void *el2) {
+    return ((uint8_t *)el1)[0] - ((uint8_t *)el2)[0] ;
+}
+
+uint64_t Cnp(int n,int p) {
+    if(n<p) return 0 ;
+    int i  ;
+    uint64_t cnp = 1 ;
+    for(i=0;i<p;i++) {
+        cnp *= n-i ;
+        cnp /= i+1 ;
+    }
+    return cnp ;
+}
+#define INDT2(n0,n1)  (((n0)+(n1))*((n0)+(n1)+1)/2+(n1))
+
+int PB687(PB_RESULT *pbR) {
+    pbR->nbClock = clock()  ;
+    int nr,nc ;
+    uint64_t ant3[200] ;
+    uint64_t cur3[200] ;
+    ant3[INDT2(0,0)] = 1 ;
+    ant3[INDT2(0,1)] = 0 ;
+    ant3[INDT2(1,0)] = 0 ;
+    int n0,n1;
+    for(nr=2;nr<8;nr++) {
+        int i ;
+        for(i=0;i<=INDT2(nr+1,0);i++) cur3[i] = 0 ;
+        // pour rajouter un rang : cela peut être : *,*,* || **,* || ***
+        for(n0=0;n0<nr;n0++) {
+            for(n1=0;n1<nr-n0;n1++) {
+                int n2=nr-1-n0-n1  ;
+                int nb0 = 3*n0+2*n1+n2+1 ;
+                uint64_t ant = ant3[INDT2(n0,n1)] ;
+                if(ant <= 0) continue ;
+                // ***
+                cur3[INDT2(n0,n1)] += ant * nb0 ; // (0,0,+1) ]***[
+                if(n1>0)cur3[INDT2(n0+1,n1-1)] += ant * n1 ; // (+1,-1,+1) [***]
+                if(n2>0)cur3[INDT2(n0,n1+1)] += ant * 2 * n2 ; // (0,+1,+1-1) [[***]]
+                // ** *
+                cur3[INDT2(n0,n1+1)] += ant * nb0 * (nb0-1); // (0,+1,0) ]*[ ]**[
+                cur3[INDT2(n0+1,n1)] += ant * 2 * nb0 * n1 ; // (+1,+-0,0) ]*[ [**] || ]**[ [*]
+                cur3[INDT2(n0,n1+2)] += ant * 2 * nb0 * 2 * n2 ; // (0,+2,-1) ]*[ [[**]] || ]**[ [[*]]
+                if(n1 > 0 && n2 > 0) cur3[INDT2(n0+1,n1+1)] += ant * 2 * n1 * 2 * n2 ; // (+1,+2-1,-1) [*] [[**]] || [**] [[*]]
+                if(n1 > 1 ) cur3[INDT2(n0+2,n1-1)] += ant * n1 * (n1-1) ; // (+2,+1-2,0) [*] [**]
+                if(n2 > 0 ) cur3[INDT2(n0+1,n1+1)] += ant * 2 * n2; // (+1,+1,-1) [[*]][[**]]
+                if(n2 > 1 ) cur3[INDT2(n0,n1+3)] += ant * 2* n2 * 2 * (n2-1) ; // (0,+3,-2) [[*]] [[**]]
+                // * * *
+                cur3[INDT2(n0+1,n1)] += ant * Cnp(nb0,3) ; // +1,0,0  ]*[,]*[,]*[
+                if(n1 > 0) cur3[INDT2(n0+2,n1-1)] += ant * Cnp(nb0,2) * n1 ; // +2,-1,0  ]*[,]*[,[*]
+                if(n2 > 0) cur3[INDT2(n0+1,n1+1)] += ant * Cnp(nb0,2) * 2 * n2 ; // +1,+1,-1  ]*[,]*[,[[*]]
+                if(n1 > 0 && n2 > 0) cur3[INDT2(n0+2,n1)] += ant * nb0 * n1 * 2 * n2 ; // +2,+-0,-1  ]*[,[*],[[*]]
+                if(n1 > 1)cur3[INDT2(n0+3,n1-2)] += ant * nb0 * Cnp(n1,2)  ; // +3,-2,0  ]*[,[*],[*]
+                if(n2 > 0 ) cur3[INDT2(n0+2,n1)] += ant  * nb0 * n2 ; // (+2,0,-1) ]*[ [[*]][[*]]
+                if(n2 > 1 ) cur3[INDT2(n0+1,n1+2)] += ant * nb0 * 4* Cnp(n2,2) ; // (+1,+2,-2) ]*[ [[*]] [[*]]
+                if(n1 > 2)cur3[INDT2(n0+4,n1-3)] += ant *  Cnp(n1,3)  ; // +4,-3,0  [*],[*],[*]
+                if(n1 > 1 && n2 > 0)cur3[INDT2(n0+3,n1-1)] += ant *  Cnp(n1,2) * 2 * n2 ; // +3,-1,-1  [*],[*],[[*]]
+                if(n1 > 0 && n2 > 0)cur3[INDT2(n0+3,n1-1)] += ant *  n1 * n2 ; // +3,-1,-1  [*],[[*]][[*]]
+                if(n1 > 0 && n2 > 1)cur3[INDT2(n0+2,n1+1)] += ant *  n1 * 4 * Cnp(n2,2) ; // +2,+1,-2  [*],[[*]] [[*]]
+                if(n2 > 1) cur3[INDT2(n0+2,n1+1)] += ant *  n2 * 2 * (n2-1) ; // +2,+1,-2  [[*]][[*]] [[*]]
+                if(n2 > 2) cur3[INDT2(n0+1,n1+3)] += ant *  8 * Cnp(n2,3) ; // +1,+3,-3  [[*]] [[*]] [[*]]
+            }
+        }
+        int64_t g =cur3[0];
+        for(i=1;i<=INDT2(nr+1,0);i++) { g = PGCD64(g,cur3[i]) ;} ;
+        int64_t den = 0;
+        for(i=0;i<=INDT2(nr+1,0);i++) { cur3[i] /= g; den += cur3[i] ; }
+        int64_t prob[20];
+        for(i=0;i<=nr;i++)prob[i]=0 ;
+        for(n0=0;n0<=nr;n0++) {
+            for(n1=0;n1<=nr-n0;n1++) {
+ //               printf("(%d,%d,%d)=%lld ",n0,n1,nr-n0-n1,cur3[INDT2(n0,n1)]);
+                prob[nr-n0]+= cur3[INDT2(n0,n1)] ;
+            }
+        }
+        
+        printf("\n3 color, %d rank  => %lld=%lld/%lld=",nr,den*g,den,g) ;
+  //      g=prob[0] ;
+ //       for(i=1;i<=nr;i++) g = PGCD64(g,prob[i]) ;
+        for(i=0;i<=nr;i++) { printf("%lld,",prob[i]) ; } ;
+        for(i=0;i<=INDT2(nr+1,0);i++) ant3[i] = cur3[i] ;
+    }
+    printf("\n*********\n") ;
+    
+    uint64_t ant2[20] ;
+    uint64_t cur2[20] ;
+    ant2[0] = 0 ;
+    ant2[1] = 1 ;
+    for(nr=2;nr<13;nr++) {
+        int i ;
+        for(i=0;i<nr+1;i++) cur2[i] = 0 ;
+        for(i=0;i<nr;i++) {
+            int nb1 = 2*nr-1 - i ;
+            cur2[i] += ant2[i] * Cnp(nb1,2) ; // 0
+            cur2[i+1] += ant2[i] * nb1  ; // +1
+            if(i> 0) {
+                    cur2[i-1] += ant2[i] * nb1 * i ; // -1
+                    cur2[i] += ant2[i] * i ; // +1 -1
+                if(i > 1) {
+                    cur2[i-2] += ant2[i] * Cnp(i,2) ;
+                }
+            }
+        }
+        int64_t g =cur2[0];
+        for(i=1;i<=nr;i++) { g = PGCD64(g,cur2[i]) ;} ;
+        int64_t den = 0;
+        for(i=0;i<nr+1;i++) { cur2[i] /= g; den += cur2[i] ; }
+         printf("\n2 color, %d rank  => %lld=",nr,den) ;
+        for(i=0;i<nr+1;i++) { printf("%lld,",cur2[i]) ; } ;
+        for(i=0;i<nr+1;i++) ant2[i] = cur2[i] ;
+    }
+    for(nr=2;nr<7;nr++) {
+        for(nc=2;nc<=3;nc++) {
+            int N = nr*nc ;
+            uint8_t place[256] ;
+            uint8_t max[256] ;
+            int i ;
+            for(i=0;i<nc*nr;i++) place[i] = i / nc ;
+            max[0] = 0 ;
+            for(i=1;i<nc*nr;i++) {
+                max[i] = max[i-1] ;
+                if(place[i-1]== max[i-1]) max[i]++ ;
+            }
+ //           for(i=0;i<N;i++) { printf("%d",max[i]);} printf("\n");
+            int8_t nbVoisin[20] ;
+            int64_t histoR[20] ;
+            for(i=0;i<nr+1;i++) histoR[i] = 0 ;
+            int64_t den = 0;
+            
+            int isOK = 1 ;
+            do {
+                int i ;
+                den ++ ;
+                for(i=0;i<nr;i++) nbVoisin[i] = 0 ;
+                int ant_r = place[0]  ;
+                for(i=0;i<N-1;i++) {
+                    int cur_r =place[i+1]  ;
+                    if(ant_r == cur_r ) {
+                        nbVoisin[ant_r]++ ;
+                    }
+                    ant_r = cur_r ;
+                }
+ //               for(i=0;i<N;i++) { printf("%d",place[i]);} printf("\n");
+                int nb = 0;
+                for(i=0;i<nr;i++)if(nbVoisin[i]) nb++ ;
+                histoR[nb]++ ;
+                int is =N-2 ;
+                uint8_t free[20] ;
+                int nbFree = 0 ;
+                free[nbFree++] = place[N-1] ;
+                while(is >=0 && place[is] >= place[is+1]) { free[nbFree++] =place[is] ;  is-- ;}
+                if(is<0 ) break ;
+                uint8_t tmp = place[is] ;
+                nbFree = 0 ;
+                while(free[nbFree]<=tmp) nbFree++ ;
+                if(is < free[nbFree]) break ;
+                if(max[is] < free[nbFree]) {
+                    int is1 = is ;
+                    int nbFr1 = 0 ;
+                    while(nbFr1<nbFree) {
+                        place[is1++] = free[nbFr1++] ;
+                    }
+                    place[is1++] = tmp ;
+                    while(is1 < N) {
+                        place[is1++] = free[nbFr1++] ;
+                    }
+                    is-- ;
+                    while(place[is] >= max[is] ){
+                        is1 = is+1 ;
+                        tmp = place[is] ;
+                        while(is1 < N && place[is1] < tmp) {
+                            place[is1-1] = place[is1] ;
+                            is1++ ;
+                        }
+                        place[is1-1] = tmp ;
+                        is-- ;
+                    }
+                    tmp =place[is] ;
+                    is1 = is+1 ;
+                    while(is1 < N && place[is1] <= tmp) {
+                         is1++ ;
+                    }
+                    place[is] = place[is1] ;
+                    place[is1] = tmp ;
+                    while(is < N-1 ) {
+                        max[is+1] = max[is] ;
+                        if(place[is]== max[is]) max[is+1]++ ;
+                        is++ ;
+                    }
+
+                } else {
+                    place[is++] = free[nbFree] ;
+                    free[nbFree] = tmp ;
+                    nbFree = 0 ;
+                    while(is < N) {
+                        place[is++] = free[nbFree++] ;
+                    }
+               }
+             } while(isOK) ;
+            int64_t g =PGCD64(den,histoR[0]);
+            for(i=1;i<=nr;i++) { g = PGCD64(g,histoR[i]) ;} ;
+            printf("\n%.3fs %d color, %d rank => %lld => %lld=",(float) (clock()-pbR->nbClock) / CLOCKS_PER_SEC,nc,nr,den,den/g) ;
+            for(i=1;i<=nr;i++) { g = PGCD64(g,histoR[i]) ;} ;
+            for(i=0;i<nr+1;i++) { printf("%lld,",histoR[i]/g) ; } ;
+        }
+    }
+//    snprintf(pbR->strRes, sizeof(pbR->strRes),"%u",tbPrime[PB1000_NUM-1]);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
