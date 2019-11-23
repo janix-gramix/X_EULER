@@ -1464,7 +1464,7 @@ int PB687(PB_RESULT *pbR) {
                             int pow3[4] = { 1,3,9,27} ;
 
                             S=0 ;
-                            int i0,i1,i21,i21d,i22,i31,i32,i31d,i42,i43,d0,d1,d2,d3,d4,d;
+                            int i0,i1,i21,i21d,i22,i31,i32,i31d,i41_2,i41_3,i42,i42d     ,i41d_2, i41d_3,d0,d1,d2,d3,d4,d;
                             for(d=0;d<=4;d++) {
                                 d0=(d==0) ?1 : 0 ; d1=(d==1) ?1 : 0 ;d2=(d==2) ?1 : 0 ;d3=(d==3) ?1 : 0 ;
                                 d4=(d==4) ?1 : 0 ;
@@ -1472,149 +1472,121 @@ int PB687(PB_RESULT *pbR) {
                                 if(i0+d0 > nb0) continue ;
                                 for(i1=2-i0;i1>=0;i1--){
                                     if(i1+d1 > n1) continue ;
-                                    for(i21d=0;i21d<=d2;i21d++){
-                                        for(i21=2-i0-i1-i21d;i21>=0;i21--){
-                                            for(i22=(2-i0-i1-i21-i21d)/2;i22>=0;i22--){
-//                                                if(i21+i22> n2 || i22+d2 > n2) continue ;
+                                    for(i22=(2-i0-i1)/2;i22>=0;i22--){
+                                        for(i21d=0;i21d<=d2;i21d++){
+                                            for(i21=2-i0-i1-2*i22-i21d;i21>=0;i21--){
                                                 if(i21+i22+d2> n2) continue ;
-                                                for(i31d=0;i31d<=d3;i31d++) {
-                                                    for(i31=2-i0-i1-i21-i21d-2*i22-i31d;i31>=0;i31--){
-                                                        for(i32=(2-i0-i1-i21-i21d-2*i22-i31-i31d)/2;i32>=0;i32--){
+                                                for(i32=(2-i0-i1-i21-i21d-2*i22)/2;i32>=0;i32--){
+                                                    for(i31d=0;i31d<=d3;i31d++) {
+                                                        for(i31=2-i0-i1-i21-i21d-2*i22-2*i32-i31d;i31>=0;i31--){
                                                             if(i31+i32+d3> n3) continue ;
-                                                            for(i42=(2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32)/2;i42>=0;i42--){
-                                                                int i41 = 2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32-2*i42 ;
-                                                            
-                                                                int64_t delta = 1 ;
-                                                                if((i41+i42) >n4) continue ;
-                                                                if(d0) delta *= nb0 ;
-                                                                if(i0) delta *= Cnp(nb0-d0,i0) ;
-                                                                if(d1) delta *= n1 ;
-                                                                if(i1) delta *= Cnp(n1-d1,i1) ;
-                                                                if(d2) delta *= n2*2 ;
-                                                                if(i22) delta *= Cnp(n2-d2,i22) ;
-                                                                if(i21){
-                                                                    if(i21d) {
-                                                                        delta *= Cnp(n2-i22-1,i21)*(1<<(i21)) ;
-                                                                    }else if(d2) {
-                                                                        delta *= Cnp(n2-i22-d2,i21)*(1<<i21) ;
-                                                                    } else {
-                                                                        delta *= Cnp(n2-i22,i21)*(1<<i21)  ;
-                                                                    }
-                                                                }
-                                                                if(d3) delta *= n3*2 ;
-                                                                if(i32) delta *= Cnp(n3-d3,i32) ;
-/*                                                                   if(i31){
-                                                                    if(d3) delta *=
-                                                                        (Cnp(n3-i32-d3,i31)*(1<<i31)
-                                                                    +Cnp(n3-i32-d3,i31-1)*(1<<(i31-1)));
-                                                                    else delta *= Cnp(n3-i32,i31)*(1<<i31)  ;
-                                                                }
-*/
-                                                                if(i31) {
-                                                                    delta *= Cnp(n3-i32-d3,i31)*(1<<i31) ;
-/*                                                                       if(i31d) {
-                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31)  ;
-                                                                    } else if(i32d) {
-                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31)  ;
-                                                                    } else if(d3) {
-                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31) ;
-                                                                    } else {
-                                                                        delta *= Cnp(n3-i32,i31)*(1<<i31)  ;
-                                                                    }
-*/                                                                  }
-                                                                if(d4) {
-                                                                    //delta *= n4*3 ;
-                                                                    if(n4==0) continue ;
-                                                                    delta *= n4 ;
-                                                                    if(i42) {
-                                                                        SetIndex5( nr
-                                                                                    ,n0+i1+i22+i32+1
-                                                                                    ,n1-i1+i21+i31+i42
-                                                                                    ,n2-i22-i21
-                                                                                    ,n3-i32-i31, ant * delta * 3 * Cnp(n4-d4,i42-1)*pow3[i42-1]);
-                                                                        if(n4-d4 >= i42) {
-                                                                            SetIndex5( nr
-                                                                                      ,n0+i1+i22+i32
-                                                                                      ,n1-i1+i21+i31+i42+1
-                                                                                      ,n2-i22-i21+d4
-                                                                                      ,n3-i32-i31, ant * delta * Cnp(n4-d4,i42)*pow3[i42]);
-                                                                            SetIndex5( nr
-                                                                                      ,n0+i1+i22+i32
-                                                                                      ,n1-i1+i21+i31+i42+1
-                                                                                      ,n2-i22-i21
-                                                                                      ,n3-i32-i31+d4, ant * delta* 2 * Cnp(n4-d4,i42)*pow3[i42]);
-                                                                            delta *= 3 *                                                    (Cnp(n4-d4,i42)*pow3[i42] + Cnp(n4-d4,i42-1)*pow3[i42-1]) ;
-                                                                        } else {
-                                                                            delta *= 3 * Cnp(n4-d4,i42-1)*pow3[i42-1] ;
-                                                                        }
+                                                            for(i41d_2=0;i41d_2<=d4;i41d_2++) {
+                                                              for(i41d_3=0;i41d_3<=d4-i41d_2;i41d_3++) {
+                                                                  for(i42d=0;i42d<=d4-i41d_2-i41d_3;i42d++) { for(i42=(2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32-i41d_2-i41d_3-2*i42d)/2;i42>=0;i42--){
+                                                                for(i41_2=2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32-i41d_2-i41d_3-2*i42d-2*i42;i41_2>=0;i41_2--) {
+                                                                                i41_3 = 2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32
+                                                                                            -i41d_2-i41d_3-2*i42d-2*i42-i41_2 ;
+                                                                    
+                                                                                int64_t delta = 1 ;
+                                                                                if((i41_2+i41_3+i42+d4) >n4) continue ;
+                                                                                if(d0) delta *= nb0 ;
+                                                                                if(i0) delta *= Cnp(nb0-d0,i0) ;
+                                                                                if(d1) delta *= n1 ;
+                                                                                if(i1) delta *= Cnp(n1-d1,i1) ;
+                                                                                if(d2) delta *= n2*2 ;
+                                                                                if(i22) delta *= Cnp(n2-d2,i22) ;
+                                                                                if(i21){
+                                                                                    /*if(i21d) {
+                                                                                        delta *= Cnp(n2-i22-1,i21)*(1<<(i21)) ;
+                                                                                    }else if(d2) {
+                                                                                        delta *= Cnp(n2-i22-d2,i21)*(1<<i21) ;
+                                                                                    } else {
+                                                                                        delta *= Cnp(n2-i22,i21)*(1<<i21)  ;
+                                                                                    }*/
+                                                                                    delta *= Cnp(n2-i22-d2,i21)*(1<<i21) ;
+                                                                                }
+                                                                                if(d3) delta *= n3*2 ;
+                                                                                if(i32) delta *= Cnp(n3-d3,i32) ;
+                                                                                if(i31) {
+                                                                                    delta *= Cnp(n3-i32-d3,i31)*(1<<i31) ;
+                                                                                  }
+                                                                                if(d4) {
+                                                                                    //delta *= n4*3 ;
+                                                                                    if(n4==0) continue ;
+                                                                                    delta *= n4 ;
+                                                                                    if(i42+i42d) {
+                                                                                            SetIndex5( nr
+                                                                                                      ,n0+i1+i22+i32+i42d
+                                                                                                      ,n1-i1+i21+i31+i42+1
+                                                                                                      ,n2-i22-i21+d4-i42d
+                                                                                                      ,n3-i32-i31, ant * delta * Cnp(n4-d4,i42)*pow3[i42]);
+                                                                                            SetIndex5( nr
+                                                                                                      ,n0+i1+i22+i32+i42d
+                                                                                                      ,n1-i1+i21+i31+i42+1
+                                                                                                      ,n2-i22-i21
+                                                                                                      ,n3-i32-i31+d4-i42d, ant * delta* 2 * Cnp(n4-d4,i42)*pow3[i42]);
+                                                                                            delta *= 3 *  (Cnp(n4-d4,i42)*pow3[i42]) ;
+ 
+                           
+                                                                                    } else if(i41_2+i41_3+i41d_2+i41d_3){
+                                                                                        int i41 = i41_2+i41_3 ;
+                                                                                        SetIndex5( nr
+                                                                                                ,n0+i1+i22+i32
+                                                                                                ,n1-i1+i21+i31+1+i41d_2
+                                                                                                ,n2-i22-i21+i41_2+d4-i41d_2
+                                                                                                ,n3-i32-i31+i41_3,
+                                                                                            ant * delta * Cnp(n4-d4,i41) * (1<<i41_3) * Cnp(i41,i41_3)* (1+i41d_2) );
+                                                                                        SetIndex5( nr
+                                                                                                ,n0+i1+i22+i32
+                                                                                                ,n1-i1+i21+i31+1+i41d_3
+                                                                                                ,n2-i22-i21+i41_2
+                                                                                                ,n3-i32-i31+i41_3+d4-i41d_3,
+                                                                                            ant * delta  * Cnp(n4-d4,i41) * (1<<i41_3) * Cnp(i41,i41_3)* 2 * (1+i41d_3));
+                                                                                        delta *= Cnp(n4-d4,i41)* (1<<i41_3) * Cnp(i41,i41_3) * (3+i41d_2+2*i41d_3) ;
+                                                                                    } else {
+                                                                                        SetIndex5( nr
+                                                                                                    ,n0+i1+i22+i32
+                                                                                                    ,n1-i1+i21+i31+1
+                                                                                                    ,n2-i22-i21+d4
+                                                                                                    ,n3-i32-i31, ant * delta );
+                                                                                        SetIndex5( nr
+                                                                                                    ,n0+i1+i22+i32
+                                                                                                    ,n1-i1+i21+i31+1
+                                                                                                    ,n2-i22-i21
+                                                                                                    ,n3-i32-i31+d4, ant * delta * 2 );
+                                                                                        delta *= 3 ;
+                                                                                    }
+                                                                                } else {
+                                                                                    if(i42) delta *= Cnp(n4,i42)*pow3[i42]  ;
+                                                                                    int i41= i41_2 + i41_3 ;
+                                                                                    if(i41) {
+//                                                                                     int j3 ;
+  //                                                                                      for(j3=0;j3<=i41;j3++)
+                                                                                        {
+                                                                                            SetIndex5( nr
+                                                                                                        ,n0+i1+d1+i22+i21d+i32+i31d
+                                                                                                        ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
+                                                                                                        ,n2-i22-i21-d2+i41_2
+                                                                                                        ,n3-i32-i31-d3+i41_3, ant * delta * Cnp(n4-i42,i41) * (1<<i41_3) * Cnp(i41,i41_3));
+                                                                                            n1=n1 ;
+                                                                                        }
 
-           
-                                                                    } else if(i41){
-                                                                        int j3 ;
-                                                                        for(j3=0;j3<=i41-1;j3++) {
-                                                                            SetIndex5( nr
-                                                                                      ,n0+i1+i22+i32
-                                                                                      ,n1-i1+i21+i31+2
-                                                                                      ,n2-i22-i21+i41-1-j3
-                                                                                      ,n3-i32-i31+j3, ant * delta* 3  * Cnp(n4-d4,i41-1) * (1<<j3)*2 * Cnp(i41-1,j3));
-                                                                            n1=n1 ;
-                                                                        }
-                                                                        
-                                                                        if(n4-d4 >= i41) {
-                                                                            for(j3=0;j3<=i41;j3++) {
-                                                                                SetIndex5( nr
-                                                                                            ,n0+i1+i22+i32
-                                                                                            ,n1-i1+i21+i31+1
-                                                                                            ,n2-i22-i21+i41-j3+d4
-                                                                                            ,n3-i32-i31+j3, ant * delta * Cnp(n4-d4,i41) * (1<<j3) * Cnp(i41,j3));
-                                                                                SetIndex5( nr
-                                                                                            ,n0+i1+i22+i32
-                                                                                            ,n1-i1+i21+i31+1
-                                                                                            ,n2-i22-i21+i41-j3
-                                                                                            ,n3-i32-i31+j3+d4, ant * delta  * 2  * Cnp(n4-d4,i41) * (1<<j3) * Cnp(i41,j3));
-                                                                                n1=n1 ;
+                                                                                        delta *= Cnp(n4-i42,i41) * (1<<i41_3) * Cnp(i41,i41_3) ;
+                                                                                    } else {
+                                                                                        SetIndex5( nr
+                                                                                                    ,n0+i1+d1+i22+i21d+i32+i31d
+                                                                                                    ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
+                                                                                                    ,n2-i22-i21-d2
+                                                                                                    ,n3-i32-i31-d3, ant * delta) ;
+                                                                                        n1=n1 ;
+                                                                                    }
+                                                                                }
+                                                                                S += delta ;
                                                                             }
-                                                                            delta *= 3 * (Cnp(n4-d4,i41)*pow3[i41] + Cnp(n4-d4,i41-1)*pow3[i41-1]*3) ;
-                                                                        } else {
-                                                                            delta *= 3 * Cnp(n4-d4,i41-1)* pow3[i41-1] ;
                                                                         }
-                                                                    } else {
-                                                                        SetIndex5( nr
-                                                                                    ,n0+i1+i22+i32
-                                                                                    ,n1-i1+i21+i31+1
-                                                                                    ,n2-i22-i21+d4
-                                                                                    ,n3-i32-i31, ant * delta );
-                                                                        SetIndex5( nr
-                                                                                    ,n0+i1+i22+i32
-                                                                                    ,n1-i1+i21+i31+1
-                                                                                    ,n2-i22-i21
-                                                                                    ,n3-i32-i31+d4, ant * delta * 2 );
-                                                                        delta *= 3 ;
                                                                     }
-                                                                } else {
-                                                                    if(i42) delta *= Cnp(n4,i42)*pow3[i42]  ;
-                                                                    if(i41) {
-                                                                        int j3 ;
-                                                                        for(j3=0;j3<=i41;j3++) {
-                                                                            SetIndex5( nr
-                                                                                        ,n0+i1+d1+i22+i21d+i32+i31d
-                                                                                        ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
-                                                                                        ,n2-i22-i21-d2+i41-j3
-                                                                                        ,n3-i32-i31-d3+j3, ant * delta * Cnp(n4-i42,i41) * (1<<j3) * Cnp(i41,j3));
-                                                                            n1=n1 ;
-                                                                        }
-
-                                                                        delta *= Cnp(n4-i42,i41)*(pow3[i41]) ;
-                                                                    } else {
-                                                                        SetIndex5( nr
-                                                                                    ,n0+i1+d1+i22+i21d+i32+i31d
-                                                                                    ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
-                                                                                    ,n2-i22-i21-d2
-                                                                                    ,n3-i32-i31-d3, ant * delta) ;
-                                                                        n1=n1 ;
-                                                                    }
+                                                            }
                                                                 }
-                                                                S += delta ;
                                                             }
                                                         }
                                                     }
@@ -1625,13 +1597,13 @@ int PB687(PB_RESULT *pbR) {
                                     }
                                 }
                             }
-                            }
                             printf("S1=%lld ",S) ;
 
                             
                             printf("\n Insert * * * * ") ;
 
                             // * * * *
+                            int i43 ;
                             S=0 ;
    //                          int i0,i1,i21,i22,i31,i32,i43,i42;
                             for(i0=4;i0>=0;i0--){
