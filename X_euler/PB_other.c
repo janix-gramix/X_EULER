@@ -1260,23 +1260,563 @@ uint64_t Cnp(int n,int p) {
 }
 #define INDT2(n0,n1)  (((n0)+(n1))*((n0)+(n1)+1)/2+(n1))
 
+typedef struct C3cut {
+    int nbInsert ;
+    int nbUseP ;
+    int fact ;
+    int deltaIndex[2] ;
+} C3cut ;
+
+typedef struct C3x {
+    int nbPieces ;
+    int nbCut ;
+    const C3cut   *tbCut ;
+} C3x ;
+
+
+
+int Index3(int S,int i0,int i1) {
+    static int Cn1[] = {0,1,3,6,10,15,21,28,36,45,55,66,78,91} ;
+    int ind = Cn1[S-i0]+S-i0-i1 ;
+    return ind ;
+}
+
+
+int Index5(int S,int i0,int i1,int i2,int i3) {
+    static int Cn3[] = {0,1,5,15,35,70,126,210,330,495,715,1001,1365,1820} ;
+    static int Cn2[] = {0,1,4,10,20,35,56,84,120,165,220,286,364,455} ;
+    static int Cn1[] = {0,1,3,6,10,15,21,28,36,45,55,66,78,91} ;
+    int ind = Cn3[S-i0]+Cn2[S-i0-i1]+Cn1[S-i0-i1-i2]+S-i0-i1-i2-i3 ;
+    return ind ;
+}
+
+
+typedef struct C3i {
+    int nc0 ;       // nombre de cesure diff de niveau 0
+    int isNc1 ;     // y-a-t-l des cesure de niveau 1
+    int deltaIndex[2] ;
+} C3i ;
+
+#define SetIndex5(NR,N0,N1,N2,N3,val) printf("(%d,%d,%d,%d,%d)+=%lld ",N0,N1,N2,N3,NR-(N0)-(N1)-(N2)-(N3),(val)); cur5[Index5(NR,N0,N1,N2,N3)] += (val)
+
+//#define SetIndex5(NR,N0,N1,N2,N3,val)  cur5[Index5(NR,N0,N1,N2,N3)] += (val)
+
 int PB687(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     int nr,nc ;
+    {
+        uint64_t ant5[2000] ;
+        uint64_t cur5[2000] ;
+        
+        ant5[Index5(1,0,0,0,0)] = 1 ;
+        ant5[Index5(1,1,0,0,0)] = 0 ;
+        ant5[Index5(1,0,1,0,0)] = 0 ;
+        ant5[Index5(1,0,0,1,0)] = 0 ;
+        ant5[Index5(1,0,0,0,1)] = 0 ;
+        int n0,n1,n2,n3;
+        // n0 * * * *
+        // n1 ** * *
+        // n2 ** **
+        // n3 *** *
+        // n4 ****
+        n1 = 0 ;
+        
+        for(nr=2;nr<=4;nr++) {
+            int i ;
+            for(i=0;i<=Index5(nr,0,0,0,0);i++) cur5[i] = 0 ;
+            // pour rajouter un rang : cela peut être : *,*,* || **,* || ***
+            for(n0=0;n0<nr;n0++) {
+                for(n1=0;n1<nr-n0;n1++) {
+                    for(n2=0;n2<nr-n0-n1;n2++) {
+                        for(n3=0;n3<nr-n0-n1-n2;n3++) {
+
+                    
+                            int n4=nr-1-n0-n1-n2-n3  ;
+                            //                int nb0 = 3*n0+2*n1+n2 ;//
+                            int nb0 = 4*n0+3*n1+2*n2+2*n3+n4+1 ;//
+                            uint64_t ant = ant5[Index5(nr-1,n0,n1,n2,n3)] ;
+                            if(ant <= 0) continue ;
+                            printf("\n(%d,%d,%d,%d,%d)->%lld ",n0,n1,n2,n3,nr-1-n0-n1-n2-n3,ant);
+                            // ****
+                            printf("\n Insert **** ") ;
+                            int64_t S = 0;
+                            SetIndex5(nr,n0,n1,n2,n3, ant * nb0) ; S+=  nb0 ; // (0,0,+1) ]****[
+                            if(n1>0)SetIndex5(nr,n0+1,n1-1,n2,n3, ant * n1) ; S+= n1 ;// (+1,-1,0,0,+1) [****]
+                            if(n2>0)SetIndex5(nr,n0,n1+1,n2-1,n3, ant * 2 * n2) ; S+=  2 * n2 ;// (0,+1,-1,0,+1) [[****]]
+                            if(n3>0)SetIndex5(nr,n0,n1+1,n2,n3-1, ant * 2 * n3) ; S+= 2*n3 ; // (0,+1,0,-1,+1) [[[****]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2,n3+1, ant * 2 * n4) ;S+= 2 * n4 ; // (0,0,0,+1,-1) [[[[****]]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2+1,n3, ant  * n4); S+= n4 ; // (0,0,+1,0,-1) [[[[****]]]]
+                            printf("S4=%lld ",S);
+                           // *** *
+                            printf("\n Insert *** * ") ;
+
+                            S = 0 ;
+                                    // (0,0,0,+1,0) ]*[ ]***[
+                            SetIndex5(nr,n0,n1,n2,n3+1, ant * nb0 * (nb0-1)); S+= nb0 * (nb0-1);
+                                    // (+1,-1,0,+1,0) ]*[ [***] || ]***[ [*]
+                            if(n1>0)SetIndex5(nr,n0+1,n1-1,n2,n3+1, ant * 2 * nb0 * n1) ; S+= 2 * nb0 * n1;
+                                    // (0,+1,-1,+1,0) ]*[ [[***]] || ]***[ [[*]]
+                            if(n2>0)SetIndex5(nr,n0,n1+1,n2-1,n3+1, ant * 2 * nb0 * 2 * n2) ;S+= 2 * nb0 * 2 * n2 ;
+                                    // (0,+1,0,0,0) ]*[ [[[***]]] || ]***[ [[[*]]]
+                            if(n3>0)SetIndex5(nr,n0,n1+1,n2,n3, ant * 2 * nb0 * 2 * n3 );S+= 2 * nb0 * 2 * n3 ;
+                                    // (0,0,0,+2,0) ]*[ [[[[***]]]] || ]***[ [[[[*]]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2,n3+2, ant * 2 * nb0 * 2 * n4 );S+= 2 * nb0 * 2 * n4;
+                                    // (0,+1,0,+1,0) ]*[ [[[[***]]]] || ]***[ [[[[*]]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2+1,n3+1, ant * 2 * nb0  * n4 );S+= 2 * nb0  * n4;
+                                // (+2,-2,0,+1,0) [*] [***] || [***] [*]
+                            if(n1 > 1 ) SetIndex5(nr,n0+2,n1-2,n2,n3+1, ant * n1 * (n1-1)) ;S+= n1 * (n1-1);
+                               // (+1,+1-1,-1,+1,0) [*] [[***]] || [***] [[*]]
+                            if(n1 > 0 && n2 > 0) SetIndex5(nr,n0+1,n1,n2-1,n3+1, ant * 2 * n1 * 2 * n2) ;S+= 2 * n1 * 2 * n2;
+                                    // (+1,+1-1,0,1-1,0) [*] [[[***]]] || [***] [[[*]]]
+                            if(n1 > 0 && n3 > 0) SetIndex5(nr,n0+1,n1,n2,n3, ant * 2 * n1 * 2 * n3) ;S+= 2 * n1 * 2 * n3;
+                                    // (+1,-1,0,+2,-1) [*] [[[[***]]]] || [***] [[[[*]]]]
+                            if(n1 > 0 && n4 > 0) SetIndex5(nr,n0+1,n1-1,n2,n3+2, ant * 2 * n1 * 2 * n4) ;S+= 2 * n1 * 2 * n4;
+                                    // (+1,-1,+1,+1,-1) [*] [[[[***]]]] || [***] [[[[*]]]]
+                            if(n1 > 0 && n4 > 0) SetIndex5(nr,n0+1,n1-1,n2+1,n3+1, ant * 2 * n1 * n4) ;S+= 2 * n1 * n4;
+                                    // (0,+2,-2,+1,0) [[*]] [[***]] || [[***]] [[*]] ; double insert *|* *|*
+                            if(n2 > 1 ) SetIndex5(nr,n0,n1+2,n2-2,n3+1, ant * 4 * n2 * (n2-1) );S+= 4 * n2 * (n2-1);
+                                    // (+1,0,-1,+1,0) [[*]][[***]] || [[***]][[*]]
+                            if(n2 > 0 ) SetIndex5(nr,n0+1,n1,n2-1,n3+1, ant * 2 * n2 ) ;S+= 2 * n2;
+                                    // (0,+1,+1-1,+1-1,0) [[*]] [[[***]]] || [[***]] [[[*]]]
+                            if(n2 > 0 && n3 > 0) SetIndex5(nr,n0,n1+1,n2,n3, ant *2 * 2 * n2 * 2 * n3) ;S+= 2 * 2 * n2 * 2 * n3;
+                                    // (0,+1,-1,+2,-1) [[*]] [[[[***]]]] || [[***]] [[[[*]]]]
+                            if(n2 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2-1,n3+2, ant * 2 * 2 * n2 * 2 * n4) ;S+= 2 * 2 * n2 * 2 * n4;
+                                    // (0,+1,1-1,+1,-1) [[*]] [[[[***]]]] || [[***]] [[[[*]]]]
+                            if(n2 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2,n3+1, ant * 2 * 2 * n2  * n4 );S+= 2 * 2 * n2  * n4;
+                                    // (0,+2,0,+1-2,0) [[[*]]] [[[***]]] || [[[***]]] [[[*]]] ; double insert *|** *|**
+                            if(n3 > 1 ) SetIndex5(nr,n0,n1+2,n2,n3-1, ant * 4 * n3 * (n3-1) );S+= 4 * n3 * (n3-1);
+                                    // (+1,0,0,+1-1,0) [[[*]]][[[***]]] || [[[***]]][[[*]]]
+                            if(n3 > 0 ) SetIndex5(nr,n0+1,n1,n2,n3, ant * 2 * n3 ) ;S+= 2 * n3;
+                                    // (0,+1,0,+2-1,-1) [[[*]]] [[[[***]]]] || [[[***]]] [[[[*]]]]
+                            if(n3 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2,n3+1, ant * 2 * 2 * n3 * 2 * n4 );S+= 2 * 2 * n3 * 2 * n4;
+                                    // (0,+1,+1,+1-1,-1) [[[*]]] [[[[***]]]] || [[[***]]] [[[[*]]]]
+                            if(n3 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2+1,n3, ant * 2 * 2 * n3  * n4) ;S+= 2 * 2 * n3  * n4;
+                                // (0,0,0,+3,-2) [[[[*]]]] |[[[***]]]] || [[[[***]]]] [[[[*]]]] ; double insert *|*** *|***
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2,n3+3, ant * 4 * n4 * (n4-1)) ;S+= 4 * n4 * (n4-1);
+                                // !!! (0,0,+1,+2,-2) [[[[*]]]] |[[[***]]]] || [[[[***]]]] [[[[*]]]] ; insert *|*** **|**
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2+1,n3+2, ant * 4 * n4 * (n4-1)) ;S+= 4 * n4 * (n4-1);
+                                // (0,0,+2,+1,-2) [[[[*]]]] [[[[***]]]] || [[[[***]]]] [[[[*]]]] ; double insert **|** **|**
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2+2,n3+1, ant * n4 * (n4-1) );S+= n4 * (n4-1);
+                                    // (0,+1,0,+1,-1) [[[[*]]]][[[[***]]]] || [[[[***]]]][[[[*]]]] ; double insert *|***-*|***
+                            if(n4 > 0 ) SetIndex5(nr,n0,n1+1,n2,n3+1, ant * 2 * n4 ) ;S+= 2 * n4 ;
+                                    // (0,+1,0,+1,-1) [[[[*]]]][[[[***]]]] || [[[[***]]]][[[[*]]]] ; double insert *|***-**|**
+                            if(n4 > 0 ) SetIndex5(nr,n0,n1+1,n2,n3+1, ant * 4 * n4 ) ;S+= 4 * n4;
+                            printf("S3=%lld ",S);
+
+                            // ** **
+                            printf("\n Insert ** ** ") ;
+
+                            S=0 ;
+                            // (0,0,+1,0,0) ]**[ ]**[
+                            SetIndex5(nr,n0,n1,n2+1,n3, ant * Cnp(nb0,2)); S+= Cnp(nb0,2);
+                            // (+1,-1,+1,0,0) ]**[ [**]
+                            if(n1>0)SetIndex5(nr,n0+1,n1-1,n2+1,n3, ant * nb0 * n1 );S+= nb0 * n1;
+                            // (0,+1,+1-1,0,0) ]**[ [[**]]
+                            if(n2>0)SetIndex5(nr,n0,n1+1,n2,n3, ant * nb0 * 2 * n2 );S+= nb0 * 2 * n2;
+                            // (0,+1,+1,-1,0) ]**[ [[[**]]]
+                            if(n3>0)SetIndex5(nr,n0,n1+1,n2+1,n3-1, ant * nb0 * 2 * n3 );S+= nb0 * 2 * n3;
+                            // (0,0,+1,+1,-1) ]**[ [[[[**]]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2+1,n3+1, ant * nb0 * 2 * n4 );S+= nb0 * 2 * n4;
+                            // (0,+0,0,+2,-1) ]**[ [[[[**]]]]
+                            if(n4>0)SetIndex5(nr,n0,n1,n2+2,n3, ant * nb0  * n4) ;S+= nb0  * n4;
+                            // (+2,-2,+1,0,0) [**] [**] || [**] [**]
+                            if(n1 > 1 ) SetIndex5(nr,n0+2,n1-2,n2+1,n3, ant * Cnp(n1,2)) ;S+= Cnp(n1,2);
+                            // (+1,+1-1,+1-1,0,0) [**] [[**]]
+                            if(n1 > 0 && n2 > 0) SetIndex5(nr,n0+1,n1,n2,n3, ant * n1 * 2 * n2 );S+= n1 * 2 * n2;
+                            // (+1,+1-1,+1,-1,0) [**] [[[**]]]
+                            if(n1 > 0 && n3 > 0) SetIndex5(nr,n0+1,n1,n2+1,n3-1, ant * n1 * 2 * n3) ;S+= n1 * 2 * n3;
+                            // (+1,-1,+1,+1,-1) [**] [[[[**]]]]
+                            if(n1 > 0 && n4 > 0) SetIndex5(nr,n0+1,n1-1,n2+1,n3+1, ant * n1 * 2 * n4) ;S+= n1 * 2 * n4;
+                            // (+1,-1,+2,0,-1) [**] [[[[**]]]]
+                            if(n1 > 0 && n4 > 0) SetIndex5(nr,n0+1,n1-1,n2+2,n3, ant  * n1 * n4) ;S+= n1 * n4;
+                            // (0,+2,-2+1,0,0) [[**]] [[**]] ; double insert *|* *|*
+                            if(n2 > 1 ) SetIndex5(nr,n0,n1+2,n2-1,n3, ant * 4 * Cnp(n2,2)) ;S+= 4 * Cnp(n2,2);
+                            // (+1,0,1-1,0,0) [[**]][[**]]
+                            if(n2 > 0 ) SetIndex5(nr,n0+1,n1,n2,n3, ant * n2 ) ;S+= n2 ;
+                            // (0,+2,+1-1,-1,0) [[**]] [[[**]]]
+                            if(n2 > 0 && n3 > 0) SetIndex5(nr,n0,n1+2,n2,n3-1, ant * 2 * n2 * 2 * n3 );S+= 2 * n2 * 2 * n3;
+                            // (0,+1,+1-1,+1,-1) [[**]] [[[[**]]]]
+                            if(n2 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2,n3+1, ant * 2* n2 * 2 * n4 );S+= 2 * n2 * 2 * n4;
+                            // (0,+1,2-1,0,-1) [[**]] [[[[**]]]]
+                            if(n2 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2+1,n3, ant  *2 * n2  * n4 );S+= n2 * 2 * n4;
+                            // (0,+2,+1,-2,0) [[[**]]] [[[**]]]  ; double insert *|** *|**
+                            if(n3 > 1 ) SetIndex5(nr,n0,n1+2,n2+1,n3-2, ant * 4 * Cnp(n3,2) ) ;S+= 4 * Cnp(n3,2);
+                            // (+1,0,+1,-1,0) [[[**]]][[[**]]]
+                            if(n3 > 0 ) SetIndex5(nr,n0+1,n1,n2+1,n3-1, ant  * n3 ) ;S+= n3 ;
+                            // (0,+1,+1,+1-1,-1) [[[**]]] [[[[**]]]]
+                            if(n3 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2+1,n3, ant * 2 * n3 * 2 * n4 );S+= 2 * n3 * 2 * n4 ;
+                            // (0,+1,+2,-1,-1) [[[**]]] [[[[**]]]]
+                            if(n3 > 0 && n4 > 0) SetIndex5(nr,n0,n1+1,n2+2,n3-1, ant  * 2 * n3  * n4 );S+= 2 * n3  * n4;
+                            // (0,0,+1,+2,-2) [[[[**]]]] |[[[**]]]] ; double insert *|*** *|***
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2+1,n3+2, ant * 4 * Cnp(n4,2) );S+= 4 * Cnp(n4,2);
+                            // (0,0,+2,+1,-2) [[[[**]]]] [[[[**]]]]  ; insert *|*** **|**
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2+2,n3+1, ant * 4 *  Cnp(n4,2));S+= 4 *  Cnp(n4,2);
+                            // (0,0,+3,0,-2) [[[[**]]]] [[[[**]]]] || [[[[**]]]] [[[[**]]]] ; double insert **|** **|**
+                            if(n4 > 1 ) SetIndex5(nr,n0,n1,n2+3,n3, ant * Cnp(n4,2)) ;S+=  Cnp(n4,2);
+                            // (0,+1,+1,0,-1) [[[[**]]]][[[[**]]]] ; double insert *|***-*|***
+                            if(n4 > 0 ) SetIndex5(nr,n0,n1+1,n2+1,n3, ant  * n4 ) ;S+= n4;
+                            // (0,+1,+1,0,-1) [[[[**]]]][[[[**]]]] || [[[[**]]]][[[[**]]]] ; double insert *|***-**|**
+                            if(n4 > 0 ) SetIndex5(nr,n0,n1+1,n2+1,n3, ant * 2 * n4 ) ;S+= 2 * n4 ;
+                            printf("S2=%lld ",S);
+                            // ** * *
+                            printf("\n Insert ** * * ") ;
+
+                            int pow3[4] = { 1,3,9,27} ;
+
+                            S=0 ;
+                            int i0,i1,i21,i21d,i22,i31,i32,i31d,i42,i43,d0,d1,d2,d3,d4,d;
+                            for(d=0;d<=4;d++) {
+                                d0=(d==0) ?1 : 0 ; d1=(d==1) ?1 : 0 ;d2=(d==2) ?1 : 0 ;d3=(d==3) ?1 : 0 ;
+                                d4=(d==4) ?1 : 0 ;
+                            for(i0=2;i0>=0;i0--){
+                                if(i0+d0 > nb0) continue ;
+                                for(i1=2-i0;i1>=0;i1--){
+                                    if(i1+d1 > n1) continue ;
+                                    for(i21d=0;i21d<=d2;i21d++){
+                                        for(i21=2-i0-i1-i21d;i21>=0;i21--){
+                                            for(i22=(2-i0-i1-i21-i21d)/2;i22>=0;i22--){
+//                                                if(i21+i22> n2 || i22+d2 > n2) continue ;
+                                                if(i21+i22+d2> n2) continue ;
+                                                for(i31d=0;i31d<=d3;i31d++) {
+                                                    for(i31=2-i0-i1-i21-i21d-2*i22-i31d;i31>=0;i31--){
+                                                        for(i32=(2-i0-i1-i21-i21d-2*i22-i31-i31d)/2;i32>=0;i32--){
+                                                            if(i31+i32+d3> n3) continue ;
+                                                            for(i42=(2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32)/2;i42>=0;i42--){
+                                                                int i41 = 2-i0-i1-i21-i21d-2*i22-i31-i31d-2*i32-2*i42 ;
+                                                            
+                                                                int64_t delta = 1 ;
+                                                                if((i41+i42) >n4) continue ;
+                                                                if(d0) delta *= nb0 ;
+                                                                if(i0) delta *= Cnp(nb0-d0,i0) ;
+                                                                if(d1) delta *= n1 ;
+                                                                if(i1) delta *= Cnp(n1-d1,i1) ;
+                                                                if(d2) delta *= n2*2 ;
+                                                                if(i22) delta *= Cnp(n2-d2,i22) ;
+                                                                if(i21){
+                                                                    if(i21d) {
+                                                                        delta *= Cnp(n2-i22-1,i21)*(1<<(i21)) ;
+                                                                    }else if(d2) {
+                                                                        delta *= Cnp(n2-i22-d2,i21)*(1<<i21) ;
+                                                                    } else {
+                                                                        delta *= Cnp(n2-i22,i21)*(1<<i21)  ;
+                                                                    }
+                                                                }
+                                                                if(d3) delta *= n3*2 ;
+                                                                if(i32) delta *= Cnp(n3-d3,i32) ;
+/*                                                                   if(i31){
+                                                                    if(d3) delta *=
+                                                                        (Cnp(n3-i32-d3,i31)*(1<<i31)
+                                                                    +Cnp(n3-i32-d3,i31-1)*(1<<(i31-1)));
+                                                                    else delta *= Cnp(n3-i32,i31)*(1<<i31)  ;
+                                                                }
+*/
+                                                                if(i31) {
+                                                                    delta *= Cnp(n3-i32-d3,i31)*(1<<i31) ;
+/*                                                                       if(i31d) {
+                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31)  ;
+                                                                    } else if(i32d) {
+                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31)  ;
+                                                                    } else if(d3) {
+                                                                        delta *= Cnp(n3-i32-d3,i31)*(1<<i31) ;
+                                                                    } else {
+                                                                        delta *= Cnp(n3-i32,i31)*(1<<i31)  ;
+                                                                    }
+*/                                                                  }
+                                                                if(d4) {
+                                                                    //delta *= n4*3 ;
+                                                                    if(n4==0) continue ;
+                                                                    delta *= n4 ;
+                                                                    if(i42) {
+                                                                        SetIndex5( nr
+                                                                                    ,n0+i1+i22+i32+1
+                                                                                    ,n1-i1+i21+i31+i42
+                                                                                    ,n2-i22-i21
+                                                                                    ,n3-i32-i31, ant * delta * 3 * Cnp(n4-d4,i42-1)*pow3[i42-1]);
+                                                                        if(n4-d4 >= i42) {
+                                                                            SetIndex5( nr
+                                                                                      ,n0+i1+i22+i32
+                                                                                      ,n1-i1+i21+i31+i42+1
+                                                                                      ,n2-i22-i21+d4
+                                                                                      ,n3-i32-i31, ant * delta * Cnp(n4-d4,i42)*pow3[i42]);
+                                                                            SetIndex5( nr
+                                                                                      ,n0+i1+i22+i32
+                                                                                      ,n1-i1+i21+i31+i42+1
+                                                                                      ,n2-i22-i21
+                                                                                      ,n3-i32-i31+d4, ant * delta* 2 * Cnp(n4-d4,i42)*pow3[i42]);
+                                                                            delta *= 3 *                                                    (Cnp(n4-d4,i42)*pow3[i42] + Cnp(n4-d4,i42-1)*pow3[i42-1]) ;
+                                                                        } else {
+                                                                            delta *= 3 * Cnp(n4-d4,i42-1)*pow3[i42-1] ;
+                                                                        }
+
+           
+                                                                    } else if(i41){
+                                                                        int j3 ;
+                                                                        for(j3=0;j3<=i41-1;j3++) {
+                                                                            SetIndex5( nr
+                                                                                      ,n0+i1+i22+i32
+                                                                                      ,n1-i1+i21+i31+2
+                                                                                      ,n2-i22-i21+i41-1-j3
+                                                                                      ,n3-i32-i31+j3, ant * delta* 3  * Cnp(n4-d4,i41-1) * (1<<j3)*2 * Cnp(i41-1,j3));
+                                                                            n1=n1 ;
+                                                                        }
+                                                                        
+                                                                        if(n4-d4 >= i41) {
+                                                                            for(j3=0;j3<=i41;j3++) {
+                                                                                SetIndex5( nr
+                                                                                            ,n0+i1+i22+i32
+                                                                                            ,n1-i1+i21+i31+1
+                                                                                            ,n2-i22-i21+i41-j3+d4
+                                                                                            ,n3-i32-i31+j3, ant * delta * Cnp(n4-d4,i41) * (1<<j3) * Cnp(i41,j3));
+                                                                                SetIndex5( nr
+                                                                                            ,n0+i1+i22+i32
+                                                                                            ,n1-i1+i21+i31+1
+                                                                                            ,n2-i22-i21+i41-j3
+                                                                                            ,n3-i32-i31+j3+d4, ant * delta  * 2  * Cnp(n4-d4,i41) * (1<<j3) * Cnp(i41,j3));
+                                                                                n1=n1 ;
+                                                                            }
+                                                                            delta *= 3 * (Cnp(n4-d4,i41)*pow3[i41] + Cnp(n4-d4,i41-1)*pow3[i41-1]*3) ;
+                                                                        } else {
+                                                                            delta *= 3 * Cnp(n4-d4,i41-1)* pow3[i41-1] ;
+                                                                        }
+                                                                    } else {
+                                                                        SetIndex5( nr
+                                                                                    ,n0+i1+i22+i32
+                                                                                    ,n1-i1+i21+i31+1
+                                                                                    ,n2-i22-i21+d4
+                                                                                    ,n3-i32-i31, ant * delta );
+                                                                        SetIndex5( nr
+                                                                                    ,n0+i1+i22+i32
+                                                                                    ,n1-i1+i21+i31+1
+                                                                                    ,n2-i22-i21
+                                                                                    ,n3-i32-i31+d4, ant * delta * 2 );
+                                                                        delta *= 3 ;
+                                                                    }
+                                                                } else {
+                                                                    if(i42) delta *= Cnp(n4,i42)*pow3[i42]  ;
+                                                                    if(i41) {
+                                                                        int j3 ;
+                                                                        for(j3=0;j3<=i41;j3++) {
+                                                                            SetIndex5( nr
+                                                                                        ,n0+i1+d1+i22+i21d+i32+i31d
+                                                                                        ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
+                                                                                        ,n2-i22-i21-d2+i41-j3
+                                                                                        ,n3-i32-i31-d3+j3, ant * delta * Cnp(n4-i42,i41) * (1<<j3) * Cnp(i41,j3));
+                                                                            n1=n1 ;
+                                                                        }
+
+                                                                        delta *= Cnp(n4-i42,i41)*(pow3[i41]) ;
+                                                                    } else {
+                                                                        SetIndex5( nr
+                                                                                    ,n0+i1+d1+i22+i21d+i32+i31d
+                                                                                    ,n1-i1-d1+i21+d2-i21d+i31+d3-i31d+i42+1
+                                                                                    ,n2-i22-i21-d2
+                                                                                    ,n3-i32-i31-d3, ant * delta) ;
+                                                                        n1=n1 ;
+                                                                    }
+                                                                }
+                                                                S += delta ;
+                                                            }
+                                                        }
+                                                    }
+                                                
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            }
+                            printf("S1=%lld ",S) ;
+
+                            
+                            printf("\n Insert * * * * ") ;
+
+                            // * * * *
+                            S=0 ;
+   //                          int i0,i1,i21,i22,i31,i32,i43,i42;
+                            for(i0=4;i0>=0;i0--){
+                                for(i1=4-i0;i1>=0;i1--){
+                                    for(i21=4-i0-i1;i21>=0;i21--){
+                                        for(i22=(4-i0-i1-i21)/2;i22>=0;i22--){
+                                            for(i31=4-i0-i1-i21-2*i22;i31>=0;i31--){
+                                                for(i32=(4-i0-i1-i21-2*i22-i31)/2;i32>=0;i32--){
+                                                    for(i43=(4-i0-i1-i21-2*i22-i31-2*i32)/3;i43>=0;i43--){
+                                                        for(i42=(4-i0-i1-i21-2*i22-i31-2*i32-3*i43)/2;i42>=0;i42--){
+                                                            int i41 = 4-i0-i1-i21-2*i22-i31-2*i32-3*i43 -2*i42 ;
+  
+                                                            int64_t delta = 1 ;
+                                                            if(i0>nb0 || i1>n1 || (i21+i22) >n2
+                                                               || (i31+i32) >n3 || (i41+i42+i43) >n4) continue ;
+                                                            if(i0) delta *= Cnp(nb0,i0) ;
+                                                            if(i1) delta *= Cnp(n1,i1) ;
+                                                            if(i22) delta *= Cnp(n2,i22) ;
+                                                            if(i21) delta *= Cnp(n2-i22,i21)*(1<<i21)  ;
+                                                            if(i32) delta *= Cnp(n3,i32) ;
+                                                            if(i31) delta *= Cnp(n3-i32,i31)*(1<<i31)  ;
+                                                            if(i43) delta *= Cnp(n4,i43) ;
+                                                            if(i42) delta *= Cnp(n4-i43,i42)*pow3[i42]  ;
+                                                            if(i41) {
+                                                                int j3 ;
+                                                                for(j3=0;j3<=i41;j3++) {
+                                                                    /*if(n0+i1+i22+i32+i43+1==3)
+                                                                        printf("#(%d,%d,%d,%d,%d)+%lldx%lld "
+                                                                           ,n0
+                                                                           ,n1
+                                                                           ,n2
+                                                                           ,n3
+                                                                           ,nr-n0-n1-n2-n3-1,
+                                                                           delta * Cnp(n4-i43-i42,i41) * (1<<j3) * Cnp(i41,j3),ant) ;*/
+                                                                    SetIndex5( nr
+                                                                                ,n0+i1+i22+i32+i43+1
+                                                                                ,n1-i1+i21+i31+i42
+                                                                                ,n2-i22-i21+i41-j3
+                                                                                ,n3-i32-i31+j3, ant * delta * Cnp(n4-i43-i42,i41) * (1<<j3) * Cnp(i41,j3));
+                                                                    n1 = n1 ;
+                                                                }
+                                                                delta *= Cnp(n4-i43-i42,i41)*pow3[i41]  ;
+                                                                
+                                                            } else {
+                                                               /*if(n0+i1+i22+i32+i43+1==3)
+                                                                    printf("@(%d,%d,%d,%d,%d)+%lldx%lld "
+                                                                       ,n0
+                                                                       ,n1
+                                                                       ,n2
+                                                                       ,n3
+                                                                       ,nr-n0-n1-n2-n3-1,
+                                                                       delta,ant) ;*/
+                                                                SetIndex5( nr
+                                                                        ,n0+i1+i22+i32+i43+1
+                                                                        ,n1-i1+i21+i31+i42
+                                                                        ,n2-i22-i21
+                                                                        ,n3-i32-i31, ant * delta );
+                                                                n1=n1;
+                                                            }
+                                                            S += delta ;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                   }
+                                }
+                            }
+                            printf("S0=%lld ",S) ;
+                        }
+                    }
+                }
+            }
+            int64_t g =cur5[0];
+            for(i=1;i<=Index5(nr,0,0,0,0);i++) { g = PGCD64(g,cur5[i]) ;} ;
+            int64_t den = 0;
+            for(i=0;i<=Index5(nr,0,0,0,0);i++) { /*cur5[i] /= g;*/ den += cur5[i]/g ; }
+            int64_t prob[20];
+            for(i=0;i<=nr;i++)prob[i]=0 ;
+            for(n0=0;n0<=nr;n0++) {
+                for(n1=0;n1<=nr-n0;n1++) {
+                    for(n2=0;n2<=nr-n0-n1;n2++) {
+                        for(n3=0;n3<=nr-n0-n1-n2;n3++) {
+                                 printf("(%d,%d,%d,%d,%d)=%lld ",n0,n1,n2,n3,nr-n0-n1-n2-n3,cur5[Index5(nr,n0,n1,n2,n3)]);
+                            cur5[Index5(nr,n0,n1,n2,n3)] /= g ;
+                            prob[nr-n0]+= cur5[Index5(nr,n0,n1,n2,n3)] ;
+                        }
+                    }
+                }
+            }
+            
+                   g=prob[0] ;
+                   for(i=1;i<=nr;i++) g = PGCD64(g,prob[i]) ;
+            printf("\n4 color, %d rank  => %lld=%lld/%lld=",nr,den*g,den,g) ;
+           for(i=0;i<=nr;i++) { printf("%lld,",prob[i]/g) ; } ;
+            for(i=0;i<=Index5(nr,0,0,0,0);i++) ant5[i] = cur5[i] ;
+        }
+        printf("\n*********\n") ;
+
+    }
     uint64_t ant3[200] ;
     uint64_t cur3[200] ;
+  
+    ant3[Index3(1,0,0)] = 1 ;
+    ant3[Index3(1,1,0)] = 0 ;
+    ant3[Index3(1,0,1)] = 0 ;
+    int n0,n1;
+    n1 = 0 ;
+    
+    for(nr=2;nr<=4;nr++) {
+        int i ;
+        for(i=0;i<=Index3(nr,0,0);i++) cur3[i] = 0 ;
+        // pour rajouter un rang : cela peut être : *,*,* || **,* || ***
+        for(n0=0;n0<nr;n0++) {
+            for(n1=0;n1<nr-n0;n1++) {
+                int n2=nr-1-n0-n1  ;
+//                int nb0 = 3*n0+2*n1+n2 ;//
+               int nb0 = 3*n0+2*n1+n2 ;//
+                 uint64_t ant = ant3[Index3(nr-1,n0,n1)] ;
+                if(ant <= 0) continue ;
+                // ***
+                cur3[Index3(nr,n0,n1)] += ant * nb0 ; // (0,0,+1) ]***[
+                if(n1>0)cur3[Index3(nr,n0+1,n1-1)] += ant * n1 ; // (+1,-1,+1) [***]
+                if(n2>0)cur3[Index3(nr,n0,n1+1)] += ant * 2 * n2 ; // (0,+1,+1-1) [[***]]
+                // ** *
+                cur3[Index3(nr,n0,n1+1)] += ant * nb0 * (nb0-1); // (0,+1,0) ]*[ ]**[
+                cur3[Index3(nr,n0+1,n1)] += ant * 2 * nb0 * n1 ; // (+1,+-0,0) ]*[ [**] || ]**[ [*]
+                cur3[Index3(nr,n0,n1+2)] += ant * 2 * nb0 * 2 * n2 ; // (0,+2,-1) ]*[ [[**]] || ]**[ [[*]]
+                if(n1 > 0 && n2 > 0) cur3[Index3(nr,n0+1,n1+1)] += ant * 2 * n1 * 2 * n2 ; // (+1,+2-1,-1) [*] [[**]] || [**] [[*]]
+                if(n1 > 1 ) cur3[Index3(nr,n0+2,n1-1)] += ant * n1 * (n1-1) ; // (+2,+1-2,0) [*] [**]
+                if(n2 > 0 ) cur3[Index3(nr,n0+1,n1+1)] += ant * 2 * n2; // (+1,+1,-1) [[*]][[**]]
+                if(n2 > 1 ) cur3[Index3(nr,n0,n1+3)] += ant * 2* n2 * 2 * (n2-1) ; // (0,+3,-2) [[*]] [[**]]
+                // * * *
+                cur3[Index3(nr,n0+1,n1)] += ant * Cnp(nb0,3) ; // +1,0,0  ]*[,]*[,]*[
+                if(n1 > 0) cur3[Index3(nr,n0+2,n1-1)] += ant * Cnp(nb0,2) * n1 ; // +2,-1,0  ]*[,]*[,[*]
+                if(n2 > 0) cur3[Index3(nr,n0+1,n1+1)] += ant * Cnp(nb0,2) * 2 * n2 ; // +1,+1,-1  ]*[,]*[,[[*]]
+                if(n1 > 0 && n2 > 0) cur3[Index3(nr,n0+2,n1)] += ant * nb0 * n1 * 2 * n2 ; // +2,+-0,-1  ]*[,[*],[[*]]
+                if(n1 > 1)cur3[Index3(nr,n0+3,n1-2)] += ant * nb0 * Cnp(n1,2)  ; // +3,-2,0  ]*[,[*],[*]
+                if(n2 > 0 ) cur3[Index3(nr,n0+2,n1)] += ant  * nb0 * n2 ; // (+2,0,-1) ]*[ [[*]][[*]]
+                if(n2 > 1 ) cur3[Index3(nr,n0+1,n1+2)] += ant * nb0 * 4* Cnp(n2,2) ; // (+1,+2,-2) ]*[ [[*]] [[*]]
+                if(n1 > 2)cur3[Index3(nr,n0+4,n1-3)] += ant *  Cnp(n1,3)  ; // +4,-3,0  [*],[*],[*]
+                if(n1 > 1 && n2 > 0)cur3[Index3(nr,n0+3,n1-1)] += ant *  Cnp(n1,2) * 2 * n2 ; // +3,-1,-1  [*],[*],[[*]]
+                if(n1 > 0 && n2 > 0)cur3[Index3(nr,n0+3,n1-1)] += ant *  n1 * n2 ; // +3,-1,-1  [*],[[*]][[*]]
+                if(n1 > 0 && n2 > 1)cur3[Index3(nr,n0+2,n1+1)] += ant *  n1 * 4 * Cnp(n2,2) ; // +2,+1,-2  [*],[[*]] [[*]]
+                if(n2 > 1) cur3[Index3(nr,n0+2,n1+1)] += ant *  n2 * 2 * (n2-1) ; // +2,+1,-2  [[*]][[*]] [[*]]
+                if(n2 > 2) cur3[Index3(nr,n0+1,n1+3)] += ant *  8 * Cnp(n2,3) ; // +1,+3,-3  [[*]] [[*]] [[*]]
+            }
+        }
+        int64_t g =cur3[0];
+        for(i=1;i<=Index3(nr,0,0);i++) { g = PGCD64(g,cur3[i]) ;} ;
+        int64_t den = 0;
+        for(i=0;i<=Index3(nr,0,0);i++) { cur3[i] /= g; den += cur3[i] ; }
+        int64_t prob[20];
+        for(i=0;i<=nr;i++)prob[i]=0 ;
+        for(n0=0;n0<=nr;n0++) {
+            for(n1=0;n1<=nr-n0;n1++) {
+                //               printf("(%d,%d,%d)=%lld ",n0,n1,nr-n0-n1,cur3[INDT2(n0,n1)]);
+                prob[nr-n0]+= cur3[Index3(nr,n0,n1)] ;
+            }
+        }
+        
+        printf("\n3 color, %d rank  => %lld=%lld/%lld=",nr,den*g,den,g) ;
+        //      g=prob[0] ;
+        //       for(i=1;i<=nr;i++) g = PGCD64(g,prob[i]) ;
+        for(i=0;i<=nr;i++) { printf("%lld,",prob[i]) ; } ;
+        for(i=0;i<=Index3(nr,0,0);i++) ant3[i] = cur3[i] ;
+    }
+    printf("\n*********\n") ;
+
+    
+    
+    
     ant3[INDT2(0,0)] = 1 ;
     ant3[INDT2(0,1)] = 0 ;
     ant3[INDT2(1,0)] = 0 ;
-    int n0,n1;
-    for(nr=2;nr<8;nr++) {
+    n1 = 0 ;
+    for(nr=2;nr<=4;nr++) {
         int i ;
         for(i=0;i<=INDT2(nr+1,0);i++) cur3[i] = 0 ;
         // pour rajouter un rang : cela peut être : *,*,* || **,* || ***
         for(n0=0;n0<nr;n0++) {
             for(n1=0;n1<nr-n0;n1++) {
                 int n2=nr-1-n0-n1  ;
-                int nb0 = 3*n0+2*n1+n2+1 ;
+//                int nb0 = 3*n0+2*n1+n2+1 ;
+                int nb0 = 3*n0+2*n1+n2 ;//
                 uint64_t ant = ant3[INDT2(n0,n1)] ;
                 if(ant <= 0) continue ;
                 // ***
@@ -1315,7 +1855,7 @@ int PB687(PB_RESULT *pbR) {
         for(i=0;i<=nr;i++)prob[i]=0 ;
         for(n0=0;n0<=nr;n0++) {
             for(n1=0;n1<=nr-n0;n1++) {
- //               printf("(%d,%d,%d)=%lld ",n0,n1,nr-n0-n1,cur3[INDT2(n0,n1)]);
+                printf("(%d,%d,%d)=%lld ",n0,n1,nr-n0-n1,cur3[INDT2(n0,n1)]);
                 prob[nr-n0]+= cur3[INDT2(n0,n1)] ;
             }
         }
