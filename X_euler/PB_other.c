@@ -1301,12 +1301,15 @@ typedef struct C3i {
 
 #define SetIndex5(NR,N0,N1,N2,N3,val)  cur5[Index5(NR,N0,N1,N2,N3)] += (val)
 
+//typedef  uint64_t PROB687 ;
+typedef  double PROB687 ;
+
 int PB687(PB_RESULT *pbR) {
     pbR->nbClock = clock()  ;
     int nr,nc ;
     {
-        uint64_t ant5[2000] ;
-        uint64_t cur5[2000] ;
+        PROB687 ant5[4000] ;
+        PROB687 cur5[4000] ;
         
         ant5[Index5(1,0,0,0,0)] = 1 ;
         ant5[Index5(1,1,0,0,0)] = 0 ;
@@ -1321,7 +1324,7 @@ int PB687(PB_RESULT *pbR) {
         // n4 ****
         n1 = 0 ;
         
-        for(nr=2;nr<=8;nr++) {
+        for(nr=2;nr<=13;nr++) {
             int i ;
             for(i=0;i<=Index5(nr,0,0,0,0);i++) cur5[i] = 0 ;
             // pour rajouter un rang : cela peut être : *,*,* || **,* || ***
@@ -1334,7 +1337,7 @@ int PB687(PB_RESULT *pbR) {
                             int n4=nr-1-n0-n1-n2-n3  ;
                             //                int nb0 = 3*n0+2*n1+n2 ;//
                             int nb0 = 4*n0+3*n1+2*n2+2*n3+n4+1 ;//
-                            uint64_t ant = ant5[Index5(nr-1,n0,n1,n2,n3)] ;
+                            PROB687 ant = ant5[Index5(nr-1,n0,n1,n2,n3)] ;
                             if(ant <= 0) continue ;
   //                          printf("\n(%d,%d,%d,%d,%d)->%lld ",n0,n1,n2,n3,nr-1-n0-n1-n2-n3,ant);
                             // ****
@@ -1675,11 +1678,12 @@ int PB687(PB_RESULT *pbR) {
                     }
                 }
             }
-            int64_t g =cur5[0];
-            for(i=1;i<=Index5(nr,0,0,0,0);i++) { g = PGCD64(g,cur5[i]) ;} ;
-            int64_t den = 0;
+   //         PROB687 g =cur5[0];
+   //         for(i=1;i<=Index5(nr,0,0,0,0);i++) { g = PGCD64(g,cur5[i]) ;} ;
+            PROB687 g = 1 ;
+            PROB687 den = 0;
             for(i=0;i<=Index5(nr,0,0,0,0);i++) { /*cur5[i] /= g;*/ den += cur5[i]/g ; }
-            int64_t prob[20];
+            PROB687 prob[20];
             for(i=0;i<=nr;i++)prob[i]=0 ;
             for(n0=0;n0<=nr;n0++) {
                 for(n1=0;n1<=nr-n0;n1++) {
@@ -1687,17 +1691,21 @@ int PB687(PB_RESULT *pbR) {
                         for(n3=0;n3<=nr-n0-n1-n2;n3++) {
 //                                 printf("(%d,%d,%d,%d,%d)=%lld ",n0,n1,n2,n3,nr-n0-n1-n2-n3,cur5[Index5(nr,n0,n1,n2,n3)]);
                             cur5[Index5(nr,n0,n1,n2,n3)] /= g ;
-                            prob[nr-n0]+= cur5[Index5(nr,n0,n1,n2,n3)] ;
+                            prob[n0]+= cur5[Index5(nr,n0,n1,n2,n3)] ;
                         }
                     }
                 }
             }
             
-                   g=prob[0] ;
-                   for(i=1;i<=nr;i++) g = PGCD64(g,prob[i]) ;
-            printf("\n4 color, %d rank  => %lld/%lld=%lld=",nr,den*g,g,den) ;
-           for(i=0;i<=nr;i++) { printf("%lld,",prob[i]/g) ; } ;
-            for(i=0;i<=Index5(nr,0,0,0,0);i++) ant5[i] = cur5[i] ;
+  //                 g=prob[0] ;
+  //                 for(i=1;i<=nr;i++) g = PGCD64(g,prob[i]) ;
+//            printf("\n4 color, %d rank  => %lld/%lld=%lld=",nr,den*g,g,den) ;
+ //          for(i=0;i<=nr;i++) { printf("%lld,",prob[i]/g) ; } ;
+            printf("\n4 color, %d rank  => nb index=%d",nr,Index5(nr,0,0,0,0));
+            printf("\n");
+            for(i=0;i<=nr;i++) { printf("%.11f ",prob[i]/(double)den) ; } ;
+            if(nr==13) { printf("\n answer=%.11f \n", (prob[2]+prob[3]+prob[5]+prob[7]+prob[11]+prob[13])/den) ; }
+            for(i=0;i<=Index5(nr,0,0,0,0);i++) ant5[i] = cur5[i]/den ;
         }
         printf("\n*********\n") ;
 
