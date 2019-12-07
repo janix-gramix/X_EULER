@@ -1768,16 +1768,20 @@ int PB691a(PB_RESULT *pbR) {
 
 */
 //
-void RadixSort(int32_t * inInd, int32_t* outInd,int32_t *r, int n,int br )
+
+typedef int32_t DC3_TYPE ;
+typedef int     DC3_INDEX ;
+
+void RadixSort(const DC3_INDEX * inInd, DC3_INDEX * outInd,const DC3_TYPE *T, int n,DC3_TYPE nbType )
 { // count occurrences
-    int32_t * count = calloc(br+1,sizeof(count[0])) ;
+    DC3_INDEX * count = calloc(nbType+1,sizeof(count[0])) ;
     int i;
-    for (i = 0; i < n ; i++)  count[r[inInd[i]]]++; //
-    int32_t sumc ;
-    for (i = 0, sumc = 0; i <= br; i++)  {// exclusive prefix sums
+    for (i = 0; i < n ; i++)  count[T[inInd[i]]]++;
+    DC3_INDEX sumc ;
+    for (i = 0, sumc = 0; i <= nbType; i++)  {// exclusive prefix sums
         int32_t tmp = count [i]; count[i] = sumc ; sumc += tmp;
     }
-    for ( i = 0; i < n; i++) outInd[count[r[inInd[i]]]++ ] = inInd[i]; // sort
+    for ( i = 0; i < n; i++) outInd[count[T[inInd[i]]]++ ] = inInd[i]; // sort
     free(count) ;
 
 }
@@ -1785,89 +1789,92 @@ void RadixSort(int32_t * inInd, int32_t* outInd,int32_t *r, int n,int br )
 
 static inline int leq2(int a1, int a2, int b1, int b2) // lexicographic order
 { return(a1 < b1 || (a1 == b1 && a2 <= b2) ); } // for pairs
-static inline int leq3(int a1, int a2, int a3, int b1, int b2, int b3)
-{ return(a1 < b1 || (a1 == b1 && leq2(a2,a3, b2,b3))); }
 // find the suffix array SA of T[0..n-1] in {1..K}^n
 // require T[n]=T[n+1]=T[n+2]=0, n>=2
-void suffixArray(int32_t * T, int32_t * SA, int n, int br) {
-    int n0=(n+2)/3, n1=(n+1)/3, n2=n/3, n02=n0+n2;
-    int32_t * R = malloc((n02+3)*sizeof(R[0])) ;
-    R[n02]= R[n02+1]= R[n02+2]=0;
-    int32_t * SA12 = malloc((n02+3)*sizeof(SA12[0])); SA12[n02]=SA12[n02+1]=SA12[n02+2]=0;
-    int32_t* R0 = malloc((n0+1)*sizeof(R0[0])) ;
-    int32_t* SA0 = malloc((n0+1)*sizeof(SA0[0]));
+
+typedef  int32_t T3[3] ;
+typedef struct TT3 {
+    int32_t V[3] ;
+} TT3 ;
+
+void SuffixSort(const DC3_TYPE * T, DC3_INDEX * SA, int n, DC3_TYPE nbType) {
+    DC3_INDEX n2=n/3, n0=(n+2)/3, d1 = 0 , n02=n0+n2;
+    DC3_INDEX * R = malloc((n02+3)*sizeof(R[0])) ; R[n02]=R[n02+1]=R[n02+2]=0;
+    DC3_INDEX * SA12 = malloc((n02+3)*sizeof(SA12[0])); SA12[n02]=SA12[n02+1]=SA12[n02+2]=0;
+    DC3_INDEX * R0 = malloc((n0+1)*sizeof(R0[0])) ;
+    DC3_INDEX * SA0 = malloc((n0+1)*sizeof(SA0[0]));
     //******* Step 0: Construct sample ********
     // generate positions of mod 1 and mod 2 suffixes
-    // the "+(n0-n1)" adds a dummy mod 1 suffix if n%3 == 1
-    int i,j ;
-    for (i=0, j=0; i < n+(n0-n1); i++) {
-//        R[j++] = i+1 ;
- //       R[j++] = i+2 ;
-        if (i%3 != 0) R[j++] = i;
-    }
-    //******* Step 1: Sort sample suffixes ********
-    // lsb radix sort the mod 1 and mod 2 triples
-    RadixSort(R , SA12, T+2, n02, br);
-    RadixSort(SA12, R , T+1, n02, br);
-    RadixSort(R , SA12, T , n02, br);
- //   { int i ; for(i=0;i<n02;i++) printf("%d ",SA12[i]); printf("\n"); }
-        
-    // find lexicographic names of triples and
-    // write them to correct places in R
-    int name = 0, c0 = -1, c1 = -1, c2 = -1;
+    int i ; // R contains n02 index
+    for(i=0;i< n2;i++) {   R[2*i] = 3*i+1;    R[2*i+1] = 3*i+2; }
+    if (n == 3*n2+1) { R[2*n2] = n ;  d1=1 ; } // +1 (size of T)
+    else if (n == 3*n2+2) R[2*n2] = n-1 ;
+//---------- Sort sample suffixes
+    // lsb radix sort the mod 1 and mod 2 triples in C = B1 u B2 (samples suffixes)
+    RadixSort(R , SA12, T+2, n02, nbType); // +2 (size ofT) (with +1)=> +3
+    RadixSort(SA12, R , T+1, n02, nbType);
+    RadixSort(R , SA12, T , n02, nbType);
+ 
+// find different triples and write them in R
+    DC3_INDEX nb3uple = 0;
+    DC3_TYPE T3_0[3] = {-1,-1,-1};
+    const DC3_TYPE *antT3 =T3_0  ;
     for (int i = 0; i < n02; i++) {
-        if (T[SA12[i]] != c0 || T[SA12[i]+1] != c1 || T[SA12[i]+2] != c2)
-        { name++; c0 = T[SA12[i]]; c1 = T[SA12[i]+1]; c2 = T[SA12[i]+2]; }
-        if (SA12[i] % 3 == 1) { R[SA12[i]/3] = name; } // write to R1
-        else { R[SA12[i]/3 + n0] = name; } // write to R2
+        int ind = SA12[i] ;
+        const DC3_TYPE  * T3 = T+ind ;
+        if(T3[0] != antT3[0] || T3[1] != antT3[1] || T3[2] != antT3[2]) {
+            nb3uple++;   antT3 = T3 ; // new triple
+        }
+        int ind_3 = ind/3 ; // recall, in SA12 ind = 1 or 2 mod[3]
+        if (ind - 3*ind_3 == 1) { R[ind_3] = nb3uple; } // ind=1 mod[3]
+        else { R[ind_3+n0] = nb3uple; } // ind=2 mod[3]
     }
-    // recurse if names are not yet unique
-    if (name < n02) {
-        suffixArray(R, SA12, n02, name);
-        // store unique names in R using the suffix array
+
+    if (nb3uple < n02) { // triple not unique => recursion
+        SuffixSort(R, SA12, n02, nb3uple);
+        // compute reverse numerotation in R (add 1 as num in SA12 as +1)
         for (int i = 0; i < n02; i++) R[SA12[i]] = i + 1;
-    } else {// generate the suffix array of R directly
+    } else {// all suffix in 12 are distinct, remove 1 to begin num T3 at 0
         for (int i = 0; i < n02; i++) SA12[R[i] - 1] = i;
     }
-    //******* Step 2: Sort nonsample suffixes ********
-    // stably sort the mod 0 suffixes from SA12 by their first character
+// ---------- Sort nonsample suffixes
+    // radix sort the mod[3]= 0 suffixes from SA12
     for (int i=0, j=0; i < n02; i++) if (SA12[i] < n0) R0[j++] = 3*SA12[i];
-    RadixSort(R0, SA0, T, n0, br);
-    //******* Step 3: Merge ********
+    RadixSort(R0, SA0, T, n0, nbType);
+//---------- Merge
     // merge sorted SA0 suffixes and sorted SA12 suffixes
-    for (int p=0, t=n0-n1, k=0; k < n; k++) {
-#define GetI() (SA12[t] < n0 ? SA12[t] * 3 + 1 : (SA12[t] - n0) * 3 + 2)
+    for (int p=0, t=d1, k=0; k < n; k++) {
+// #define GetI() (SA12[t] < n0 ? SA12[t] * 3 + 1 : (SA12[t] - n0) * 3 + 2)
  //       int i = GetI(); // pos of current offset 12 suffix
-        int sa0_p = SA0[p]; // pos of current offset 0 suffix
-        if(SA12[t] < n0) {
-            int sa12_t = SA12[t] * 3 + 1  ;
-//            if(leq2(T[i], R[SA12[t] + n0], T[j], R[j/3])) {
-             if(T[sa12_t] < T[sa0_p] || ( T[sa12_t] == T[sa0_p] && R[SA12[t] + n0] <= R[sa0_p/3] )) {
-                SA[k] = sa12_t ; t++;
-                // done --- only SA0 suffixes left
-                if (t == n02)  for (k++; p < n0; p++, k++) SA[k] = SA0[p];
+        DC3_INDEX i_t, i_p = SA0[p]; // pos of current offset 0 suffix
+        if((i_t = SA12[t] ) < n0) {
+            DC3_INDEX i_3t = i_t * 3 + 1  ;
+            //   Comparison (3t+1,R[t + n0]) and (p,R[p/3]
+             if(T[i_3t] < T[i_p] || ( T[i_3t] == T[i_p] && R[i_t + n0] <= R[i_p/3] )) {
+                SA[k] = i_3t ; t++;
+                // add remaining  SA0 suffixes
+                if (t == n02)  while(p < n0) SA[++k] = SA0[p++];
             } else {
-                SA[k] = sa0_p; p++;
-               // done --- only SA12 suffixes left
-                if (p == n0) for (k++; t < n02; t++, k++) SA[k] = GetI();
+                SA[k] = i_p; p++;
+                // add remaining SA12 suffixes
+                if (p == n0)  while(t < n02){ SA[++k] = ((i_t= SA12[t++]) < n0) ? (3*i_t+1) : (3*(i_t - n0)+2) ; }
             }
-            
         } else {
-            int sa12_t =(SA12[t] - n0) * 3 + 2 ;
-           if(leq3(T[sa12_t],T[sa12_t+1],R[SA12[t]-n0+1], T[sa0_p],T[sa0_p+1],R[sa0_p/3+n0])) {
-                SA[k] = sa12_t; t++;
-                // done --- only SA0 suffixes left
-                if (t == n02)  for (k++; p < n0; p++, k++) SA[k] = SA0[p];
+           DC3_INDEX i_t3 =(i_t - n0) * 3 + 2 ;
+            //  Comparison (3t+2,3t+3,R[t-n0+1]) and (p,p+1,R[p/3+n0]
+            if(  T[i_t3] < T[i_p] || ( T[i_t3]==T[i_p]
+                 &&( T[i_t3+1] < T[i_p+1] || (T[i_t3+1]==T[i_p+1] && R[i_t-n0+1] <=  R[i_p/3+n0]) )))
+            {
+                SA[k] = i_t3; t++;
+                // add remaining  SA0 suffixes
+                if (t == n02)  while(p < n0) SA[++k] = SA0[p++];
             } else {
-                SA[k] = sa0_p; p++;
-                // done --- only SA12 suffixes left
-                if (p == n0) for (k++; t < n02; t++, k++) { SA[k] = GetI(); }
+                SA[k] = i_p; p++;
+                // add remaining SA12 suffixes
+                if (p == n0)  while(t < n02){ SA[++k] = ((i_t= SA12[t++]) < n0) ? (3*i_t+1) : (3*(i_t - n0)+2) ; }
             }
-
         }
-        
     }
-
     free(R); free(SA12); free(SA0); free(R0);
 }
 // return the leading common length
@@ -1875,131 +1882,119 @@ int GetLCPtext(int32_t * a, int32_t * b)
 //{ int l=0;  while(*a && *b && *a==*b) { l++; a++; b++; }  return l; }
 { int l=0;  while(*a  && *b && *a==*b) { l++; a++; b++; }  return l; }
 
-static int GetLCPdirect(int32_t * text,int32_t len,int32_t ia,int32_t ib) {
-    if(ia<=ib) {
-        int32_t tmp = ia ; ia= ib ; ib =tmp ;
-    }
+static int AtomLCP(const uint8_t * text,DC3_INDEX len,DC3_INDEX ia,DC3_INDEX ib) {
+    if(ia<=ib) { int32_t tmp = ia ; ia= ib ; ib =tmp ;    }
     int l = 0 ;
     while(ia < len && text[ia++] == text[ib++]) l++ ;
     return l ;
 }
-void GetLCP(int32_t * text, int* SA, int* rank, int len, int* lcp) {
+DC3_INDEX * GetLCP(const uint8_t * text,const DC3_INDEX * Sindex, int len) {
+    DC3_INDEX * lcp = malloc(len*sizeof(lcp[0])) ;
     lcp[0] = 0;
-    if (rank[0]) { // chaine initiale, partie commune avec la chaine precedente
-//        lcp[rank[0]] = GetLCPtext(text, text + SA[rank[0] - 1]);
-        lcp[rank[0]] = GetLCPdirect(text,len,0,SA[rank[0] - 1]);
+    int32_t *Sorder=malloc(len * sizeof(Sorder[0])) ; // inverse permutation of index
+    for (int i = 0; i < len; ++i) Sorder[Sindex[i]] = i; //inverse permutation
+
+    if (Sorder[0]) { // chaine initiale, partie commune avec la chaine totale
+        lcp[Sorder[0]] = AtomLCP(text,len,0,Sindex[Sorder[0] - 1]);
     }
     for (int i = 1; i < len; i++) {
-        if (!rank[i]) continue; // rank=0
-        if (lcp[rank[i - 1]] <= 1) { // si la chaine precedente n'a rien de commun calcul direct
-  //          lcp[rank[i]] = GetLCPtext(text + i, text + SA[rank[i] - 1]);
-            lcp[rank[i]] = GetLCPdirect(text ,len, i, SA[rank[i] - 1]);
+        if (!Sorder[i]) continue; // rank=0
+        if (lcp[Sorder[i - 1]] <= 1) { // si la chaine precedente n'a rien de commun calcul direct
+            lcp[Sorder[i]] = AtomLCP(text ,len, i, Sindex[Sorder[i] - 1]);
         } else { // si la chaine precedente a un prefixe commun avec celle d'avant on regarde si l'on peut prolonger
-            int L = lcp[rank[i - 1]] - 1;
-//            lcp[rank[i]] = L + GetLCPtext(text + i + L, text + SA[rank[i] - 1] + L);
-           lcp[rank[i]] = L + GetLCPdirect(text,len, i + L,  SA[rank[i] - 1] + L);
+            int L = lcp[Sorder[i - 1]] - 1;
+           lcp[Sorder[i]] = L + AtomLCP(text,len, i + L,  Sindex[Sorder[i] - 1] + L);
         }
     }
+    free(Sorder);
+    return lcp ;
 }
 
 
-int PB691a(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int64_t Fn = 1, Fd = 1;
-    int64_t S = 0 ;
+
+uint8_t * InitSuit(int len) {
+    uint8_t *suit = malloc(PB691_LG*sizeof(suit[0])) ;
+    int64_t Fn = 1, Fd = 1; // approximation of 1/phi by rationnal fraction with fibonacci
     int i ;
-    int32_t *suit = malloc((PB691_LG+ 3)*sizeof(suit[0])) ;
-    for(i=0;i<38;i++) {
-        int64_t tmp = Fn ;
-        Fn += Fd ; Fd = tmp ;
-    }
-    
-    printf(" 1/Phi=%lld/%lld=%.15f (Exp %.15f)\n",Fd,Fn,(double)Fd/Fn,(-1+sqrt(5.0))/2.0) ;
+    for(i=0;i<38;i++) {    int64_t tmp = Fn ; Fn += Fd ; Fd = tmp ; }
     suit[0] = 0 ;
     int is = 1;
-    while(is*2 < PB691_LG) {
-        for(i=is;i<2*is;i++)suit[i] = 1 - suit[i-is] ;
-        is *= 2 ;
+    for(i=1;is*2 < PB691_LG;is *=2) {
+        for(i=is;i<2*is;i++) suit[i] = 1 - suit[i-is] ;
     }
     for(i=is;i<PB691_LG;i++)suit[i] = 1 - suit[i-is] ;
     int64_t antPhi = 0 ;
     for(i=0;i<PB691_LG;i++) {
         antPhi += Fd ;
-        if( antPhi >= Fn){ // bi == 1
-            suit[i] = 1 - suit[i] ;
-            antPhi -= Fn ;
-        }
- //       printf("%d",suit[i]);
-        suit[i]++ ;
+        if( antPhi >= Fn) { suit[i] = 1 - suit[i] ;    antPhi -= Fn ; }
     }
-//    printf("\n");
-    const int n = PB691_LG ;
-    suit[n] = suit[n+1] = suit[n+2] = 0 ; // suit[n+3] =suit[n+4] = -1 ;
-    int32_t sa[n + 1], rnk[n + 1], lcp[n + 1];
-    int U[n + 1], V[n + 1];
+    return suit ;
+}
 
-    suffixArray(suit, sa, n, 2);
-    for(i=0;i<n;i++) suit[i]-- ;
-    for (int i = 0; i < n; ++i) rnk[sa[i]] = i; //inverse permutation
-//    for(i=0;i<n;i++) { printf("rk[%02d]=%02d ",i,rnk[i]);for(int j=sa[i];j<n;j++) { printf("%d",suit[j] );} printf("\n");}
-    GetLCP(suit, sa, rnk, n, lcp);
-    int32_t maxMe = 0 ;
- //   for(i=0;i<n;i++) { printf("lcp[%d]=%d ",i,lcp[i]) ; }
-    {
-        U[0] = -1;
-        for (int i = 1; i < n; ++i) {
-            int me = lcp[i]; //printf("\n%d->%d:",i,me) ;
-            if(me > maxMe) maxMe = me ;
-            int id = i - 1;
-            while (id != -1 && lcp[id] >= me) { ; id = U[id]; }
-            U[i] = id; // printf(" ->%d",id);
-        }
+DC3_INDEX * GetMaxDupByLength(int * ptMaxLcp,const DC3_INDEX *lcp,int n) {
+    int maxLcp = 0 ;
+    int i ;
+    DC3_TYPE  *B, *A;// before and after
+    B= malloc(n*sizeof(B[0])); A= malloc(n*sizeof(A[0]));
+    B[0] = -1;
+    for (i = 1; i < n; ++i) { // search suffixes before with same common part
+        int li = lcp[i];
+        if(li > maxLcp) maxLcp = li ;
+        int id = i - 1 ;
+        while (id != -1 && lcp[id] >= li) { ; id = B[id]; }
+        B[i] = id;
     }
-    {
-        V[n - 1] = n;
-        for (int i = n - 2; i >= 0; --i) {
-            int me = lcp[i];
-            int id = i + 1;
-            while (id != n && lcp[id] >= me) id = V[id];
-            V[i] = id;
-        }
+    A[n - 1] = n;
+    for (i = n - 2; i >= 0; --i) { // search suffixes after with same common part
+        int li = lcp[i];
+        int id = i + 1;
+        while (id != n && lcp[id] >= li) id = A[id];
+        A[i] = id;
     }
-    int32_t *maxDupBylengh = calloc(maxMe+1,sizeof(maxDupBylengh[0])) ;
-    int64_t ans = 0 ;
+    DC3_INDEX *maxDupBylengh = calloc(maxLcp+1,sizeof(maxDupBylengh[0])) ;
     for (int i = 0; i < n; ++i) {
-        int me = lcp[i];
- //       int cnt = V[i] - U[i] - 1;
-        int cnt = V[i] - U[i] ;
- //       printf("(%d,%d,%d=%d-%d)",i,me,cnt,V[i],U[i]);
-        //cmax(dp[me], cnt);
-        if(cnt > maxDupBylengh[me]) {
-//            ans += me *  (cnt - maxDupBylengh[me]) ;
-            maxDupBylengh[me] = cnt ;
+        int li = lcp[i];
+        int cnt = A[i] - B[i] - 1 ; //  ] A[i] ... B[i] [
+        if(cnt > maxDupBylengh[li]) {
+            maxDupBylengh[li] = cnt ;
         }
     }
-/*    int64_t ans = 0;
-    for (int i = n - 1, t = 0; i >= 0; --i) {
-        if(dp[i] > t)  t = dp[i] ;
-        ans += t;
-    }
-*/
+    *ptMaxLcp = maxLcp ;
+    free(A); free(B) ;
+    return maxDupBylengh ;
+}
+
+int PB691a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    const int n = PB691_LG ;
+    uint8_t * suit = InitSuit(PB691_LG) ;
+    DC3_TYPE *suit_dc3 = malloc((PB691_LG+3)*sizeof(suit_dc3[0])) ;
+    for(i=0;i<n;i++) suit_dc3[i] = suit[i] + 1 ;  suit_dc3[n] = suit_dc3[n+1] = suit_dc3[n+2] = 0 ; //
+    DC3_INDEX * sa= malloc((n+1)*sizeof(sa[0]));
+    SuffixSort(suit_dc3, sa, n, 2);
+    free(suit_dc3 ); // not necessary after
+    DC3_INDEX * lcp = GetLCP(suit, sa, n);
+    free(sa); free(suit) ; // not necessary after
+    DC3_INDEX maxLcp  = 0 ;
+    DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
+    free(lcp) ;
     int32_t antdup = 1 ;
-    for(i=1;i<=maxMe;i++) {
- //       ans += i * (maxDupBylengh[i-1]-maxDupBylengh[i])+1 ;
+    int64_t S =0 ;
+    for(i=1;i<=maxLcp;i++) {
         if(maxDupBylengh[i]) {
             antdup = maxDupBylengh[i] ;
         }
-        ans += antdup ;
- //       if(maxDupBylengh[i]) printf("MD[%d]=%d ",i,maxDupBylengh[i]);
+        S += antdup ;
     }
-    ans += PB691_LG-maxMe ;
-    printf("Maxme=%d ans=%lld\n",maxMe,ans);
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ans);
+    S += PB691_LG ;
+    free(maxDupBylengh);
+    printf("MaxLcp=%d ans=%lld\n",maxLcp,S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
 
-uint8_t *suit8 ;
 /*
  int cmpSa(const void * el1, const void *el2) {
     int i1 = ((int *)el1)[0] ;
@@ -2008,20 +2003,63 @@ uint8_t *suit8 ;
     return suit8[i1] - suit8[i2] ;
 }
 */
+ #define PCK691  15
+ #define PCKTYPE uint16_t
+
+// #define PCK691  7
+// #define PCKTYPE uint8_t
+
+
+#define PCKSET  (1<<PCK691)
+
+
+
+PCKTYPE *suit8 ;
+/*
 int cmpSa(const void * el1, const void *el2) {
     int i1 = ((int *)el1)[0] ;
     int i2 = ((int *)el2)[0] ;
-    while(suit8[i1]==suit8[i2] && (suit8[i1] & 0x80)) { i1++ ; i2++ ; }
-    if(suit8[i2] & suit8[i1] & 0x80) {
+    while(suit8[i1]==suit8[i2] && (suit8[i1] & PCKSET)) { i1++ ; i2++ ; }
+    if(suit8[i2] & suit8[i1] & PCKSET) {
         return suit8[i1] - suit8[i2] ;
-    } else if(suit8[i2]  & 0x80) {
+    } else if(suit8[i2]  & PCKSET) {
         return -1 ;
-    } else if(suit8[i1]  & 0x80) {
+    } else if(suit8[i1]  & PCKSET) {
         return 1 ;
     } else {
         return suit8[i1] - suit8[i2] ;
     }
 }
+*/
+int cmpSa(const void * el1, const void *el2) {
+    PCKTYPE *s1 = suit8 + ((int *)el1)[0] ;
+    int d12 = ((int *)el2)[0] - ((int *)el1)[0] ;
+    while(*s1 == *(s1+d12) && (*s1 & PCKSET)) { s1++ ;  }
+    if(s1[d12] & *s1 & PCKSET) {
+        return *s1 - s1[d12] ;
+    } else if(s1[d12]  & PCKSET) {
+        return -1 ;
+    } else if(*s1  & PCKSET) {
+        return 1 ;
+    } else {
+        return *s1 - s1[d12] ;
+    }
+}
+int cmpSa1(const void * el1, const void *el2) {
+    PCKTYPE *s1 = suit8 + ((int *)el1)[0]+1 ;
+    int d12 = ((int *)el2)[0] - ((int *)el1)[0] ;
+    while(*s1 == *(s1+d12) && (*s1 & PCKSET)) { s1++ ;  }
+    if(s1[d12] & *s1 & PCKSET) {
+        return *s1 - s1[d12] ;
+    } else if(s1[d12]  & PCKSET) {
+        return -1 ;
+    } else if(*s1  & PCKSET) {
+        return 1 ;
+    } else {
+        return *s1 - s1[d12] ;
+    }
+}
+
 /*
 static int GetLCPdirect8(uint8_t * text,int32_t ia,int32_t ib) {
     if(ia<=ib) {
@@ -2081,61 +2119,40 @@ void GetLCP8(int8_t * text, int* SA, int* rank, int len, int* lcp) {
 
 int PB691b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int64_t Fn = 1, Fd = 1;
-    int64_t S = 0 ;
     int i ;
-    uint8_t *suit = malloc((PB691_LG+ 1)*sizeof(suit[0])) ;
-     for(i=0;i<38;i++) {
-        int64_t tmp = Fn ;
-        Fn += Fd ; Fd = tmp ;
-    }
+    uint8_t * suit = InitSuit(PB691_LG) ;
+
     
-    printf(" 1/Phi=%lld/%lld=%.15f (Exp %.15f)\n",Fd,Fn,(double)Fd/Fn,(-1+sqrt(5.0))/2.0) ;
-    suit[0] = 0 ;
-    int is = 1;
-    while(is*2 < PB691_LG) {
-        for(i=is;i<2*is;i++)suit[i] = 1 - suit[i-is] ;
-        is *= 2 ;
-    }
-    for(i=is;i<PB691_LG;i++)suit[i] = 1 - suit[i-is] ;
-    int64_t antPhi = 0 ;
-    for(i=0;i<PB691_LG;i++) {
-        antPhi += Fd ;
-        if( antPhi >= Fn){ // bi == 1
-            suit[i] = 1 - suit[i] ;
-            antPhi -= Fn ;
-        }
-//        printf("%d",suit[i]);
- //       suit[i]++ ;
-    }
-    printf("\n");
     const int n = PB691_LG ;
     suit[n] = 0 ;
-    int lg8 = (n/7 + 7)*7 ;
-    suit8 = malloc(lg8*sizeof(suit[0])) ;
+//    int lg8 = (n/7 + 7)*7 ;
+    int lg8 = (n/PCK691 + PCK691)*PCK691 ;
+    suit8 = malloc(lg8*sizeof(suit8[0])) ;
     int i0 ;
     int n7 =0 ;
-    int32_t sa[lg8] ;
+    int32_t *sa = malloc(lg8*sizeof(sa[0]));
     int n_sa = 0 ;
-    int debI0[7] ;
-    for(i0=0;i0<7;i0++) {
-        int lg1 = i0+((n-i0)/7)*7;
+    int debI0[PCK691] ;
+    for(i0=0;i0<PCK691;i0++) {
+        int lg1 = i0+((n-i0)/PCK691)*PCK691;
         debI0[i0] = n7 ;
-        for(i=i0;i<lg1;i += 7) {
+        for(i=i0;i<lg1;i += PCK691) {
  //           sa[n_sa++] = n7 ;
-            suit8[n7++] = 0x80 |  suit[i+6] | (suit[i+5] << 1)  | (suit[i+4] << 2) | (suit[i+3] << 3) | (suit[i+2] << 4) | (suit[i+1] << 5) | (suit[i] << 6) ;
+            PCKTYPE cur = PCKSET ;
+            for(int ni =0; ni<PCK691;ni++) cur |= suit[i+ni] <<  (PCK691 -ni -1) ;
+            suit8[n7++] = cur ;
         }
-        uint8_t last = 0x80 ; int i7 = i ;
+        PCKTYPE last = PCKSET ; int i7 = i ;
         if(i7 < n) {
  //           sa[n_sa++] = n7 ;
-            for(;i<n;i++) {last |= suit[i] << (6 - i + i7) ; }
+            for(;i<n;i++) {last |= suit[i] << (PCK691-1 - i + i7) ; }
             suit8[n7++] = last ;
         }
         suit8[n7++] = n - i7 ;
     }
     for(i=0;i<n;i++) {
-        i0 = i % 7 ;
-        int nb7 = (i-i0)/7 ;
+        i0 = i % PCK691 ;
+        int nb7 = (i-i0)/PCK691 ;
         sa[n_sa++] = debI0[i0] + nb7 ;
     }
 
@@ -2153,72 +2170,63 @@ int PB691b(PB_RESULT *pbR) {
     int32_t sai[lg8] , rnki[n7+1]  ;
     memcpy(sai,sa,n*sizeof(sa[0])) ;
     for(i=0;i<n_sa;i++)rnki[sai[i]]= i ;
-    
+// #define SORTSIMPLE
+#if defined(SORTSIMPLE)
     heapsort(sa,n_sa,sizeof(sa[0]),cmpSa) ;
+#else
+    { // count occurrences
+        int32_t * count = calloc(2*PCKSET+1,sizeof(count[0])) ;
+        int32_t * count1 = calloc(2*PCKSET+1,sizeof(count1[0])) ;
+        int32_t sao[lg8] ;
+         int i;
+        for (i = 0; i < n ; i++)  count[suit8[sa[i]]]++; //
+        int32_t sumc ;
+        for (i = 0, sumc = 0; i <= 2*PCKSET+1 ; i++)  {// exclusive prefix sums
+            int32_t tmp = count [i]; count[i] = sumc ; sumc += tmp;
+        }
+        
+        for ( i = 0; i < n; i++) sao[count[suit8[sa[i]]]++ ] = sa[i]; // sort
+        int is =0;
+        for(int ic=0;ic <= 2*PCKSET+1 ; ic++) {
+            if(count[ic]-is > 1) {
+                heapsort(sao+is,count[ic]-is,sizeof(sao[0]),cmpSa1) ;
+             }
+            is = count[ic] ;
+        }
+        memcpy(sa,sao,sizeof(sa[0])*lg8) ;
+
+    }
+#endif
+    
     printf("n7=%d n_sa=%d n=%d\n",n7,n_sa,n);
+ 
     int32_t rnk[n7 + 1] ;
     for (int i = 0; i < n; ++i) rnk[sa[i]] = i; //inverse permutation
-/*
-    for(i=0;i<n_sa;i++) {
-        printf("[%02d](%02d) ",i,sa[i]);
-        for(int j=sa[i];j<n7;j++) {
- //           printf("%x ",suit8[j] );
-            if((suit8[j] & 0x80)==0)break ;
-            printf("%d%d%d%d%d%d%d",(suit8[j]>>6) & 1,(suit8[j]>>5) & 1,(suit8[j]>>4) & 1,
-                   (suit8[j]>>3) & 1,(suit8[j]>>2) & 1,(suit8[j]>>1) & 1,suit8[j]&1 );
-            
-        }
-        printf("\n");
-    }
-*/
-    int32_t lcp[n + 1];
-    int sa0[n+1],rnk0[n+1], U[n + 1], V[n + 1];
+  //  int32_t lcp[n + 1];
+    int rnk0[n+1] ;
+    DC3_INDEX * sa0 = malloc(n*sizeof(sa0[0])) ;
     for(i=0;i<n;i++) { sa0[i] = rnki[sa[i]] ; }
     for(i=0;i<n;i++) { rnk0[i] = rnk[sai[i]] ; }
- //   for(i=0;i<n;i++) printf("rnk0[%d]=%d->%d ",i,rnk0[i],sa0[rnk0[i]]) ;
- //   for(i=0;i<n;i++) suit[i]-- ;
- //   for(i=0;i<n;i++) { printf("rk[%02d]=%02d ",i,rnk0[i]);for(int j=sa0[i];j<n;j++) { printf("%d",suit[j] );} printf("\n");}
-    GetLCP8(suit, sa0, rnk0, n, lcp);
-    int32_t maxMe = 0 ;
- //   for(i=0;i<n;i++) { printf("lcp[%d]=%d ",i,lcp[i]) ; }
-    {
-        U[0] = -1;
-        for (int i = 1; i < n; ++i) {
-            int me = lcp[i]; //printf("\n%d->%d:",i,me) ;
-            if(me > maxMe) maxMe = me ;
-            int id = i - 1;
-            while (id != -1 && lcp[id] >= me) { ; id = U[id]; }
-            U[i] = id; // printf(" ->%d",id);
-        }
-    }
-    {
-        V[n - 1] = n;
-        for (int i = n - 2; i >= 0; --i) {
-            int me = lcp[i];
-            int id = i + 1;
-            while (id != n && lcp[id] >= me) id = V[id];
-            V[i] = id;
-        }
-    }
-    int32_t *maxDupBylengh = calloc(maxMe+1,sizeof(maxDupBylengh[0])) ;
-    int64_t ans = 0 ;
-    for (int i = 0; i < n; ++i) {
-        int me = lcp[i];
-        int cnt = V[i] - U[i] ;
-        if(cnt > maxDupBylengh[me]) {
-            maxDupBylengh[me] = cnt ;
-        }
-    }
+ //   GetLCP8(suit, sa0, rnk0, n, lcp);
+    
+    
+    DC3_INDEX * lcp = GetLCP(suit, sa0, n);
+    free(sa0); free(suit) ; // not necessary after
+    DC3_INDEX maxLcp  = 0 ;
+    DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
+    free(lcp) ;
     int32_t antdup = 1 ;
-    for(i=1;i<=maxMe;i++) {
+    int64_t S =0 ;
+    for(i=1;i<=maxLcp;i++) {
         if(maxDupBylengh[i]) {
             antdup = maxDupBylengh[i] ;
         }
-        ans += antdup ;
+        S += antdup ;
     }
-    ans += PB691_LG-maxMe ;
-    printf("Maxme=%d ans=%lld\n",maxMe,ans);
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",ans);
+    S += PB691_LG ;
+    free(maxDupBylengh);
+    printf("MaxLcp=%d ans=%lld\n",maxLcp,S);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
@@ -2297,15 +2305,6 @@ int PB691(PB_RESULT *pbR) {
     startLg[lg+1] = nbStart ;
  //   printf("Maxdup[1]=%d\n",maxDup ) ;
     S += maxDup+1 ;
- /*   for(i=0;i<nbStart;i++) {
-        printf("\n %d [%d...%d] Dup=%d ->",dp[i].newC,dp[i].start,dp[i].end, dp[i].nbDup) ;
-        j=dp[i].start;
-        while(1) {
-            printf("%d ",j);
-            if(j == dp[i].end) break;
-            j = next[j] ;
-        }
-    */
     int antMaxDup =  PB691_LG ;
  do {
      lg++ ;
@@ -2360,43 +2359,11 @@ int PB691(PB_RESULT *pbR) {
      if(maxDup > 1) S += (antMaxDup-maxDup)*(lg)+1;
  //   printf("\n%.3fs %d-->%d Maxdup[%d]=%d S=%lld\n",(clock() - pbR->nbClock)/(float)CLOCKS_PER_SEC, startLg[lg],startLg[lg+1],lg,maxDup,S ) ;
       antMaxDup = maxDup ;
-/*     for(i=0;i<nbStart;i++) {
-         if(dp[i].nbDup > 1) {
-             printf("%d [%d...%d] Dup=%d ->",dp[i].newC,dp[i].start-lg+1,dp[i].end-lg+1, dp[i].nbDup) ;
-             j=dp[i].start;
-             while(1) {
-                 printf("%d ",j-lg+1);
-                 if(j == dp[i].end) break;
-                 j = next[j] ;
-             }
-         }
-         printf("\n");
-     }
-*/
  } while ( maxDup >=2 ) ;
 
     printf("\n Sum=%lld \n",S) ;
     
-  /*  int lgMax= 1;
-    int imax;
-    int jmax ;
-    for(i=0;i<PB691_LG - lgMax;i++) {
-        j = i+1 ;
-        do {
-            for(;j<PB691_LG && suit[j] != suit[i];)j++ ;
-                int k ;
-                for(k=1;suit[j+k] == suit[i+k];k++) ;
-                if(k>lgMax) {
-                    lgMax = k ;
-                    imax = i ;
-                    jmax = j ;
-                }
-            j++ ;
-        } while(j < PB691_LG - lgMax+1) ;
-            
-    }
-    printf(" L(2,%d) = %d (%d,%d)\n",PB691_LG,lgMax,imax,jmax ) ;
-*/
+ 
    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     //
     pbR->nbClock = clock() - pbR->nbClock ;
