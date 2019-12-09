@@ -1691,10 +1691,6 @@ void SuffixSort(const DC3_TYPE * T, DC3_INDEX * SA, int n, DC3_TYPE nbType) {
     }
     free(R); free(SA12); free(SA0); free(R0);
 }
-// return the leading common length
-int GetLCPtext(int32_t * a, int32_t * b)
-//{ int l=0;  while(*a && *b && *a==*b) { l++; a++; b++; }  return l; }
-{ int l=0;  while(*a  && *b && *a==*b) { l++; a++; b++; }  return l; }
 
 static int AtomLCP(const uint8_t * text,DC3_INDEX len,DC3_INDEX ia,DC3_INDEX ib) {
     if(ia<=ib) { int32_t tmp = ia ; ia= ib ; ib =tmp ;    }
@@ -1702,16 +1698,15 @@ static int AtomLCP(const uint8_t * text,DC3_INDEX len,DC3_INDEX ia,DC3_INDEX ib)
     while(ia < len && text[ia++] == text[ib++]) l++ ;
     return l ;
 }
-DC3_INDEX * GetLCP(const uint8_t * text,const DC3_INDEX * Sindex, int len) {
-    DC3_INDEX * lcp = malloc(len*sizeof(lcp[0])) ;
+DC3_INDEX * GetLCP(const uint8_t * text,const DC3_INDEX * Sindex, int nbIndex,int len) {
+    DC3_INDEX * lcp = malloc(nbIndex*sizeof(lcp[0])) ;
     lcp[0] = 0;
-    int32_t *Sorder=malloc(len * sizeof(Sorder[0])) ; // inverse permutation of index
-    for (int i = 0; i < len; ++i) Sorder[Sindex[i]] = i; //inverse permutation
-
+    int32_t *Sorder=malloc(nbIndex * sizeof(Sorder[0])) ; // inverse permutation of index
+    for (int i = 0; i < nbIndex; i++) Sorder[Sindex[i]] = i; //inverse permutation
     if (Sorder[0]) { // chaine initiale, partie commune avec la chaine totale
         lcp[Sorder[0]] = AtomLCP(text,len,0,Sindex[Sorder[0] - 1]);
     }
-    for (int i = 1; i < len; i++) {
+    for (int i = 1; i < nbIndex; i++) {
         if (!Sorder[i]) continue; // rank=0
         if (lcp[Sorder[i - 1]] <= 1) { // si la chaine precedente n'a rien de commun calcul direct
             lcp[Sorder[i]] = AtomLCP(text ,len, i, Sindex[Sorder[i] - 1]);
@@ -1788,7 +1783,7 @@ int PB691a(PB_RESULT *pbR) {
     DC3_INDEX * sa= malloc((n+1)*sizeof(sa[0]));
     SuffixSort(suit_dc3, sa, n, 2);
     free(suit_dc3 ); // not necessary after
-    DC3_INDEX * lcp = GetLCP(suit, sa, n);
+    DC3_INDEX * lcp = GetLCP(suit, sa, n,n);
     free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
@@ -1825,15 +1820,18 @@ PCKTYPE *suitPck ;
 #   define OFFSET0  1
 #endif
 int cmpSa(const void * el1, const void *el2) {
-    PCKTYPE *s1 = suitPck + ((int *)el1)[0] + OFFSET0 ;
     int d12 = ((int *)el2)[0] - ((int *)el1)[0] ;
-    while(*s1 == *(s1+d12) && (*s1 & PCKSET)) { s1++ ;  }
-    if(s1[d12] & *s1 & PCKSET) {
-        return *s1 - s1[d12] ;
+    if(d12 == 0) return 0 ;
+    PCKTYPE *s1 = suitPck + ((int *)el1)[0] + OFFSET0 ;
+    while( (*s1 & PCKSET) && *s1 == *(s1+d12) ) { s1++ ;  }
+    if(*s1 & PCKSET) {
+        if(s1[d12] & PCKSET) {
+            return *s1 - s1[d12] ;
+        } else {
+            return 1 ;
+        }
     } else if(s1[d12] & PCKSET) {
         return -1 ;
-    } else if(*s1 & PCKSET) {
-        return 1 ;
     } else {
         return *s1 - s1[d12] ;
     }
@@ -1844,7 +1842,6 @@ PCKTYPE * GetSuitPck(const uint8_t * suit,int debI0[PCK691+1],int n) {
     PCKTYPE *  suitPck = malloc(lgPck*sizeof(suitPck[0])) ;
     int i,i0 ;
     int nbPck =0 ;
-  //  int debI0[PCK691] ;
     for(i0=0;i0<PCK691;i0++) {
         int lg1 = i0+((n-i0)/PCK691)*PCK691;
         debI0[i0] = nbPck ;
@@ -1900,7 +1897,7 @@ int PB691b(PB_RESULT *pbR) {
     free(sao); free(count);
 #endif
     free(saPck); free(orderPck) ; free(suitPck); suitPck = NULL ;
-    DC3_INDEX * lcp = GetLCP(suit, sa, n);
+    DC3_INDEX * lcp = GetLCP(suit, sa, n,n);
     free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
@@ -1908,136 +1905,488 @@ int PB691b(PB_RESULT *pbR) {
     int32_t antdup = 1 ;
     int64_t S =0 ;
     for(i=1;i<=maxLcp;i++) {
-        if(maxDupBylengh[i]) {
+         if(maxDupBylengh[i]) {
             antdup = maxDupBylengh[i] ;
         }
         S += antdup ;
     }
     S += PB691_LG ;
     free(maxDupBylengh);
-    printf("MaxLcp=%d ans=%lld\n",maxLcp,S);
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
-/*
-typedef struct DupPat {
-    int start ;
-//    int end ;
-//    int length ;
-//    int nbDup ;
-//    uint8_t newC ;
-} DupPat ;
-*/
 
-typedef int32_t DupPat ;
+typedef struct DupPat {
+    int nbDup ;
+    int start ;
+    int end ;
+} DupPat ;
+
+#define NBITS691    18
+
+uint8_t * suitInt8 ;
+int suitLen ;
+
+int cmpSaUint8(const void * el1, const void *el2) {
+    int i1 = ((int *)el1)[0] ;
+    int i2 = ((int *)el2)[0] ;
+    int d12 = i2 - i1 ;
+    if(d12==0) return 0 ;
+    int len = suitLen- NBITS691 -( (d12 > 0) ? i2 : i1) ;
+    if(len <= 0) return d12 ;
+    uint8_t *s1 = suitInt8 + NBITS691 + i1 ;
+    int diff = memcmp(s1,s1+d12,len) ;
+    if(diff) return diff ;
+    else return d12 ;
+}
 
 int PB691(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int64_t Fn = 1, Fd = 1;
-    int64_t S = 0 ;
-    int i ;
-    uint8_t *suit = malloc(PB691_LG*sizeof(suit[0])) ;
-    for(i=0;i<38;i++) {
-        int64_t tmp = Fn ;
-        Fn += Fd ; Fd = tmp ;
-    }
-    
-    printf(" 1/Phi=%lld/%lld=%.15f (Exp %.15f)\n",Fd,Fn,(double)Fd/Fn,(-1+sqrt(5.0))/2.0) ;
-    suit[0] = 0 ;
-    int is = 1;
-    while(is*2 < PB691_LG) {
-        for(i=is;i<2*is;i++)suit[i] = 1 - suit[i-is] ;
-        is *= 2 ;
-    }
-    for(i=is;i<PB691_LG;i++)suit[i] = 1 - suit[i-is] ;
-    int64_t antPhi = 0 ;
-    for(i=0;i<PB691_LG;i++) {
-        antPhi += Fd ;
-        if( antPhi >= Fn){ // bi == 1
-            suit[i] = 1 - suit[i] ;
-            antPhi -= Fn ;
-        }
-        //        printf("%d ",suit[i]);
-    }
+    uint8_t * suit = InitSuit(PB691_LG) ;
     int n = PB691_LG ;
-    DupPat * dpAnt = malloc(PB691_LG*sizeof(dpAnt[0]));
-    DupPat * dp = malloc(PB691_LG*sizeof(dp[0]));
-    int * nextAnt = malloc(PB691_LG*sizeof(nextAnt[0]));
-    int * next = malloc(PB691_LG*sizeof(next[0]));
-    int startLg[10000] ;
-//    for(i=0;i<PB691_LG;i++) printf("%d",suit[i]);
-    startLg[0] = 1 ;
-    int lg = 0 ;
-    int nbStart = 0 ;
-    dp[nbStart++] = 0 ;
-    int maxDup = 1 ;
-    int j;
-    for(j=0;j<n;j++) next[j]=j+1 ;
-    startLg[lg+1] = nbStart ;
- //   printf("Maxdup[1]=%d\n",maxDup ) ;
-    S += maxDup+1 ;
-    int antMaxDup =  PB691_LG ;
-    
- 
- do {
-     lg++ ; // printf("\n lg=%d->",lg) ;
-     maxDup = 1 ;
-     int idp ;
-     int * tmp = nextAnt ;
-     nextAnt = next ;
-     next = tmp ;
-     DupPat * dpt = dpAnt ;
-     dpAnt = dp ;
-     dp = dpt ;
-     nbStart = 0 ;
-     for(idp=0;idp<startLg[lg];idp++) {
-         int nb0=0, nb1=0 ;
-         j=dpAnt[idp];
-         int start0 , end0 , start1,end1 ;
-         while (j<PB691_LG-lg) {
-             if(suit[j+lg]) {
-                 if (nb1++) {
-                     next[end1] =j ;
-                     end1=j ;
-                 } else {
-                     start1 = end1 = j ;
-                 }
-             } else {
-                 if(nb0++) {
-                     next[end0] =j ;
-                     end0=j ;
-                 } else {
-                     start0 = end0 = j ;
-                 }
-             }
-             j = nextAnt[j] ;
-             if(j<0) break ;
-         }
-         if(nb0<=1 && nb1 <=1) continue ;
-         if(nb0 > 1) {
-             dp[nbStart++] = start0 ;
-             next[end0] = -1 ;
-             if(nb0 > maxDup) maxDup = nb0 ;
-          }
-          if(nb1 > 1) {
-             dp[nbStart++] = start1 ;
-             next[end1] = -1 ;
-             if(nb1 > maxDup) maxDup = nb1 ;
-       }
-     }
-     startLg[lg+1] = nbStart ;
-     if(maxDup > 1) S += (antMaxDup-maxDup)*(lg)+1;
-    printf("\n%.3fs %d-->%d Maxdup[%d]=%d S=%lld\n",(clock() - pbR->nbClock)/(float)CLOCKS_PER_SEC, startLg[lg],startLg[lg+1],lg,maxDup,S ) ;
-      antMaxDup = maxDup ;
- } while ( maxDup >=2 ) ;
+    suitLen = n ;
+    suitInt8 = suit ;
+    int nbHisto = (1 << NBITS691) ;
+    int maskStart = nbHisto - 1 ;
+    int * iStart = malloc(PB691_LG*sizeof(iStart[0]));
+    int * sa = malloc(PB691_LG*sizeof(sa[0]));
+    int * histoStart = calloc(nbHisto,sizeof(histoStart[0]));
+    int curStart = 0 ;
+    int i ;
+    for(i=0;i<NBITS691-1;i++) curStart = (curStart << 1) | suit[i] ;
+    for(i=0;i<n-NBITS691+1;i++) {
+        curStart = ((curStart << 1) & maskStart) | suit[i+NBITS691-1] ;
+        iStart[i] = curStart ;
+        histoStart[curStart]++ ;
+    }
+    for(;i<n;i++) { curStart = (curStart << 1) & maskStart  ; iStart[i] = curStart ; histoStart[curStart]++ ; }
+    int sumH = histoStart[0] ;
+    histoStart[0] = 0 ;
+    int ih ;
+    for(ih=1;ih<nbHisto;ih++) {
+        int tmp = histoStart[ih] ;
+        histoStart[ih] = sumH ;
+        sumH += tmp ;
+    }
+    for(i=0;i<n;i++) {
+        sa[histoStart[iStart[i]]++] =  i ;
+    }
+    int nb_sa = 0;
+    for(ih=0;ih<nbHisto;ih++) {
+        if(histoStart[ih]-nb_sa > 1) {
+            qsort(sa+nb_sa,histoStart[ih]-nb_sa,sizeof(sa[0]),cmpSaUint8);
+            nb_sa = histoStart[ih] ;
+        } else if(histoStart[ih]-nb_sa == 1) {
+            nb_sa++ ;
+        }
+    }
+    free (histoStart) ; free(iStart);
+//    printf("nb_sa=%d\n",nb_sa);
+//    for(i=0;i<nb_sa;i++) {printf("\n-"); for(int j=sa[i];j<n;j++) printf("%d",suit[j]); }
 
-    printf("\n Sum=%lld \n",S) ;
-    
- 
-   snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
-    //
-    pbR->nbClock = clock() - pbR->nbClock ;
+    DC3_INDEX * lcp = GetLCP(suit, sa, nb_sa,n);
+    free(sa); free(suit) ; // not necessary after
+    DC3_INDEX maxLcp  = 0 ;
+    DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,nb_sa) ;
+    free(lcp) ;
+    int antdup = 1 ;
+    int64_t S =0 ;
+    for(i=0;i<=maxLcp;i++) {
+        if(maxDupBylengh[i]) {
+            antdup = maxDupBylengh[i] ;
+        }
+        S += antdup ;
+    }
+    free(maxDupBylengh);
+     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
+     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
 
+
+#define MAX_CHAR 3
+
+uint8_t * suitUK ;
+int suitUKLen ;
+
+struct SuffixTreeNode {
+    struct SuffixTreeNode *children[MAX_CHAR];
+    
+    //pointer to other node via suffix link
+    struct SuffixTreeNode *suffixLink;
+    
+    /*(start, end) interval specifies the edge, by which the
+     node is connected to its parent node. Each edge will
+     connect two nodes,  one parent and one child, and
+     (start, end) interval of a given edge  will be stored
+     in the child node. Lets say there are two nods A and B
+     connected by an edge with indices (5, 8) then this
+     indices (5, 8) will be stored in node B. */
+    int start;
+    int *end;
+    
+    /*for leaf nodes, it stores the index of suffix for
+     the path  from root to leaf*/
+    int suffixIndex;
+};
+
+typedef struct SuffixTreeNode Node;
+
+Node *root = NULL; //Pointer to root node
+
+/*lastNewNode will point to newly created internal node,
+ waiting for it's suffix link to be set, which might get
+ a new suffix link (other than root) in next extension of
+ same phase. lastNewNode will be set to NULL when last
+ newly created internal node (if there is any) got it's
+ suffix link reset to new internal node created in next
+ extension of same phase. */
+Node *lastNewNode = NULL;
+Node *activeNode = NULL;
+
+/*activeEdge is represeted as input string character
+ index (not the character itself)*/
+int activeEdge = -1;
+int activeLength = 0;
+
+// remainingSuffixCount tells how many suffixes yet to
+// be added in tree
+int remainingSuffixCount = 0;
+int leafEnd = -1;
+int *rootEnd = NULL;
+int *splitEnd = NULL;
+int size = -1; //Length of input string
+
+Node *newNode(int start, int *end)
+{
+    Node *node =(Node*) malloc(sizeof(Node));
+    int i;
+    for (i = 0; i < MAX_CHAR; i++)
+        node->children[i] = NULL;
+    
+    /*For root node, suffixLink will be set to NULL
+     For internal nodes, suffixLink will be set to root
+     by default in  current extension and may change in
+     next extension*/
+    node->suffixLink = root;
+    node->start = start;
+    node->end = end;
+    
+    /*suffixIndex will be set to -1 by default and
+     actual suffix index will be set later for leaves
+     at the end of all phases*/
+    node->suffixIndex = -1;
+    return node;
+}
+int edgeLength(Node *n) {
+    return *(n->end) - (n->start) + 1;
+}
+
+int walkDown(Node *currNode)
+{
+    /*activePoint change for walk down (APCFWD) using
+     Skip/Count Trick  (Trick 1). If activeLength is greater
+     than current edge length, set next  internal node as
+     activeNode and adjust activeEdge and activeLength
+     accordingly to represent same activePoint*/
+    if (activeLength >= edgeLength(currNode))
+    {
+        activeEdge += edgeLength(currNode);
+        activeLength -= edgeLength(currNode);
+        activeNode = currNode;
+        return 1;
+    }
+    return 0;
+}
+void extendSuffixTree(int pos)
+{
+    /*Extension Rule 1, this takes care of extending all
+     leaves created so far in tree*/
+    leafEnd = pos;
+    
+    /*Increment remainingSuffixCount indicating that a
+     new suffix added to the list of suffixes yet to be
+     added in tree*/
+    remainingSuffixCount++;
+    
+    /*set lastNewNode to NULL while starting a new phase,
+     indicating there is no internal node waiting for
+     it's suffix link reset in current phase*/
+    lastNewNode = NULL;
+    
+    //Add all suffixes (yet to be added) one by one in tree
+    while(remainingSuffixCount > 0) {
+        
+        if (activeLength == 0)
+            activeEdge = pos; //APCFALZ
+        
+        // There is no outgoing edge starting with
+        // activeEdge from activeNode
+        if (activeNode->children[suitUK[activeEdge]] == NULL)
+        {
+            //Extension Rule 2 (A new leaf edge gets created)
+            activeNode->children[suitUK[activeEdge]] = newNode(pos, &leafEnd);
+            
+            /*A new leaf edge is created in above line starting
+             from  an existng node (the current activeNode), and
+             if there is any internal node waiting for it's suffix
+             link get reset, point the suffix link from that last
+             internal node to current activeNode. Then set lastNewNode
+             to NULL indicating no more node waiting for suffix link
+             reset.*/
+            if (lastNewNode != NULL)
+            {
+                lastNewNode->suffixLink = activeNode;
+                lastNewNode = NULL;
+            }
+        }
+        // There is an outgoing edge starting with activeEdge
+        // from activeNode
+        else
+        {
+            // Get the next node at the end of edge starting
+            // with activeEdge
+            Node *next = activeNode->children[suitUK[activeEdge]];
+            if (walkDown(next))//Do walkdown
+            {
+                //Start from next node (the new activeNode)
+                continue;
+            }
+            /*Extension Rule 3 (current character being processed
+             is already on the edge)*/
+            if (suitUK[next->start + activeLength] == suitUK[pos])
+            {
+                //If a newly created node waiting for it's
+                //suffix link to be set, then set suffix link
+                //of that waiting node to current active node
+                if(lastNewNode != NULL && activeNode != root)
+                {
+                    lastNewNode->suffixLink = activeNode;
+                    lastNewNode = NULL;
+                }
+                
+                //APCFER3
+                activeLength++;
+                /*STOP all further processing in this phase
+                 and move on to next phase*/
+                break;
+            }
+            
+            /*We will be here when activePoint is in middle of
+             the edge being traversed and current character
+             being processed is not  on the edge (we fall off
+             the tree). In this case, we add a new internal node
+             and a new leaf edge going out of that new node. This
+             is Extension Rule 2, where a new leaf edge and a new
+             internal node get created*/
+            splitEnd = (int*) malloc(sizeof(int));
+            *splitEnd = next->start + activeLength - 1;
+            
+            //New internal node
+            Node *split = newNode(next->start, splitEnd);
+            activeNode->children[suitUK[activeEdge]] = split;
+            
+            //New leaf coming out of new internal node
+            split->children[suitUK[pos]] = newNode(pos, &leafEnd);
+            next->start += activeLength;
+            split->children[suitUK[next->start]] = next;
+            
+            /*We got a new internal node here. If there is any
+             internal node created in last extensions of same
+             phase which is still waiting for it's suffix link
+             reset, do it now.*/
+            if (lastNewNode != NULL)
+            {
+                /*suffixLink of lastNewNode points to current newly
+                 created internal node*/
+                lastNewNode->suffixLink = split;
+            }
+            
+            /*Make the current newly created internal node waiting
+             for it's suffix link reset (which is pointing to root
+             at present). If we come across any other internal node
+             (existing or newly created) in next extension of same
+             phase, when a new leaf edge gets added (i.e. when
+             Extension Rule 2 applies is any of the next extension
+             of same phase) at that point, suffixLink of this node
+             will point to that internal node.*/
+            lastNewNode = split;
+        }
+        
+        /* One suffix got added in tree, decrement the count of
+         suffixes yet to be added.*/
+        remainingSuffixCount--;
+        if (activeNode == root && activeLength > 0) //APCFER2C1
+        {
+            activeLength--;
+            activeEdge = pos - remainingSuffixCount + 1;
+        }
+        else if (activeNode != root) //APCFER2C2
+        {
+            activeNode = activeNode->suffixLink;
+        }
+    }
+}
+
+void print(int i, int j)
+{
+    int k;
+    for (k=i; k<=j; k++)
+        printf("%d", suitUK[k]-1);
+}
+
+//Print the suffix tree as well along with setting suffix index
+//So tree will be printed in DFS manner
+//Each edge along with it's suffix index will be printed
+void setSuffixIndexByDFS(Node *n, int labelHeight)
+{
+    if (n == NULL)  return;
+    
+    if (n->start != -1) //A non-root node
+    {
+        //Print the label on edge from parent to current node
+//        print(n->start, *(n->end));
+    }
+    int leaf = 1;
+    int i;
+    for (i = 0; i < MAX_CHAR; i++)
+    {
+        if (n->children[i] != NULL)
+        {
+ //           if (leaf == 1 && n->start != -1)printf(" [%d]\n", n->suffixIndex);
+            
+            //Current node is not a leaf as it has outgoing
+            //edges from it.
+            leaf = 0;
+            setSuffixIndexByDFS(n->children[i], labelHeight +
+                                edgeLength(n->children[i]));
+        }
+    }
+    if (leaf == 1)
+    {
+        n->suffixIndex = size - labelHeight;
+ //       printf(" [%d]\n", n->suffixIndex);
+    }
+}
+void freeSuffixTreeByPostOrder(Node *n)
+{
+    if (n == NULL)
+        return;
+    int i;
+    for (i = 0; i < MAX_CHAR; i++)
+    {
+        if (n->children[i] != NULL)
+        {
+            freeSuffixTreeByPostOrder(n->children[i]);
+        }
+    }
+    if (n->suffixIndex == -1)
+        free(n->end);
+    free(n);
+}
+
+/*Build the suffix tree and print the edge labels along with
+ suffixIndex. suffixIndex for leaf edges will be >= 0 and
+ for non-leaf edges will be -1*/
+void buildSuffixTree()
+{
+    size = suitUKLen ;
+    int i;
+    rootEnd = (int*) malloc(sizeof(int));
+    *rootEnd = - 1;
+    
+    /*Root is a special node with start and end indices as -1,
+     as it has no parent from where an edge comes to root*/
+    root = newNode(-1, rootEnd);
+    
+    activeNode = root; //First activeNode will be root
+    for (i=0; i<size; i++)
+        extendSuffixTree(i);
+    int labelHeight = 0;
+    setSuffixIndexByDFS(root, labelHeight);
+    
+    //Free the dynamically allocated memory
+//    freeSuffixTreeByPostOrder(root);
+}
+
+void doTraversal(Node *n, int suffixArray[], int *idx)
+{
+    if(n == NULL)
+    {
+        return;
+    }
+    int i=0;
+    if(n->suffixIndex == -1) //If it is internal node
+    {
+        for (i = 0; i < MAX_CHAR; i++)
+        {
+            if(n->children[i] != NULL)
+            {
+                doTraversal(n->children[i], suffixArray, idx);
+            }
+        }
+    }
+    //If it is Leaf node other than "$" label
+    else if(n->suffixIndex > -1 && n->suffixIndex < size)
+    {
+        suffixArray[(*idx)++] = n->suffixIndex;
+    }
+}
+
+void buildSuffixArray(int suffixArray[])
+{
+    int i = 0;
+    for(i=0; i< size; i++)suffixArray[i] = -1;
+    int idx = 0;
+    doTraversal(root, suffixArray, &idx);
+/*    printf("Suffix Array for String ");
+    for(i=0; i<size; i++)printf("%d", suitUK[i]);
+    printf(" is: \n");
+    for(i=1; i<size; i++) {
+        int j ;
+        for(j=suffixArray[i];j<suitUKLen-1;j++) printf("%d",suitUK[j]-1) ;
+       
+        printf("\n");
+    }
+*/
+}
+
+int PB691c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    uint8_t * suit = InitSuit(PB691_LG+1) ;
+    suitUK = suit ;
+    int n = PB691_LG ;
+    for(i=0;i<n;i++) suitUK[i] += 1 ;
+    suit[n] = 0 ;
+    
+ //   memcpy(suitUK,"aabbaabbabb",11);
+ //   n = 11 ;
+    suitUKLen = n+1 ;
+    buildSuffixTree();
+    int *sa =(int*) malloc(n*sizeof(sa[0]));
+    buildSuffixArray(sa);
+  
+    DC3_INDEX * lcp = GetLCP(suit, sa+1,n,n);
+    free(sa); free(suit) ; // not necessary after
+    DC3_INDEX maxLcp  = 0 ;
+    DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
+    free(lcp) ;
+    int antdup = 1 ;
+    int64_t S =0 ;
+    for(i=0;i<=maxLcp;i++) {
+        if(maxDupBylengh[i]) {
+            antdup = maxDupBylengh[i] ;
+        }
+        S += antdup ;
+    }
+    free(maxDupBylengh);
+
+    
+    
+//    freeSuffixTreeByPostOrder(root);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
