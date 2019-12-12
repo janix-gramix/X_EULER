@@ -2005,7 +2005,7 @@ int PB691(PB_RESULT *pbR) {
 }
 
 
-#define MAX_CHAR 3
+#define MAX_CHAR 2
 
 uint8_t * suitUK ;
 int suitUKLen ;
@@ -2024,11 +2024,12 @@ struct SuffixTreeNode {
      connected by an edge with indices (5, 8) then this
      indices (5, 8) will be stored in node B. */
     int start;
-    int *end;
-    
+ //   int *end;
+    int end ;
     /*for leaf nodes, it stores the index of suffix for
      the path  from root to leaf*/
     int suffixIndex;
+//    int num ;
 };
 
 typedef struct SuffixTreeNode Node;
@@ -2044,7 +2045,6 @@ Node *root = NULL; //Pointer to root node
  extension of same phase. */
 Node *lastNewNode = NULL;
 Node *activeNode = NULL;
-
 /*activeEdge is represeted as input string character
  index (not the character itself)*/
 int activeEdge = -1;
@@ -2057,14 +2057,18 @@ int leafEnd = -1;
 int *rootEnd = NULL;
 int *splitEnd = NULL;
 int size = -1; //Length of input string
+int nbNodeAlloc = 0 ;
+int nxtFreeNode = 0 ;
+Node *tbNode = NULL ;
 
-Node *newNode(int start, int *end)
+Node *newNode(int start, int end)
 {
-    Node *node =(Node*) malloc(sizeof(Node));
+//    Node *node =(Node*) malloc(sizeof(Node));
+    Node *node = tbNode + nxtFreeNode++ ;
+//    node->num = nxtFreeNode - 1 ;
     int i;
-    for (i = 0; i < MAX_CHAR; i++)
-        node->children[i] = NULL;
-    
+ //   for (i = 0; i < MAX_CHAR; i++)node->children[i] = NULL;
+    memset(node->children,0,sizeof(node->children));
     /*For root node, suffixLink will be set to NULL
      For internal nodes, suffixLink will be set to root
      by default in  current extension and may change in
@@ -2077,10 +2081,12 @@ Node *newNode(int start, int *end)
      actual suffix index will be set later for leaves
      at the end of all phases*/
     node->suffixIndex = -1;
+    nbNodeAlloc++ ;
     return node;
 }
-int edgeLength(Node *n) {
-    return *(n->end) - (n->start) + 1;
+static int edgeLength(Node *n) {
+//    return *(n->end) - (n->start) + 1;
+    return (n->end < 0) ?(leafEnd - n->start + 1 ) : (n->end - n->start + 1) ;
 }
 
 int walkDown(Node *currNode)
@@ -2126,7 +2132,8 @@ void extendSuffixTree(int pos)
         if (activeNode->children[suitUK[activeEdge]] == NULL)
         {
             //Extension Rule 2 (A new leaf edge gets created)
-            activeNode->children[suitUK[activeEdge]] = newNode(pos, &leafEnd);
+//            activeNode->children[suitUK[activeEdge]] = newNode(pos, &leafEnd);
+         activeNode->children[suitUK[activeEdge]] = newNode(pos, -1);
             
             /*A new leaf edge is created in above line starting
              from  an existng node (the current activeNode), and
@@ -2180,15 +2187,17 @@ void extendSuffixTree(int pos)
              and a new leaf edge going out of that new node. This
              is Extension Rule 2, where a new leaf edge and a new
              internal node get created*/
-            splitEnd = (int*) malloc(sizeof(int));
-            *splitEnd = next->start + activeLength - 1;
+ //           splitEnd = (int*) malloc(sizeof(int));
+ //           *splitEnd = next->start + activeLength - 1;
             
             //New internal node
-            Node *split = newNode(next->start, splitEnd);
+//            Node *split = newNode(next->start, splitEnd);
+           Node *split = newNode(next->start, next->start + activeLength - 1);
             activeNode->children[suitUK[activeEdge]] = split;
             
             //New leaf coming out of new internal node
-            split->children[suitUK[pos]] = newNode(pos, &leafEnd);
+//            split->children[suitUK[pos]] = newNode(pos, &leafEnd);
+           split->children[suitUK[pos]] = newNode(pos, -1);
             next->start += activeLength;
             split->children[suitUK[next->start]] = next;
             
@@ -2229,7 +2238,156 @@ void extendSuffixTree(int pos)
     }
 }
 
-void print(int i, int j)
+void extendSuffixTreeLast()
+{
+    /*Extension Rule 1, this takes care of extending all
+     leaves created so far in tree*/
+    int pos  = ++leafEnd;
+    
+    /*Increment remainingSuffixCount indicating that a
+     new suffix added to the list of suffixes yet to be
+     added in tree*/
+    remainingSuffixCount++;
+    
+    /*set lastNewNode to NULL while starting a new phase,
+     indicating there is no internal node waiting for
+     it's suffix link reset in current phase*/
+    lastNewNode = NULL;
+    
+    //Add all suffixes (yet to be added) one by one in tree
+    while(remainingSuffixCount > 0) {
+        
+        if (activeLength == 0)
+            activeEdge = pos; //APCFALZ
+        
+        // There is no outgoing edge starting with
+        // activeEdge from activeNode
+//        if (activeEdge == pos || activeNode->children[suitUK[activeEdge]] == NULL)
+        if (activeEdge == leafEnd || activeNode->children[suitUK[activeEdge]] == NULL)
+        {
+            //Extension Rule 2 (A new leaf edge gets created)
+            //            activeNode->children[suitUK[activeEdge]] = newNode(pos, &leafEnd);
+            if(activeEdge < leafEnd) {
+                activeNode->children[suitUK[activeEdge]] = newNode(pos, -1);
+            
+            /*A new leaf edge is created in above line starting
+             from  an existng node (the current activeNode), and
+             if there is any internal node waiting for it's suffix
+             link get reset, point the suffix link from that last
+             internal node to current activeNode. Then set lastNewNode
+             to NULL indicating no more node waiting for suffix link
+             reset.*/
+                if (lastNewNode != NULL)
+                {
+                    lastNewNode->suffixLink = activeNode;
+                    lastNewNode = NULL;
+                }
+//            } else {
+           } else if(activeNode != root){
+   //             activeNode->suffixIndex = activeEdge - 1 ;
+                activeNode->suffixIndex = -2 ;
+ //               printf("activeNode[%d]st=%d,ae=%d,al=%d,po=%d,si=%d "
+ //                      ,activeNode-tbNode,activeNode->start,activeEdge,activeLength,pos,activeNode->suffixIndex) ;
+            }
+        }
+        // There is an outgoing edge starting with activeEdge
+        // from activeNode
+        else if (activeNode->children[suitUK[activeEdge]] != NULL)
+        {
+            // Get the next node at the end of edge starting
+            // with activeEdge
+            Node *next = activeNode->children[suitUK[activeEdge]];
+            if (walkDown(next))//Do walkdown
+            {
+                //Start from next node (the new activeNode)
+                continue;
+            }
+            /*Extension Rule 3 (current character being processed
+             is already on the edge)*/
+
+ //xx
+            /*
+      //      if (suitUK[next->start + activeLength] == suitUK[pos])
+            if (next->start + activeLength == pos)
+            {
+                //If a newly created node waiting for it's
+                //suffix link to be set, then set suffix link
+                //of that waiting node to current active node
+                if(lastNewNode != NULL && activeNode != root)
+                {
+                    lastNewNode->suffixLink = activeNode;
+                    lastNewNode = NULL;
+                }
+                
+                //APCFER3
+                activeLength++;
+                //STOP all further processing in this phase and move on to next phase
+                break;
+            }
+           */
+            /*We will be here when activePoint is in middle of
+             the edge being traversed and current character
+             being processed is not  on the edge (we fall off
+             the tree). In this case, we add a new internal node
+             and a new leaf edge going out of that new node. This
+             is Extension Rule 2, where a new leaf edge and a new
+             internal node get created*/
+            //New internal node
+            //            Node *split = newNode(next->start, splitEnd);
+            Node *split = newNode(next->start, next->start + activeLength - 1);
+            activeNode->children[suitUK[activeEdge]] = split;
+            
+            //New leaf coming out of new internal node
+ 
+  //xx      split->children[suitUK[pos]] = newNode(pos, -1);
+       //      split->suffixIndex = next->start + activeLength ;
+  //          split->suffixIndex = activeEdge - 1 ;
+            split->suffixIndex = -2 ;
+ //           printf("State[%d]st=%d,ae=%d,al=%d,po=%d,si=%d "
+ //                  ,split-tbNode,next->start,activeEdge,activeLength,pos,split->suffixIndex) ;
+
+            next->start += activeLength;
+            split->children[suitUK[next->start]] = next;
+            
+            /*We got a new internal node here. If there is any
+             internal node created in last extensions of same
+             phase which is still waiting for it's suffix link
+             reset, do it now.*/
+            if (lastNewNode != NULL)
+            {
+                /*suffixLink of lastNewNode points to current newly
+                 created internal node*/
+                lastNewNode->suffixLink = split;
+            }
+            
+            /*Make the current newly created internal node waiting
+             for it's suffix link reset (which is pointing to root
+             at present). If we come across any other internal node
+             (existing or newly created) in next extension of same
+             phase, when a new leaf edge gets added (i.e. when
+             Extension Rule 2 applies is any of the next extension
+             of same phase) at that point, suffixLink of this node
+             will point to that internal node.*/
+            lastNewNode = split;
+        }
+        
+        /* One suffix got added in tree, decrement the count of
+         suffixes yet to be added.*/
+        remainingSuffixCount--;
+        if (activeNode == root && activeLength > 0) //APCFER2C1
+        {
+            activeLength--;
+            activeEdge = pos - remainingSuffixCount + 1;
+        }
+        else if (activeNode != root) //APCFER2C2
+        {
+            activeNode = activeNode->suffixLink;
+        }
+    }
+}
+
+
+void print_1(int i, int j)
 {
     int k;
     for (k=i; k<=j; k++)
@@ -2242,11 +2400,12 @@ void print(int i, int j)
 void setSuffixIndexByDFS(Node *n, int labelHeight)
 {
     if (n == NULL)  return;
-    
+//    printf("***h=%d In State %d >",labelHeight,n-tbNode) ;
+ //   print_1(size-labelHeight,size-1); printf("\n");
     if (n->start != -1) //A non-root node
     {
         //Print the label on edge from parent to current node
-//        print(n->start, *(n->end));
+//        print_1(n->start, (n->end == -1) ? leafEnd : n->end);
     }
     int leaf = 1;
     int i;
@@ -2254,20 +2413,63 @@ void setSuffixIndexByDFS(Node *n, int labelHeight)
     {
         if (n->children[i] != NULL)
         {
+ //           printf("+ St(%d)->child(%d) ",n-tbNode,i) ;
  //           if (leaf == 1 && n->start != -1)printf(" [%d]\n", n->suffixIndex);
-            
             //Current node is not a leaf as it has outgoing
             //edges from it.
             leaf = 0;
             setSuffixIndexByDFS(n->children[i], labelHeight +
-                                edgeLength(n->children[i]));
+                                   edgeLength(n->children[i]));
         }
     }
-    if (leaf == 1)
+    if (leaf == 1 )
     {
         n->suffixIndex = size - labelHeight;
  //       printf(" [%d]\n", n->suffixIndex);
     }
+//    printf("*** Out State %d\n",n-tbNode) ;
+}
+
+void print(int i, int j)
+{
+    int k;
+    for (k=i; k<=j; k++)
+        printf("%d", suitUK[k]);
+}
+void setSuffixIndexByDFSMod(Node *n, int labelHeight)
+{
+    if (n == NULL)  return;
+//    printf("***h=%d In State %d >",labelHeight,n-tbNode) ;
+//    print(size-labelHeight-1,size-2); printf("\n");
+    if (n->start != -1) //A non-root node
+    {
+        //Print the label on edge from parent to current node
+ //        print(n->start, (n->end == -1) ? leafEnd-1 : n->end);
+    }
+    int leaf = 1;
+    int i;
+    for (i = 0; i < MAX_CHAR; i++)
+    {
+        if (n->children[i] != NULL)
+        {
+//            printf("+ St(%d)->child(%d) ",n-tbNode,i) ;
+//            if (leaf == 1 && n->start != -1)printf(" ((%d))\n", n->suffixIndex);
+            //Current node is not a leaf as it has outgoing
+            //edges from it.
+            leaf = 0;
+            setSuffixIndexByDFSMod(n->children[i], labelHeight +
+                                edgeLength(n->children[i]));
+        }
+    }
+    if (leaf == 1 )
+    {
+        n->suffixIndex = size - labelHeight;
+//        printf(" I[%d]=%d\n",n-tbNode, n->suffixIndex);
+    } else if(n->suffixIndex == -2) {
+        n->suffixIndex = size - labelHeight-1;
+//        printf(" I(%d)=%d\n",n-tbNode, n->suffixIndex);
+    }
+//    printf("*** Out State %d\n",n-tbNode) ;
 }
 void freeSuffixTreeByPostOrder(Node *n)
 {
@@ -2281,30 +2483,90 @@ void freeSuffixTreeByPostOrder(Node *n)
             freeSuffixTreeByPostOrder(n->children[i]);
         }
     }
-    if (n->suffixIndex == -1)
-        free(n->end);
+ //   if (n->suffixIndex == -1) free(n->end);
     free(n);
 }
 
 /*Build the suffix tree and print the edge labels along with
  suffixIndex. suffixIndex for leaf edges will be >= 0 and
  for non-leaf edges will be -1*/
-void buildSuffixTree()
+void buildSuffixTree(int N)
 {
-    size = suitUKLen ;
-    int i;
-    rootEnd = (int*) malloc(sizeof(int));
-    *rootEnd = - 1;
     
+    lastNewNode = NULL;
+    activeNode = NULL;
+    /*activeEdge is represeted as input string character
+     index (not the character itself)*/
+    activeEdge = -1;
+    activeLength = 0;
+    
+    // remainingSuffixCount tells how many suffixes yet to
+    // be added in tree
+    remainingSuffixCount = 0;
+    leafEnd = -1;
+    rootEnd = NULL;
+    splitEnd = NULL;
+    size = -1; //Length of input string
+    nbNodeAlloc = 0 ;
+    nxtFreeNode = 0 ;
+    tbNode = NULL ;
+
+    
+    size = N+1 ;
+    int i;
+    int rootEnd = -1 ;
+    tbNode = malloc(2*N*sizeof(tbNode[0])) ;
+    nbNodeAlloc = 2*N ;
+    nxtFreeNode = 0 ;
     /*Root is a special node with start and end indices as -1,
      as it has no parent from where an edge comes to root*/
     root = newNode(-1, rootEnd);
     
     activeNode = root; //First activeNode will be root
-    for (i=0; i<size; i++)
-        extendSuffixTree(i);
-    int labelHeight = 0;
+    for (i=0; i<size; i++) extendSuffixTree(i);
+     int labelHeight = 0;
     setSuffixIndexByDFS(root, labelHeight);
+    
+    //Free the dynamically allocated memory
+    //    freeSuffixTreeByPostOrder(root);
+}
+
+void buildSuffixTreeMod(int N)
+{
+    lastNewNode = NULL;
+    activeNode = NULL;
+    /*activeEdge is represeted as input string character
+     index (not the character itself)*/
+    activeEdge = -1;
+    activeLength = 0;
+    
+    // remainingSuffixCount tells how many suffixes yet to
+    // be added in tree
+    remainingSuffixCount = 0;
+    leafEnd = -1;
+    rootEnd = NULL;
+    splitEnd = NULL;
+    size = -1; //Length of input string
+    nbNodeAlloc = 0 ;
+    nxtFreeNode = 0 ;
+    tbNode = NULL ;
+
+    
+    size = N+1 ;
+    int i;
+    int rootEnd = -1 ;
+    tbNode = malloc(2*N*sizeof(tbNode[0])) ;
+    nbNodeAlloc = 2*N ;
+    nxtFreeNode = 0 ;
+    /*Root is a special node with start and end indices as -1,
+     as it has no parent from where an edge comes to root*/
+    root = newNode(-1, rootEnd);
+    
+    activeNode = root; //First activeNode will be root
+    for (i=0; i<size-1; i++) extendSuffixTree(i);
+    extendSuffixTreeLast();
+    int labelHeight = 0;
+    setSuffixIndexByDFSMod(root, labelHeight);
     
     //Free the dynamically allocated memory
 //    freeSuffixTreeByPostOrder(root);
@@ -2317,7 +2579,12 @@ void doTraversal(Node *n, int suffixArray[], int *idx)
         return;
     }
     int i=0;
-    if(n->suffixIndex == -1) //If it is internal node
+    if(n->suffixIndex > -1 && n->suffixIndex < size)
+    {
+        suffixArray[(*idx)++] = n->suffixIndex;
+    }
+
+//xx    if(n->suffixIndex == -1) //If it is internal node
     {
         for (i = 0; i < MAX_CHAR; i++)
         {
@@ -2328,10 +2595,6 @@ void doTraversal(Node *n, int suffixArray[], int *idx)
         }
     }
     //If it is Leaf node other than "$" label
-    else if(n->suffixIndex > -1 && n->suffixIndex < size)
-    {
-        suffixArray[(*idx)++] = n->suffixIndex;
-    }
 }
 
 void buildSuffixArray(int suffixArray[])
@@ -2340,16 +2603,17 @@ void buildSuffixArray(int suffixArray[])
     for(i=0; i< size; i++)suffixArray[i] = -1;
     int idx = 0;
     doTraversal(root, suffixArray, &idx);
-/*    printf("Suffix Array for String ");
-    for(i=0; i<size; i++)printf("%d", suitUK[i]);
+ /*   printf("Suffix Array for String ");
+    for(i=0; i<size; i++)printf("%d", suitUK[i]-1);
     printf(" is: \n");
     for(i=1; i<size; i++) {
         int j ;
-        for(j=suffixArray[i];j<suitUKLen-1;j++) printf("%d",suitUK[j]-1) ;
+        for(j=suffixArray[i];j<suitUKLen;j++) printf("%d",suitUK[j]-1) ;
        
         printf("\n");
     }
 */
+    free(tbNode);
 }
 
 int PB691c(PB_RESULT *pbR) {
@@ -2358,17 +2622,83 @@ int PB691c(PB_RESULT *pbR) {
     uint8_t * suit = InitSuit(PB691_LG+1) ;
     suitUK = suit ;
     int n = PB691_LG ;
+ //   n = 12 ;
     for(i=0;i<n;i++) suitUK[i] += 1 ;
     suit[n] = 0 ;
     
- //   memcpy(suitUK,"aabbaabbabb",11);
- //   n = 11 ;
-    suitUKLen = n+1 ;
-    buildSuffixTree();
-    int *sa =(int*) malloc(n*sizeof(sa[0]));
+    suitUKLen = n+1;
+    buildSuffixTree(n);
+    int *sa =(int*) malloc((n+1)*sizeof(sa[0]));
     buildSuffixArray(sa);
-  
+    
+    for(i=0;i<n;i++) suitUK[i] -= 1 ;
+/*
+    printf("Suffix Array for String ");
+    for(i=0; i<n; i++)printf("%d", suitUK[i]);
+    printf(" is: \n");
+    for(i=1; i<n+1; i++) {
+        int j ;
+        for(j=sa[i];j<suitUKLen-1;j++) printf("%d",suitUK[j]) ;
+        
+        printf("\n");
+    }
+ */
+    
+    printf("Nbnode=%d\n",nbNodeAlloc) ;
     DC3_INDEX * lcp = GetLCP(suit, sa+1,n,n);
+    free(sa); free(suit) ; // not necessary after
+    DC3_INDEX maxLcp  = 0 ;
+    DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
+    free(lcp) ;
+    int antdup = 1 ;
+    int64_t S =0 ;
+    for(i=0;i<=maxLcp;i++) {
+        if(maxDupBylengh[i]) {
+            antdup = maxDupBylengh[i] ;
+        }
+        S += antdup ;
+    }
+    free(maxDupBylengh);
+    
+    
+    
+    //    freeSuffixTreeByPostOrder(root);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+int PB691d(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    uint8_t * suit = InitSuit(PB691_LG+1) ;
+    suitUK = suit ;
+    int n = PB691_LG ;
+ //   n = 100 ;
+ 
+//  for(i=0;i<n;i++) suitUK[i] += 1 ;
+  //  suit[n] = 0 ;
+    
+    suitUKLen =n+1;
+    buildSuffixTreeMod(n);
+    int *sa =(int*) malloc((n+1)*sizeof(sa[0]));
+    buildSuffixArray(sa);
+    
+ /*
+    printf("Suffix Array for String ");
+    for(i=0; i<n; i++)printf("%d", suitUK[i]);
+    printf(" is: \n");
+    for(i=0; i<n; i++) {
+        int j ;
+        for(j=sa[i];j<suitUKLen-1;j++) printf("%d",suitUK[j]) ;
+        
+        printf("\n");
+    }
+*/
+    
+    printf("Nbnode=%d\n",nbNodeAlloc) ;
+    DC3_INDEX * lcp = GetLCP(suit, sa,n,n);
     free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
