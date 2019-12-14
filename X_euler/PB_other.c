@@ -2005,72 +2005,80 @@ int PB691(PB_RESULT *pbR) {
 }
 
 
-#define MAX_CHAR 3
+#define MAX_CHAR 2
 
+typedef int32_t indNode ;
+
+/*
 // suffix tree node
 typedef struct STNode STNode ;
-typedef int32_t indNode ;
 struct STNode {
-    indNode children[MAX_CHAR];
-    //pointer to other node via suffix link
-    indNode suffixLink;
     // [start,end[ edge label for edge connection with parent
     int start;
     int end ;
+    //pointer to other node via suffix link
+    indNode suffixLink;
     // for leaf nodes, store the index of suffix for the path from root to leaf
     int suffixIndex;
-//    int num ;
+    indNode children[MAX_CHAR];
 } ;
+*/
+
+#define OFFSTART        0
+#define OFFEND          1
+#define OFFSUFFLINK     2
+#define OFFSUFFIND      3
+#define OFFCHILD        4
+
+#define START(indN)       ST->tbNode[(indN)+OFFSTART]
+#define END(indN)         ST->tbNode[(indN)+OFFEND]
+#define SUFFLINK(indN)    ST->tbNode[(indN)+OFFSUFFLINK]
+#define SUFFIND(indN)     ST->tbNode[(indN)+OFFSUFFIND]
+#define CHILD(indN)       (ST->tbNode+(indN)+OFFCHILD)
 
 // suffix tree
 typedef struct STree {
     const uint8_t *suit ;
     indNode activeNode ;
     // activeEdge by its input string character
-    int activeEdge ;
-    int activeLength;
+    int32_t activeEdge ;
+    int32_t activeLength;
     // remainingSuffixCount tells how many suffixes yet to be added in tree
-    int remainingSuffixCount ;
-    int leafEnd ;
-    int nbNodeAlloc ;
-    int nxtFreeNode ;
-    STNode *tbNode  ;
+    int32_t remainingSuffixCount ;
+    int32_t leafEnd ;
+    int32_t nbNodeAlloc ;
+    int32_t nxtFreeNode ;
+    int32_t *tbNode  ;
+    int32_t sizeNode ;
+    int32_t maxChild ;
+    int32_t minLCP ;
     indNode root ;
-
-
+    int32_t *sa ;
+    int32_t *lcp ;
+    int32_t indSA ;
+    int32_t minLabelHeight ;
 } STree ;
 #define pseudoLeaf  (-2)
 #define NODE(index) (ST->tbNode+(index))
-// STNode *root = NULL; //Pointer to root node
-/*
-STNode *activeNode = NULL;
-// activeEdge by its input string character
-int activeEdge = -1;
-int activeLength = 0;
-// remainingSuffixCount tells how many suffixes yet to be added in tree
-int remainingSuffixCount = 0;
-int leafEnd = -1;
-int nbNodeAlloc = 0 ;
-int nxtFreeNode = 0 ;
-STNode *tbNode = NULL ;
-*/
+
+
+
 
 indNode newNode(STree *ST,int start, int end) {
-    indNode indN = ST->nxtFreeNode++ ;
-    STNode *node = ST->tbNode + indN   ;
-//    node->num = nxtFreeNode - 1 ;
-    memset(node->children,0,sizeof(node->children));
+    indNode indN = ST->sizeNode * ST->nxtFreeNode++ ;
+
+    memset(CHILD(indN),0,ST->sizeNode-OFFCHILD);
     // For root node, suffixLink will be set to NULL
     // For internal nodes, suffixLink set to root by default
     // and can be may changed in next extension
-    node->suffixLink = ST->root;
-    node->start = start;
-    node->end = end;
-    node->suffixIndex = -1;
+    SUFFLINK(indN) = ST->root;
+    START(indN) = start;
+    END(indN) = end;
+    SUFFIND(indN) = -1;
     ST->nbNodeAlloc++ ;
     return indN;
 }
-static int edgeLength(STree *ST,STNode *n) { return (n->end < 0) ?(ST->leafEnd - n->start ) : (n->end - n->start) ; }
+static int edgeLength(STree *ST,indNode n) { return (END(n) < 0) ?(ST->leafEnd - START(n) ) : (END(n) - START(n)) ; }
 
 int walkDown(STree *ST,indNode currNode) {
     // (Trick 1) activePoint change for walk down (APCFWD) using
@@ -2078,7 +2086,7 @@ int walkDown(STree *ST,indNode currNode) {
     // than current edge length, set next  internal node as
     //  activeNode and adjust activeEdge and activeLength
     int len ;
-    if (ST->activeLength >= (len=edgeLength(ST,ST->tbNode+currNode)) ) {
+    if (ST->activeLength >= (len=edgeLength(ST,currNode)) ) {
         ST->activeEdge += len;
         ST->activeLength -= len;
         ST->activeNode = currNode;
@@ -2099,31 +2107,31 @@ void extendSuffixTree(STree *ST,int pos) {
     while(ST->remainingSuffixCount > 0) {
         if (ST->activeLength == 0) ST->activeEdge = pos; //APCFALZ
         // no outgoing edge starting with activeEdge from activeNode
-        if (NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]] == indNodeNULL) {
+        if (CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] == indNodeNULL) {
             //Extension Rule 2 (A new leaf edge gets created)
-            NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]] = newNode(ST,pos, -1);
+            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = newNode(ST,pos, -1);
             // new leaf edge is created in above line starting
             // no more node waiting for suffix link to reset
             if (lastNewNode != lastNewNULL) {
-                NODE(lastNewNode)->suffixLink = ST->activeNode;
+                SUFFLINK(lastNewNode) = ST->activeNode;
                 lastNewNode = lastNewNULL ;
             }
         } else {
         // There is an outgoing edge starting with activeEdge from activeNode
             // Get the next node at the end of edge starting with activeEdge
-            indNode next = NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]];
+            indNode next = CHILD(ST->activeNode)[ST->suit[ST->activeEdge]];
             if (walkDown(ST,next)) { //Do walkdown
                 //Start from next node (the new activeNode)
                 continue;
             }
             /*Extension Rule 3 (current character being processed
              is already on the edge)*/
-            if (ST->suit[NODE(next)->start + ST->activeLength] == ST->suit[pos]) {
+            if (ST->suit[START(next) + ST->activeLength] == ST->suit[pos]) {
                 //If a newly created node waiting for it's
                 //suffix link to be set, then set suffix link
                 //of that waiting node to current active node
                 if(lastNewNode != lastNewNULL && ST->activeNode != ST->root) {
-                    NODE(lastNewNode)->suffixLink = ST->activeNode;
+                    SUFFLINK(lastNewNode) = ST->activeNode;
                     lastNewNode = lastNewNULL ;
                 }
                 //APCFER3
@@ -2133,17 +2141,17 @@ void extendSuffixTree(STree *ST,int pos) {
             }
             //activePoint is in middle of the edge being  In this case, we add a new internal node
             // Extension Rule 2, new leaf edge and a newinternal node
-            indNode split = newNode(ST,NODE(next)->start, NODE(next)->start + ST->activeLength );
-            NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]] = split;
+            indNode split = newNode(ST,START(next), START(next) + ST->activeLength );
+            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = split;
             //New leaf coming out of new internal node
-            NODE(split)->children[ST->suit[pos]] = newNode(ST,pos, -1);
-            NODE(next)->start += ST->activeLength;
-            NODE(split)->children[ST->suit[NODE(next)->start]] = next;
+            CHILD(split)[ST->suit[pos]] = newNode(ST,pos, -1);
+            START(next) += ST->activeLength;
+            CHILD(split)[ST->suit[START(next)]] = next;
             
             // lasNewNode waiting ?
             if (lastNewNode != lastNewNULL) {
                 // suffixLink of lastNewNode points to current newly created internal node
-                NODE(lastNewNode)->suffixLink = split;
+                SUFFLINK(lastNewNode) = split;
             }
             // Make the  newly cre internal node waiting for it's suffix link reset
             lastNewNode = split;
@@ -2154,7 +2162,7 @@ void extendSuffixTree(STree *ST,int pos) {
             ST->activeLength--;
             ST->activeEdge = pos - ST->remainingSuffixCount + 1;
         } else if (ST->activeNode != ST->root)  {//APCFER2C2
-            ST->activeNode = NODE(ST->activeNode)->suffixLink;
+            ST->activeNode = SUFFLINK(ST->activeNode);
         }
     }
 }
@@ -2169,23 +2177,23 @@ void extendSuffixTreeLast(STree *ST) {
             ST->activeEdge = pos; //APCFALZ
         if (ST->activeEdge >= ST->leafEnd) { // vrtual "$" is current
              if(ST->activeNode != ST->root){ // mark activeNode as pseudoLeaf
-                 NODE(ST->activeNode)->suffixIndex = pseudoLeaf ;
+                 SUFFIND(ST->activeNode) = pseudoLeaf ;
             }
-        } else if (NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]] != indNodeNULL) {
+        } else if (CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] != indNodeNULL) {
         // There is an outgoing edge starting with activeEdge
-            indNode next = NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]];
+            indNode next = CHILD(ST->activeNode)[ST->suit[ST->activeEdge]];
             if (walkDown(ST,next)) { //Do walkdown
                 continue;
             }
             //New internal node
-            indNode split = newNode(ST,NODE(next)->start, NODE(next)->start + ST->activeLength );
-            NODE(ST->activeNode)->children[ST->suit[ST->activeEdge]] = split;
+            indNode split = newNode(ST,START(next), START(next) + ST->activeLength );
+            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = split;
             //New leaf coming out of new internal node
-            NODE(split)->suffixIndex = pseudoLeaf ;
-            NODE(next)->start += ST->activeLength;
-            NODE(split)->children[ST->suit[NODE(next)->start]] = next;
+            SUFFIND(split) = pseudoLeaf ;
+            START(next) += ST->activeLength;
+            CHILD(split)[ST->suit[START(next)]] = next;
             if (lastNewNode != lastNewNULL) {
-                NODE(lastNewNode)->suffixLink = split;
+                SUFFLINK(lastNewNode) = split;
             }
             lastNewNode = split;
         }
@@ -2194,82 +2202,53 @@ void extendSuffixTreeLast(STree *ST) {
             ST->activeLength--;
             ST->activeEdge = pos - ST->remainingSuffixCount + 1;
         } else if (ST->activeNode != ST->root) { //APCFER2C2
-            ST->activeNode = NODE(ST->activeNode)->suffixLink;
+            ST->activeNode = SUFFLINK(ST->activeNode);
         }
     }
 }
 
-/*
-void print_1(int i, int j) {
-    int k;
-    for (k=i; k<=j; k++)
-        printf("%d", suit[k]);
-}
-*/
-
-//Print the suffix tree as well along with setting suffix index
-//So tree will be printed in DFS manner
-//Each edge along with it's suffix index will be printed
-void setSuffixIndexByDFS(STree *ST,indNode n, int labelHeight)
-{
-    if (n == indNodeNULL )  return;
+void GetSALCP_DP(STree *ST,indNode n, int labelHeight){
+    if (n == indNodeNULL) return  ;
     int isLeaf = 1;
     int i;
-    for (i = 0; i < MAX_CHAR; i++) {
-        if (NODE(n)->children[i] != indNodeNULL) {
-           isLeaf = 0;
-            setSuffixIndexByDFS(ST
-                                ,NODE(n)->children[i]
-                                , labelHeight + edgeLength(ST,NODE(NODE(n)->children[i])));
+    if(SUFFIND(n) != pseudoLeaf) {
+        for (i = 0; i < ST->maxChild; i++) {
+            if (CHILD(n)[i] != indNodeNULL ) { isLeaf=0; break ; }
         }
     }
-    if (isLeaf && labelHeight>1) { // labelHeight >1 to remove leaf with "$"
-          NODE(n)->suffixIndex = ST->leafEnd - labelHeight;
+    if(isLeaf  && labelHeight >= ST->minLabelHeight ) {
+        if(ST->lcp) { ST->lcp[ST->indSA]  = ST->minLCP ;  }
+        if(ST->sa) {  ST->sa[ST->indSA]  = ST->leafEnd - labelHeight ; }
+        ST->indSA++ ;
+        ST->minLCP = labelHeight ;
     }
-}
-/*
-void print(int i, int j)
-{
-    int k;
-    for (k=i; k<=j; k++)
-        printf("%d", suit[k]);
-}
-*/
-void setSuffixIndexByDFSMod(STree *ST,indNode n, int labelHeight)
-{
-    if (n == indNodeNULL)  return;
-    int isLeaf = 1;
-    int i;
-    for (i = 0; i < MAX_CHAR; i++) {
-        if (NODE(n)->children[i] != indNodeNULL ) { //Current node not leaf
-            isLeaf = 0; setSuffixIndexByDFSMod(ST,NODE(n)->children[i]
-                                               , labelHeight + edgeLength(ST,NODE(NODE(n)->children[i])));
+    for (i = 0; i < ST->maxChild; i++) {
+        if (CHILD(n)[i] != indNodeNULL ) { //Current node not leaf
+            if(ST->minLCP > labelHeight) ST->minLCP = labelHeight ;
+            GetSALCP_DP(ST,CHILD(n)[i],labelHeight + edgeLength(ST,CHILD(n)[i])) ;
         }
     }
-    if(isLeaf || NODE(n)->suffixIndex == pseudoLeaf) NODE(n)->suffixIndex = ST->leafEnd - labelHeight ;
+    return  ;
+}
 
-//    printf("*** Out State %d\n",n-tbNode) ;
-}
-/*
-void freeSuffixTreeByPostOrder(STNode *n)
-{
-    if (n == NULL) return;
-    int i;
-    for (i = 0; i < MAX_CHAR; i++) {
-        if (n->children[i] != NULL)
-        {
-            freeSuffixTreeByPostOrder(n->children[i]);
-        }
+
+void CompSALCP(STree *ST,int32_t *sa,int32_t *lcp) {
+    ST->sa = sa ;
+    ST->lcp = lcp ;
+    ST->indSA = 0 ;
+    if(sa != NULL || lcp != NULL) {
+        int labelHeight = 0;
+        ST->minLCP = 0 ;
+        GetSALCP_DP(ST,ST->root, labelHeight);
     }
- //   if (n->suffixIndex == -1) free(n->end);
-    free(n);
+    return ;
 }
-*/
-/*Build the suffix tree and print the edge labels along with
- suffixIndex. suffixIndex for leaf edges will be >= 0 and
- for non-leaf edges will be -1*/
-STree * GetSuffixTree(const uint8_t *suit,int length)
-{
+
+// build suffixTree
+// character from [0..length[ must be in ]0,maxChar[
+// suit must be terminated by 0 (suit[length]=0 )
+// for a suit of 1,2 terminated by a 0, maxChar=3
+STree * X_CompSuffixTree(const uint8_t *suit,int maxChar,int length) {
     STree * ST = calloc(1,sizeof(ST[0])) ;
     ST->activeNode = indNodeNULL;
     /*activeEdge is represeted as input string character
@@ -2281,9 +2260,10 @@ STree * GetSuffixTree(const uint8_t *suit,int length)
     // be added in tree
     ST->remainingSuffixCount = 0;
     ST->leafEnd = -1;
- 
+    ST->maxChild =MAX_CHAR+1 ;
+    ST->sizeNode = OFFCHILD+ST->maxChild ;
     int i;
-    ST->tbNode = malloc(2*length*sizeof(ST->tbNode[0])) ;
+    ST->tbNode = malloc(2*length*ST->sizeNode*sizeof(ST->tbNode[0])) ;
     ST->nbNodeAlloc = 2*length ;
     ST->nxtFreeNode = 1 ;
     /*Root is a special node with start and end indices as -1,
@@ -2292,15 +2272,16 @@ STree * GetSuffixTree(const uint8_t *suit,int length)
     
     ST->activeNode = ST->root; //First activeNode will be root
     for (i=0; i<length+1; i++) extendSuffixTree(ST,i);
-
-     int labelHeight = 0;
-    setSuffixIndexByDFS(ST,ST->root, labelHeight);
+    ST->minLabelHeight = 2 ;
+//    int labelHeight = 0;
+//    setSuffixIndexByDFS(ST,ST->root, labelHeight);
     return ST ;
-    //Free the dynamically allocated memory
-    //    freeSuffixTreeByPostOrder(root);
 }
 
-STree *  GetSuffixTreeMod(const uint8_t *suit,int length) {
+// build suffixTree
+// character from [0..length[ must be in [0,maxChar[
+// For a suit of 0,1 maxChar=2
+STree *  ComputeSuffixTree(const uint8_t *suit,int maxChar,int length) {
     STree * ST = calloc(1,sizeof(ST[0])) ;
 
     ST->activeNode = indNodeNULL;
@@ -2313,10 +2294,15 @@ STree *  GetSuffixTreeMod(const uint8_t *suit,int length) {
     // be added in tree
     ST->remainingSuffixCount = 0;
     ST->leafEnd = -1;
-
+    
+    ST->sa = NULL ;
+    ST->lcp = NULL ;
+    
     ST->suit = suit ;
+    ST->maxChild =maxChar ;
+    ST->sizeNode = OFFCHILD+ST->maxChild ;
     int i;
-    ST->tbNode = malloc(2*(length+1)*sizeof(ST->tbNode[0])) ;
+    ST->tbNode = malloc(2*length*ST->sizeNode*sizeof(ST->tbNode[0])) ;
     ST->nbNodeAlloc = 2*(length+1) ;
     ST->nxtFreeNode = 1 ;
     /*Root is a special node with start and end indices as -1,
@@ -2325,49 +2311,32 @@ STree *  GetSuffixTreeMod(const uint8_t *suit,int length) {
     ST->activeNode = ST->root; //First activeNode will be root
     for (i=0; i<length; i++) extendSuffixTree(ST,i);
     extendSuffixTreeLast(ST);
-    int labelHeight = 0;
-    setSuffixIndexByDFSMod(ST,ST->root, labelHeight);
+    ST->minLabelHeight = 1 ;
     return ST ;
-    //Free the dynamically allocated memory
-//    freeSuffixTreeByPostOrder(root);
 }
-
-int doTraversal(STree *ST,indNode n, int suffixArray[], int idx) {
-    if(n == indNodeNULL) { return idx; }
-    int i=0;
-    if(NODE(n)->suffixIndex >= 0 ) {  suffixArray[idx++] = NODE(n)->suffixIndex;}
-        for (i = 0; i < MAX_CHAR; i++) {
-            if(NODE(n)->children[i] != indNodeNULL)  {
-                idx=doTraversal(ST,NODE(n)->children[i], suffixArray, idx);
-            }
-        }
-    return idx ;
+STree *  FreeSuffixTree(STree * ST) {
+    if(ST) {
+        free(ST->tbNode) ;
+        free(ST) ;
+    }
+    return NULL ;
 }
-
-void buildSuffixArray(STree *ST,int suffixArray[]) {
-    int idx = doTraversal(ST,ST->root, suffixArray,0);
-    printf("Idx=%d\n",idx);
-    free(ST->tbNode);
-}
-
 int PB691c(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int i ;
     uint8_t * suit = InitSuit(PB691_LG+1) ;
     int n = PB691_LG ;
- //   n = 12 ;
+//    n = 50 ;
     for(int i=0;i<n;i++) suit[i] += 1 ;
     suit[n] = 0 ;
-    STree *ST = GetSuffixTree(suit,n);
+    STree *ST = X_CompSuffixTree(suit,3,n);
     for(i=0;i<n;i++) suit[i] -= 1 ;
 
-    int *sa =(int*) malloc(n*sizeof(sa[0]));
-    buildSuffixArray(ST,sa);
-    
-    
+    int *sa = NULL ; // not necessary ,compute directly lcp
+    int *lcp =(int*) malloc(n*sizeof(lcp[0]));
+    CompSALCP(ST,sa,lcp)  ;
     printf("Nbnode=%d\n",ST->nbNodeAlloc) ;
-    DC3_INDEX * lcp = GetLCP(suit, sa,n,n);
-    free(sa); free(suit) ; // not necessary after
+    FreeSuffixTree(ST); free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
     free(lcp) ;
@@ -2380,10 +2349,6 @@ int PB691c(PB_RESULT *pbR) {
         S += antdup ;
     }
     free(maxDupBylengh);
-    
-    
-    
-    //    freeSuffixTreeByPostOrder(root);
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -2395,30 +2360,16 @@ int PB691d(PB_RESULT *pbR) {
     int i ;
     uint8_t * suit = InitSuit(PB691_LG) ;
     int n = PB691_LG ;
-//    n = 80 ;
- 
-//  for(i=0;i<n;i++) suitUK[i] += 1 ;
-  //  suit[n] = 0 ;
-    
-    STree *ST = GetSuffixTreeMod(suit,n);
-    int *sa =(int*) malloc(n*sizeof(sa[0]));
-    buildSuffixArray(ST,sa);
-    
- /*
-    printf("Suffix Array for String ");
-    for(i=0; i<n; i++)printf("%d", suitUK[i]);
-    printf(" is: \n");
-    for(i=0; i<n; i++) {
-        int j ;
-        for(j=sa[i];j<suitUKLen-1;j++) printf("%d",suitUK[j]) ;
-        
-        printf("\n");
-    }
-*/
+  //  n = 50 ;
+ //   for(i=0; i<n; i++)printf("%d", suit[i]);
+    STree *ST = ComputeSuffixTree(suit,2,n);
+ //   int *sa =(int*) malloc(n*sizeof(sa[0]));
+    int *sa = NULL ; // not necessary ,compute directly lcp
+    int *lcp =(int*) malloc(n*sizeof(lcp[0]));
+    CompSALCP(ST,sa,lcp)  ;
     
     printf("Nbnode=%d\n",ST->nbNodeAlloc) ;
-    DC3_INDEX * lcp = GetLCP(suit, sa,n,n);
-    free(sa); free(suit) ; // not necessary after
+    FreeSuffixTree(ST);  free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
     free(lcp) ;
