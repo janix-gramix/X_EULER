@@ -2009,32 +2009,47 @@ int PB691(PB_RESULT *pbR) {
 
 typedef int32_t indNode ;
 
-/*
+
 // suffix tree node
 typedef struct STNode STNode ;
 struct STNode {
     // [start,end[ edge label for edge connection with parent
-    int start;
-    int end ;
+    int32_t start;
+    int32_t end ;
     //pointer to other node via suffix link
     indNode suffixLink;
-    // for leaf nodes, store the index of suffix for the path from root to leaf
-    int suffixIndex;
-    indNode children[MAX_CHAR];
+    // lead on pseudo-leaf indicator
+//    int32_t leafStatus;
+    indNode children[1]; // false size
 } ;
-*/
+
+#define unknownLeaf  (-1)
+#define pseudoLeaf   (-2)
+
+#define lastNewNULL -1
+#define indNodeNULL  0
+
+#define bitPseudoLeaf   0x80000000
+#define MaskSuffixLink   0x7fffffff
+
 
 #define OFFSTART        0
 #define OFFEND          1
 #define OFFSUFFLINK     2
-#define OFFSUFFIND      3
-#define OFFCHILD        4
+#define OFFCHILD        3
 
-#define START(indN)       ST->tbNode[(indN)+OFFSTART]
-#define END(indN)         ST->tbNode[(indN)+OFFEND]
-#define SUFFLINK(indN)    ST->tbNode[(indN)+OFFSUFFLINK]
-#define SUFFIND(indN)     ST->tbNode[(indN)+OFFSUFFIND]
-#define CHILD(indN)       (ST->tbNode+(indN)+OFFCHILD)
+#define NODE(indN)              ((STNode *) (ST->tbNode+(indN)))
+#define START(indN)             NODE(indN)->start
+#define END(indN)               NODE(indN)->end
+#define SUFFLINK(indN)          NODE(indN)->suffixLink
+// next macros only used in last pass where the field suffixLink is also use to mark pseudoLeaf
+#define GETSUFFLINK(indN)       (NODE(indN)->suffixLink & MaskSuffixLink)
+#define SETSUFFLINK(indN,newSuffLink)      NODE(indN)->suffixLink = (NODE(indN)->suffixLink & bitPseudoLeaf) | (newSuffLink)
+#define SETPSDLEAF(indN)        NODE(indN)->suffixLink |= bitPseudoLeaf
+#define CLEARPSDLEAF(indN)        NODE(indN)->suffixLink &= MaskSuffixLink
+
+#define ISPSDLEAF(indN)         (NODE(indN)->suffixLink & bitPseudoLeaf)
+#define CHILD(indN)             NODE(indN)->children
 
 // suffix tree
 typedef struct STree {
@@ -2059,22 +2074,20 @@ typedef struct STree {
     int32_t minLabelHeight ;
 } STree ;
 #define pseudoLeaf  (-2)
-#define NODE(index) (ST->tbNode+(index))
 
 
 
 
 indNode newNode(STree *ST,int start, int end) {
     indNode indN = ST->sizeNode * ST->nxtFreeNode++ ;
-
-    memset(CHILD(indN),0,ST->sizeNode-OFFCHILD);
+    STNode * newN =  (STNode *) (ST->tbNode + indN) ;
+    memset(newN->children,0,ST->sizeNode-OFFCHILD);
     // For root node, suffixLink will be set to NULL
     // For internal nodes, suffixLink set to root by default
     // and can be may changed in next extension
-    SUFFLINK(indN) = ST->root;
-    START(indN) = start;
-    END(indN) = end;
-    SUFFIND(indN) = -1;
+    newN->suffixLink = ST->root;
+    newN->start = start;
+    newN->end = end;
     ST->nbNodeAlloc++ ;
     return indN;
 }
@@ -2094,8 +2107,7 @@ int walkDown(STree *ST,indNode currNode) {
     }
     return 0;
 }
-#define lastNewNULL -1
-#define indNodeNULL 0
+
 void extendSuffixTree(STree *ST,int pos) {
     // Rule 1, extend all leaves
     ST->leafEnd = pos+1;
@@ -2162,7 +2174,7 @@ void extendSuffixTree(STree *ST,int pos) {
             ST->activeLength--;
             ST->activeEdge = pos - ST->remainingSuffixCount + 1;
         } else if (ST->activeNode != ST->root)  {//APCFER2C2
-            ST->activeNode = SUFFLINK(ST->activeNode);
+            ST->activeNode = SUFFLINK(ST->activeNode) ;
         }
     }
 }
@@ -2177,7 +2189,7 @@ void extendSuffixTreeLast(STree *ST) {
             ST->activeEdge = pos; //APCFALZ
         if (ST->activeEdge >= ST->leafEnd) { // vrtual "$" is current
              if(ST->activeNode != ST->root){ // mark activeNode as pseudoLeaf
-                 SUFFIND(ST->activeNode) = pseudoLeaf ;
+                   SETPSDLEAF(ST->activeNode);
             }
         } else if (CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] != indNodeNULL) {
         // There is an outgoing edge starting with activeEdge
@@ -2189,11 +2201,11 @@ void extendSuffixTreeLast(STree *ST) {
             indNode split = newNode(ST,START(next), START(next) + ST->activeLength );
             CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = split;
             //New leaf coming out of new internal node
-            SUFFIND(split) = pseudoLeaf ;
+            SETPSDLEAF(split);
             START(next) += ST->activeLength;
             CHILD(split)[ST->suit[START(next)]] = next;
             if (lastNewNode != lastNewNULL) {
-                SUFFLINK(lastNewNode) = split;
+                SETSUFFLINK(lastNewNode,split) ;
             }
             lastNewNode = split;
         }
@@ -2202,7 +2214,7 @@ void extendSuffixTreeLast(STree *ST) {
             ST->activeLength--;
             ST->activeEdge = pos - ST->remainingSuffixCount + 1;
         } else if (ST->activeNode != ST->root) { //APCFER2C2
-            ST->activeNode = SUFFLINK(ST->activeNode);
+            ST->activeNode = GETSUFFLINK(ST->activeNode) ;
         }
     }
 }
@@ -2211,7 +2223,8 @@ void GetSALCP_DP(STree *ST,indNode n, int labelHeight){
     if (n == indNodeNULL) return  ;
     int isLeaf = 1;
     int i;
-    if(SUFFIND(n) != pseudoLeaf) {
+//    if(LEAFSTAT(n) != pseudoLeaf) {
+    if(!ISPSDLEAF(n)) {
         for (i = 0; i < ST->maxChild; i++) {
             if (CHILD(n)[i] != indNodeNULL ) { isLeaf=0; break ; }
         }
