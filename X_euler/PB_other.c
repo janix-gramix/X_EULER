@@ -12,7 +12,9 @@
 #define M_PI 3.14159265358979323846264338327950288
 
 #include "euler_utils.h"
+#include "DC3.h"
 #include "PB_other.h"
+#include "ukkonen.h"
 
 #define PB495_NCOLOR    2
 #define PB495_NELBYCOL  1
@@ -1573,154 +1575,6 @@ int PB687a(PB_RESULT *pbR) {
 //#define PB691_LG    5000000
 #define PB691_LG    5000000
 
-
-typedef int32_t DC3_TYPE ;
-typedef int     DC3_INDEX ;
-
-void RadixSort(const DC3_INDEX * inInd, DC3_INDEX * outInd,const DC3_TYPE *T, int n,DC3_TYPE nbType )
-{ // count occurrences
-    DC3_INDEX * count = calloc(nbType+1,sizeof(count[0])) ;
-    int i;
-    for (i = 0; i < n ; i++)  count[T[inInd[i]]]++;
-    DC3_INDEX sumc ;
-    for (i = 0, sumc = 0; i <= nbType; i++)  {// exclusive prefix sums
-        int32_t tmp = count [i]; count[i] = sumc ; sumc += tmp;
-    }
-    for ( i = 0; i < n; i++) outInd[count[T[inInd[i]]]++ ] = inInd[i]; // sort
-    free(count) ;
-
-}
-
-DC3_INDEX * CountRadixSort_uint16(const DC3_INDEX * inInd, DC3_INDEX * outInd,const uint16_t *T, int n,DC3_TYPE nbType )
-{ // count occurrences
-    DC3_INDEX * count = calloc(nbType+1,sizeof(count[0])) ;
-    int i;
-    for (i = 0; i < n ; i++)  count[T[inInd[i]]]++;
-    DC3_INDEX sumc ;
-    for (i = 0, sumc = 0; i <= nbType; i++)  {// exclusive prefix sums
-        int32_t tmp = count [i]; count[i] = sumc ; sumc += tmp;
-    }
-    for ( i = 0; i < n; i++) outInd[count[T[inInd[i]]]++ ] = inInd[i]; // sort
-    return count ;
-    
-}
-
-
-typedef  int32_t T3[3] ;
-typedef struct TT3 {
-    int32_t V[3] ;
-} TT3 ;
-
-void SuffixSort(const DC3_TYPE * T, DC3_INDEX * SA, int n, DC3_TYPE nbType) {
-    DC3_INDEX n2=n/3, n0=(n+2)/3, d1 = 0 , n02=n0+n2;
-    DC3_INDEX * R = malloc((n02+3)*sizeof(R[0])) ; R[n02]=R[n02+1]=R[n02+2]=0;
-    DC3_INDEX * SA12 = malloc((n02+3)*sizeof(SA12[0])); SA12[n02]=SA12[n02+1]=SA12[n02+2]=0;
-    DC3_INDEX * R0 = malloc((n0+1)*sizeof(R0[0])) ;
-    DC3_INDEX * SA0 = malloc((n0+1)*sizeof(SA0[0]));
-    //******* Step 0: Construct sample ********
-    // generate positions of mod 1 and mod 2 suffixes
-    int i ; // R contains n02 index
-    for(i=0;i< n2;i++) {   R[2*i] = 3*i+1;    R[2*i+1] = 3*i+2; }
-    if (n == 3*n2+1) { R[2*n2] = n ;  d1=1 ; } // +1 (size of T)
-    else if (n == 3*n2+2) R[2*n2] = n-1 ;
-//---------- Sort sample suffixes
-    // lsb radix sort the mod 1 and mod 2 triples in C = B1 u B2 (samples suffixes)
-    RadixSort(R , SA12, T+2, n02, nbType); // +2 (size ofT) (with +1)=> +3
-    RadixSort(SA12, R , T+1, n02, nbType);
-    RadixSort(R , SA12, T , n02, nbType);
- 
-// find different triples and write them in R
-    DC3_INDEX nb3uple = 0;
-    DC3_TYPE T3_0[3] = {-1,-1,-1};
-    const DC3_TYPE *antT3 =T3_0  ;
-    for (int i = 0; i < n02; i++) {
-        int ind = SA12[i] ;
-        const DC3_TYPE  * T3 = T+ind ;
-        if(T3[0] != antT3[0] || T3[1] != antT3[1] || T3[2] != antT3[2]) {
-            nb3uple++;   antT3 = T3 ; // new triple
-        }
-        int ind_3 = ind/3 ; // recall, in SA12 ind = 1 or 2 mod[3]
-        if (ind - 3*ind_3 == 1) { R[ind_3] = nb3uple; } // ind=1 mod[3]
-        else { R[ind_3+n0] = nb3uple; } // ind=2 mod[3]
-    }
-
-    if (nb3uple < n02) { // triple not unique => recursion
-        SuffixSort(R, SA12, n02, nb3uple);
-        // compute reverse numerotation in R (add 1 as num in SA12 as +1)
-        for (int i = 0; i < n02; i++) R[SA12[i]] = i + 1;
-    } else {// all suffix in 12 are distinct, remove 1 to begin num T3 at 0
-        for (int i = 0; i < n02; i++) SA12[R[i] - 1] = i;
-    }
-// ---------- Sort nonsample suffixes
-    // radix sort the mod[3]= 0 suffixes from SA12
-    for (int i=0, j=0; i < n02; i++) if (SA12[i] < n0) R0[j++] = 3*SA12[i];
-    RadixSort(R0, SA0, T, n0, nbType);
-//---------- Merge
-    // merge sorted SA0 suffixes and sorted SA12 suffixes
-    for (int p=0, t=d1, k=0; k < n; k++) {
-// #define GetI() (SA12[t] < n0 ? SA12[t] * 3 + 1 : (SA12[t] - n0) * 3 + 2)
- //       int i = GetI(); // pos of current offset 12 suffix
-        DC3_INDEX i_t, i_p = SA0[p]; // pos of current offset 0 suffix
-        if((i_t = SA12[t] ) < n0) {
-            DC3_INDEX i_3t = i_t * 3 + 1  ;
-            //   Comparison (3t+1,R[t + n0]) and (p,R[p/3]
-             if(T[i_3t] < T[i_p] || ( T[i_3t] == T[i_p] && R[i_t + n0] <= R[i_p/3] )) {
-                SA[k] = i_3t ; t++;
-                // add remaining  SA0 suffixes
-                if (t == n02)  while(p < n0) SA[++k] = SA0[p++];
-            } else {
-                SA[k] = i_p; p++;
-                // add remaining SA12 suffixes
-                if (p == n0)  while(t < n02){ SA[++k] = ((i_t= SA12[t++]) < n0) ? (3*i_t+1) : (3*(i_t - n0)+2) ; }
-            }
-        } else {
-           DC3_INDEX i_t3 =(i_t - n0) * 3 + 2 ;
-            //  Comparison (3t+2,3t+3,R[t-n0+1]) and (p,p+1,R[p/3+n0]
-            if(  T[i_t3] < T[i_p] || ( T[i_t3]==T[i_p]
-                 &&( T[i_t3+1] < T[i_p+1] || (T[i_t3+1]==T[i_p+1] && R[i_t-n0+1] <=  R[i_p/3+n0]) )))
-            {
-                SA[k] = i_t3; t++;
-                // add remaining  SA0 suffixes
-                if (t == n02)  while(p < n0) SA[++k] = SA0[p++];
-            } else {
-                SA[k] = i_p; p++;
-                // add remaining SA12 suffixes
-                if (p == n0)  while(t < n02){ SA[++k] = ((i_t= SA12[t++]) < n0) ? (3*i_t+1) : (3*(i_t - n0)+2) ; }
-            }
-        }
-    }
-    free(R); free(SA12); free(SA0); free(R0);
-}
-
-static int AtomLCP(const uint8_t * text,DC3_INDEX len,DC3_INDEX ia,DC3_INDEX ib) {
-    if(ia<=ib) { int32_t tmp = ia ; ia= ib ; ib =tmp ;    }
-    int l = 0 ;
-    while(ia < len && text[ia++] == text[ib++]) l++ ;
-    return l ;
-}
-DC3_INDEX * GetLCP(const uint8_t * text,const DC3_INDEX * Sindex, int nbIndex,int len) {
-    DC3_INDEX * lcp = malloc(nbIndex*sizeof(lcp[0])) ;
-    lcp[0] = 0;
-    int32_t *Sorder=malloc(nbIndex * sizeof(Sorder[0])) ; // inverse permutation of index
-    for (int i = 0; i < nbIndex; i++) Sorder[Sindex[i]] = i; //inverse permutation
-    if (Sorder[0]) { // chaine initiale, partie commune avec la chaine totale
-        lcp[Sorder[0]] = AtomLCP(text,len,0,Sindex[Sorder[0] - 1]);
-    }
-    for (int i = 1; i < nbIndex; i++) {
-        if (!Sorder[i]) continue; // rank=0
-        if (lcp[Sorder[i - 1]] <= 1) { // si la chaine precedente n'a rien de commun calcul direct
-            lcp[Sorder[i]] = AtomLCP(text ,len, i, Sindex[Sorder[i] - 1]);
-        } else { // si la chaine precedente a un prefixe commun avec celle d'avant on regarde si l'on peut prolonger
-            int L = lcp[Sorder[i - 1]] - 1;
-           lcp[Sorder[i]] = L + AtomLCP(text,len, i + L,  Sindex[Sorder[i] - 1] + L);
-        }
-    }
-    free(Sorder);
-    return lcp ;
-}
-
-
-
 uint8_t * InitSuit(int len) {
     uint8_t *suit = malloc(PB691_LG*sizeof(suit[0])) ;
     int64_t Fn = 1, Fd = 1; // approximation of 1/phi by rationnal fraction with fibonacci
@@ -1778,10 +1632,11 @@ int PB691a(PB_RESULT *pbR) {
     int i ;
     const int n = PB691_LG ;
     uint8_t * suit = InitSuit(PB691_LG) ;
-    DC3_TYPE *suit_dc3 = malloc((PB691_LG+3)*sizeof(suit_dc3[0])) ;
-    for(i=0;i<n;i++) suit_dc3[i] = suit[i] + 1 ;  suit_dc3[n] = suit_dc3[n+1] = suit_dc3[n+2] = 0 ; //
-    DC3_INDEX * sa= malloc((n+1)*sizeof(sa[0]));
+    DC3_TYPE *suit_dc3 = malloc((PB691_LG)*sizeof(suit_dc3[0])) ;
+    for(i=0;i<n;i++) suit_dc3[i] = suit[i]  ;
+    DC3_INDEX * sa= malloc(n*sizeof(sa[0]));
     SuffixSort(suit_dc3, sa, n, 2);
+//    for(i=0;i<n;i++) { for(int j=sa[i];j<n;j++) printf("%d ",suit[j]); printf("\n");}
     free(suit_dc3 ); // not necessary after
     DC3_INDEX * lcp = GetLCP(suit, sa, n,n);
     free(sa); free(suit) ; // not necessary after
@@ -1791,12 +1646,13 @@ int PB691a(PB_RESULT *pbR) {
     int32_t antdup = 1 ;
     int64_t S =0 ;
     for(i=1;i<=maxLcp;i++) {
+//        printf("%d %d\n",i,maxDupBylengh[i]) ;
         if(maxDupBylengh[i]) {
             antdup = maxDupBylengh[i] ;
         }
         S += antdup ;
     }
-    S += PB691_LG ;
+    S += n ;
     free(maxDupBylengh);
     printf("MaxLcp=%d ans=%lld\n",maxLcp,S);
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",S);
@@ -1951,6 +1807,7 @@ int PB691(PB_RESULT *pbR) {
     int maskStart = nbHisto - 1 ;
     int * iStart = malloc(PB691_LG*sizeof(iStart[0]));
     int * sa = malloc(PB691_LG*sizeof(sa[0]));
+// radix sort on NBITS691 bits
     int * histoStart = calloc(nbHisto,sizeof(histoStart[0]));
     int curStart = 0 ;
     int i ;
@@ -2004,336 +1861,6 @@ int PB691(PB_RESULT *pbR) {
     return 1 ;
 }
 
-
-#define MAX_CHAR 2
-
-typedef int32_t indNode ;
-
-
-// suffix tree node
-typedef struct STNode STNode ;
-struct STNode {
-    // [start,end[ edge label for edge connection with parent
-    int32_t start;
-    int32_t end ;
-    //pointer to other node via suffix link
-    indNode suffixLink;
-    // lead on pseudo-leaf indicator
-//    int32_t leafStatus;
-    indNode children[1]; // false size
-} ;
-
-#define unknownLeaf  (-1)
-#define pseudoLeaf   (-2)
-
-#define lastNewNULL -1
-#define indNodeNULL  0
-
-#define bitPseudoLeaf   0x80000000
-#define MaskSuffixLink   0x7fffffff
-
-
-#define OFFSTART        0
-#define OFFEND          1
-#define OFFSUFFLINK     2
-#define OFFCHILD        3
-
-#define NODE(indN)              ((STNode *) (ST->tbNode+(indN)))
-#define START(indN)             NODE(indN)->start
-#define END(indN)               NODE(indN)->end
-#define SUFFLINK(indN)          NODE(indN)->suffixLink
-// next macros only used in last pass where the field suffixLink is also use to mark pseudoLeaf
-#define GETSUFFLINK(indN)       (NODE(indN)->suffixLink & MaskSuffixLink)
-#define SETSUFFLINK(indN,newSuffLink)      NODE(indN)->suffixLink = (NODE(indN)->suffixLink & bitPseudoLeaf) | (newSuffLink)
-#define SETPSDLEAF(indN)        NODE(indN)->suffixLink |= bitPseudoLeaf
-#define CLEARPSDLEAF(indN)        NODE(indN)->suffixLink &= MaskSuffixLink
-
-#define ISPSDLEAF(indN)         (NODE(indN)->suffixLink & bitPseudoLeaf)
-#define CHILD(indN)             NODE(indN)->children
-
-// suffix tree
-typedef struct STree {
-    const uint8_t *suit ;
-    indNode activeNode ;
-    // activeEdge by its input string character
-    int32_t activeEdge ;
-    int32_t activeLength;
-    // remainingSuffixCount tells how many suffixes yet to be added in tree
-    int32_t remainingSuffixCount ;
-    int32_t leafEnd ;
-    int32_t nbNodeAlloc ;
-    int32_t nxtFreeNode ;
-    int32_t *tbNode  ;
-    int32_t sizeNode ;
-    int32_t maxChild ;
-    int32_t minLCP ;
-    indNode root ;
-    int32_t *sa ;
-    int32_t *lcp ;
-    int32_t indSA ;
-    int32_t minLabelHeight ;
-} STree ;
-#define pseudoLeaf  (-2)
-
-
-
-
-indNode newNode(STree *ST,int start, int end) {
-    indNode indN = ST->sizeNode * ST->nxtFreeNode++ ;
-    STNode * newN =  (STNode *) (ST->tbNode + indN) ;
-    memset(newN->children,0,ST->sizeNode-OFFCHILD);
-    // For root node, suffixLink will be set to NULL
-    // For internal nodes, suffixLink set to root by default
-    // and can be may changed in next extension
-    newN->suffixLink = ST->root;
-    newN->start = start;
-    newN->end = end;
-    ST->nbNodeAlloc++ ;
-    return indN;
-}
-static int edgeLength(STree *ST,indNode n) { return (END(n) < 0) ?(ST->leafEnd - START(n) ) : (END(n) - START(n)) ; }
-
-int walkDown(STree *ST,indNode currNode) {
-    // (Trick 1) activePoint change for walk down (APCFWD) using
-    //  Skip/Count Trick  . If activeLength is greater
-    // than current edge length, set next  internal node as
-    //  activeNode and adjust activeEdge and activeLength
-    int len ;
-    if (ST->activeLength >= (len=edgeLength(ST,currNode)) ) {
-        ST->activeEdge += len;
-        ST->activeLength -= len;
-        ST->activeNode = currNode;
-        return 1;
-    }
-    return 0;
-}
-
-void extendSuffixTree(STree *ST,int pos) {
-    // Rule 1, extend all leaves
-    ST->leafEnd = pos+1;
-    // Increment remainingSuffixCount to treat
-    ST->remainingSuffixCount++;
-    //set lastNewNode to NULL while starting a new phase,
-    indNode lastNewNode = lastNewNULL ;
-    //Add all suffixes (yet to be added) one by one in tree
-    while(ST->remainingSuffixCount > 0) {
-        if (ST->activeLength == 0) ST->activeEdge = pos; //APCFALZ
-        // no outgoing edge starting with activeEdge from activeNode
-        if (CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] == indNodeNULL) {
-            //Extension Rule 2 (A new leaf edge gets created)
-            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = newNode(ST,pos, -1);
-            // new leaf edge is created in above line starting
-            // no more node waiting for suffix link to reset
-            if (lastNewNode != lastNewNULL) {
-                SUFFLINK(lastNewNode) = ST->activeNode;
-                lastNewNode = lastNewNULL ;
-            }
-        } else {
-        // There is an outgoing edge starting with activeEdge from activeNode
-            // Get the next node at the end of edge starting with activeEdge
-            indNode next = CHILD(ST->activeNode)[ST->suit[ST->activeEdge]];
-            if (walkDown(ST,next)) { //Do walkdown
-                //Start from next node (the new activeNode)
-                continue;
-            }
-            /*Extension Rule 3 (current character being processed
-             is already on the edge)*/
-            if (ST->suit[START(next) + ST->activeLength] == ST->suit[pos]) {
-                //If a newly created node waiting for it's
-                //suffix link to be set, then set suffix link
-                //of that waiting node to current active node
-                if(lastNewNode != lastNewNULL && ST->activeNode != ST->root) {
-                    SUFFLINK(lastNewNode) = ST->activeNode;
-                    lastNewNode = lastNewNULL ;
-                }
-                //APCFER3
-                ST->activeLength++;
-                // STOP all further processing in this phase and move on to next phase*/
-                break;
-            }
-            //activePoint is in middle of the edge being  In this case, we add a new internal node
-            // Extension Rule 2, new leaf edge and a newinternal node
-            indNode split = newNode(ST,START(next), START(next) + ST->activeLength );
-            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = split;
-            //New leaf coming out of new internal node
-            CHILD(split)[ST->suit[pos]] = newNode(ST,pos, -1);
-            START(next) += ST->activeLength;
-            CHILD(split)[ST->suit[START(next)]] = next;
-            
-            // lasNewNode waiting ?
-            if (lastNewNode != lastNewNULL) {
-                // suffixLink of lastNewNode points to current newly created internal node
-                SUFFLINK(lastNewNode) = split;
-            }
-            // Make the  newly cre internal node waiting for it's suffix link reset
-            lastNewNode = split;
-        }
-        // One suffix got added in tree
-        ST->remainingSuffixCount--;
-        if (ST->activeNode == ST->root && ST->activeLength > 0) {//APCFER2C1
-            ST->activeLength--;
-            ST->activeEdge = pos - ST->remainingSuffixCount + 1;
-        } else if (ST->activeNode != ST->root)  {//APCFER2C2
-            ST->activeNode = SUFFLINK(ST->activeNode) ;
-        }
-    }
-}
-
-void extendSuffixTreeLast(STree *ST) {
-    // dont increment leafEnd as virtual add for "$"
-    int pos  = ST->leafEnd ;
-    ST->remainingSuffixCount++;
-    indNode lastNewNode = lastNewNULL;
-    while(ST->remainingSuffixCount > 0) {
-        if (ST->activeLength == 0)
-            ST->activeEdge = pos; //APCFALZ
-        if (ST->activeEdge >= ST->leafEnd) { // vrtual "$" is current
-             if(ST->activeNode != ST->root){ // mark activeNode as pseudoLeaf
-                   SETPSDLEAF(ST->activeNode);
-            }
-        } else if (CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] != indNodeNULL) {
-        // There is an outgoing edge starting with activeEdge
-            indNode next = CHILD(ST->activeNode)[ST->suit[ST->activeEdge]];
-            if (walkDown(ST,next)) { //Do walkdown
-                continue;
-            }
-            //New internal node
-            indNode split = newNode(ST,START(next), START(next) + ST->activeLength );
-            CHILD(ST->activeNode)[ST->suit[ST->activeEdge]] = split;
-            //New leaf coming out of new internal node
-            SETPSDLEAF(split);
-            START(next) += ST->activeLength;
-            CHILD(split)[ST->suit[START(next)]] = next;
-            if (lastNewNode != lastNewNULL) {
-                SETSUFFLINK(lastNewNode,split) ;
-            }
-            lastNewNode = split;
-        }
-        ST->remainingSuffixCount--;
-        if (ST->activeNode == ST->root && ST->activeLength > 0)  {//APCFER2C1
-            ST->activeLength--;
-            ST->activeEdge = pos - ST->remainingSuffixCount + 1;
-        } else if (ST->activeNode != ST->root) { //APCFER2C2
-            ST->activeNode = GETSUFFLINK(ST->activeNode) ;
-        }
-    }
-}
-
-void GetSALCP_DP(STree *ST,indNode n, int labelHeight){
-    if (n == indNodeNULL) return  ;
-    int isLeaf = 1;
-    int i;
-//    if(LEAFSTAT(n) != pseudoLeaf) {
-    if(!ISPSDLEAF(n)) {
-        for (i = 0; i < ST->maxChild; i++) {
-            if (CHILD(n)[i] != indNodeNULL ) { isLeaf=0; break ; }
-        }
-    }
-    if(isLeaf  && labelHeight >= ST->minLabelHeight ) {
-        if(ST->lcp) { ST->lcp[ST->indSA]  = ST->minLCP ;  }
-        if(ST->sa) {  ST->sa[ST->indSA]  = ST->leafEnd - labelHeight ; }
-        ST->indSA++ ;
-        ST->minLCP = labelHeight ;
-    }
-    for (i = 0; i < ST->maxChild; i++) {
-        if (CHILD(n)[i] != indNodeNULL ) { //Current node not leaf
-            if(ST->minLCP > labelHeight) ST->minLCP = labelHeight ;
-            GetSALCP_DP(ST,CHILD(n)[i],labelHeight + edgeLength(ST,CHILD(n)[i])) ;
-        }
-    }
-    return  ;
-}
-
-
-void CompSALCP(STree *ST,int32_t *sa,int32_t *lcp) {
-    ST->sa = sa ;
-    ST->lcp = lcp ;
-    ST->indSA = 0 ;
-    if(sa != NULL || lcp != NULL) {
-        int labelHeight = 0;
-        ST->minLCP = 0 ;
-        GetSALCP_DP(ST,ST->root, labelHeight);
-    }
-    return ;
-}
-
-// build suffixTree
-// character from [0..length[ must be in ]0,maxChar[
-// suit must be terminated by 0 (suit[length]=0 )
-// for a suit of 1,2 terminated by a 0, maxChar=3
-STree * X_CompSuffixTree(const uint8_t *suit,int maxChar,int length) {
-    STree * ST = calloc(1,sizeof(ST[0])) ;
-    ST->activeNode = indNodeNULL;
-    /*activeEdge is represeted as input string character
-     index (not the character itself)*/
-    ST->activeEdge = -1;
-    ST->activeLength = 0;
-    ST->suit = suit ;
-    // remainingSuffixCount tells how many suffixes yet to
-    // be added in tree
-    ST->remainingSuffixCount = 0;
-    ST->leafEnd = -1;
-    ST->maxChild =MAX_CHAR+1 ;
-    ST->sizeNode = OFFCHILD+ST->maxChild ;
-    int i;
-    ST->tbNode = malloc(2*length*ST->sizeNode*sizeof(ST->tbNode[0])) ;
-    ST->nbNodeAlloc = 2*length ;
-    ST->nxtFreeNode = 1 ;
-    /*Root is a special node with start and end indices as -1,
-     as it has no parent from where an edge comes to root*/
-    ST->root = newNode(ST,-1, -1);
-    
-    ST->activeNode = ST->root; //First activeNode will be root
-    for (i=0; i<length+1; i++) extendSuffixTree(ST,i);
-    ST->minLabelHeight = 2 ;
-//    int labelHeight = 0;
-//    setSuffixIndexByDFS(ST,ST->root, labelHeight);
-    return ST ;
-}
-
-// build suffixTree
-// character from [0..length[ must be in [0,maxChar[
-// For a suit of 0,1 maxChar=2
-STree *  ComputeSuffixTree(const uint8_t *suit,int maxChar,int length) {
-    STree * ST = calloc(1,sizeof(ST[0])) ;
-
-    ST->activeNode = indNodeNULL;
-    /*activeEdge is represeted as input string character
-     index (not the character itself)*/
-    ST->activeEdge = -1;
-    ST->activeLength = 0;
-    
-    // remainingSuffixCount tells how many suffixes yet to
-    // be added in tree
-    ST->remainingSuffixCount = 0;
-    ST->leafEnd = -1;
-    
-    ST->sa = NULL ;
-    ST->lcp = NULL ;
-    
-    ST->suit = suit ;
-    ST->maxChild =maxChar ;
-    ST->sizeNode = OFFCHILD+ST->maxChild ;
-    int i;
-    ST->tbNode = malloc(2*length*ST->sizeNode*sizeof(ST->tbNode[0])) ;
-    ST->nbNodeAlloc = 2*(length+1) ;
-    ST->nxtFreeNode = 1 ;
-    /*Root is a special node with start and end indices as -1,
-     as it has no parent from where an edge comes to root*/
-    ST->root = newNode(ST,-1, -1);
-    ST->activeNode = ST->root; //First activeNode will be root
-    for (i=0; i<length; i++) extendSuffixTree(ST,i);
-    extendSuffixTreeLast(ST);
-    ST->minLabelHeight = 1 ;
-    return ST ;
-}
-STree *  FreeSuffixTree(STree * ST) {
-    if(ST) {
-        free(ST->tbNode) ;
-        free(ST) ;
-    }
-    return NULL ;
-}
 int PB691c(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int i ;
@@ -2348,7 +1875,6 @@ int PB691c(PB_RESULT *pbR) {
     int *sa = NULL ; // not necessary ,compute directly lcp
     int *lcp =(int*) malloc(n*sizeof(lcp[0]));
     CompSALCP(ST,sa,lcp)  ;
-    printf("Nbnode=%d\n",ST->nbNodeAlloc) ;
     FreeSuffixTree(ST); free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
@@ -2373,15 +1899,12 @@ int PB691d(PB_RESULT *pbR) {
     int i ;
     uint8_t * suit = InitSuit(PB691_LG) ;
     int n = PB691_LG ;
-  //  n = 50 ;
- //   for(i=0; i<n; i++)printf("%d", suit[i]);
     STree *ST = ComputeSuffixTree(suit,2,n);
- //   int *sa =(int*) malloc(n*sizeof(sa[0]));
     int *sa = NULL ; // not necessary ,compute directly lcp
     int *lcp =(int*) malloc(n*sizeof(lcp[0]));
     CompSALCP(ST,sa,lcp)  ;
     
-    printf("Nbnode=%d\n",ST->nbNodeAlloc) ;
+    printf("Nbnode=%d\n",NbNodeUsed(ST)); 
     FreeSuffixTree(ST);  free(sa); free(suit) ; // not necessary after
     DC3_INDEX maxLcp  = 0 ;
     DC3_INDEX * maxDupBylengh = GetMaxDupByLength(&maxLcp,lcp,n) ;
@@ -2395,7 +1918,6 @@ int PB691d(PB_RESULT *pbR) {
         S += antdup ;
     }
     free(maxDupBylengh);
-
     
     
 //    freeSuffixTreeByPostOrder(root);
@@ -2403,3 +1925,645 @@ int PB691d(PB_RESULT *pbR) {
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
+
+#define PB693_MAX  3000000
+
+int Calc693(int32_t x, int32_t *curModx, int32_t *nextModx,int32_t *curMax,int32_t *nextMax) {
+    int lgMax = 0;
+    int isModeSparse = 0 ;
+    int xStart = x ;
+    lgMax = 0 ;
+    x = xStart ;
+    memset(curMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+    int modx,y,nbY ;
+    for(y=2,modx=1;2*y<=x+1;y++) {
+ 
+        modx += 2*y-1 ; if(modx>=x) { modx -= x ;  }
+        int modx2 = x+1 -modx ;
+        if(modx < modx2) modx2 = modx ;
+        if(modx2>1) {
+            curMax[modx2] = 1 ;
+        }
+
+    }
+    x++ ;
+    for(;;) {
+        if(isModeSparse == 0) {
+            memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+            nbY = 0 ;
+            int nbActive= 0 ;
+            for(y=2,modx=1;2*y<=x+1;y++) {
+                modx += 2*y-1 ; if(modx>=x) { modx -= x ; /*if(modx>=x) modx -= x ;*/ }
+                int modx2 = x+1 -modx ;
+                if(modx < modx2) modx2 = modx ;
+                if(modx2 > 1) nbActive++ ;
+                int curMy  ;
+                if((curMy=curMax[y]+1) == 1) continue ;
+ //                if(x > 37388) { printf("%d->%d ",x,modx2) ; }
+                if(modx2<=1) {
+                    if(curMy>lgMax) lgMax = curMy ;
+                } else if (curMy >nextMax[modx2]) {
+                    nbY++ ;
+                   nextMax[modx2] = curMy ;
+                    if(curMy>lgMax) lgMax = curMy ;
+                }
+            }
+  //          printf("+x%d->%d(%d)->%d ",x-xStart,nbY,nbActive,lgMax);
+            if(nbY*nbY <=4*x) {
+  //          if(nbY <=12) {
+ //               printf("\nbascule x=%d ",x);
+                int iy = 0 ;
+                isModeSparse = 1 ;
+                memset(curMax,0,((x+1)/2+1)*sizeof(curMax[0])) ;
+                
+                for(y=2,modx=1;2*y<=x+1;y++) {
+                    if(nextMax[y]) {
+ //                       printf(" iy=%d->%d",iy,y);
+                       curMax[y] = nextMax[y] ;
+                        curModx[iy++] = y ;
+                     }
+                }
+     //           printf("SP(%d)=%d->%d",x,nbY,iy)  ;
+                nbY = iy ;
+                memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+/*               int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+ */               x++ ;
+                // bascule on ne permute pas car fait en calcul des nouvzau buffer
+            } else {
+                int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+                x++ ;
+                //               printf("%d ",nbY) ;
+            }
+        } else {
+            //           memset(nextMax,0,nbY*sizeof(nextMax[0])) ;
+            if(nbY > 1 ) {
+                nextMax[(x+1)/2+1] = 0 ;
+                int64_t modx ;
+ //                          printf("+%d ",nbY) ;
+                int iy ;
+                int nextNbY = 0 ;
+                for(iy=0;iy<nbY;iy++) {
+                    int64_t y =curModx[iy] ;
+                    int yMax = curMax[y]+1  ;
+                    curMax[y] = 0 ;
+                    modx = ((int64_t)y * y ) % x ;
+                    if(x+1 - modx < modx ) modx = x+1 - modx ;
+                    if(modx > 1) {
+                        //                   nextMax[nextNbY]=curMax[iy]+1 ;
+                        if(nextMax[modx] == 0) {
+                            nextMax[modx] = yMax ;
+                            nextModx[nextNbY++] = modx ;
+                        } else if(yMax > nextMax[modx]) {
+                            nextMax[modx] = yMax ;
+                        }
+                        //                   } else {
+                        //                       if(yMax > lgMax) { lgMax = yMax ; printf(" M=%d ",lgMax) ; }
+                    }
+                }
+                //                printf("%d ",nbY);
+                nbY = nextNbY ;
+                if(nbY == 0) { printf(" 0M=%d",x-xStart) ; break ; }
+                int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+                tmp = nextModx ;
+                nextModx = curModx ;
+                curModx = tmp ;
+                x++ ;
+            } else if (nbY==1) {
+                printf("(%d)",x) ;
+                modx = curModx[0] ;
+                int yMax = curMax[modx]+1 ;
+                while(1) {
+                    modx = ((int64_t) modx * modx) % x ;
+ //                                      printf("%d ",yMax);
+                    if(modx <= 1 ) break ;
+                    yMax++ ;
+                    x++ ;
+                }
+                if(yMax > lgMax) {
+                    lgMax = yMax ;
+ //                   printf(" En=%d ",lgMax) ;
+                    
+                }
+                else printf(" YM=%d",yMax);
+                nbY = 0 ; break ;
+            }
+        }
+        
+    }
+    printf("[%d//%d]",lgMax,x-xStart);
+    return lgMax=x-xStart ;
+}
+
+int PB693(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    int n = PB693_MAX ;
+    int32_t *tb1 = malloc(4*n*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(4*n*sizeof(tb2[0]));
+    
+    int32_t *tbModx1 = malloc(4*n*sizeof(tbModx1[0]));
+    int32_t *tbModx2 = malloc(4*n*sizeof(tbModx2[0]));
+
+    int32_t *curModx = tbModx1 ;
+    int32_t *nextModx = tbModx2 ;
+
+    
+    int32_t *curMax = tb1 ;
+    int32_t *nextMax = tb2 ;
+    int x,y;
+    int lgMax = 1;
+    curMax[2] = 1 ;
+    int isModeSparse = 0 ;
+    memset(nextMax,0,3*sizeof(nextMax[0])) ;
+    //   curMax[3] = 1 ;
+    //   curMax[4] = 0 ;
+    int nbY ;
+    int xStart ;
+ /*
+    for(x=5;x<=n;) {
+        int32_t delta = Calc693(x,curModx,nextModx,curMax,nextMax) ;
+        if(delta > lgMax) lgMax = delta ;
+        printf("\n%.4fs %d->%d ",(float)(clock() - pbR->nbClock)/ CLOCKS_PER_SEC,x,lgMax);
+        x += delta;
+    }
+*/
+//    for(x=30921;x>5;) {
+    int incr = 1 << 16;
+    for(x=3000000;x>5;) {
+//   for(x=1959601;x>5;) {
+        int32_t delta = Calc693(x,curModx,nextModx,curMax,nextMax) ;
+        printf("\n%.4fs %d->%d(%d) ",(float)(clock() - pbR->nbClock)/ CLOCKS_PER_SEC,x,delta,lgMax);
+ //       return 0 ;
+        if(delta > lgMax) {
+            lgMax = delta ;
+          }
+        if(delta >= lgMax-1) {
+            incr = 1<< 20  ;
+            int x0 = x ;
+            int end0 = x+delta ;
+            int xant ;
+            printf(" End0=%d",end0);
+            do  {
+                xant = x ;
+                x = x0 - incr ;
+                incr >>=1 ;
+                delta = Calc693(x,curModx,nextModx,curMax,nextMax) ;
+                printf("\n%.4fs * %d->%d(%d) ",(float)(clock() - pbR->nbClock)/ CLOCKS_PER_SEC,x,delta,x+delta);
+                if(delta > lgMax) lgMax = delta ;
+                if(x+delta >= end0) {
+                    printf("###");
+                    x0 = x ;
+                }
+            } while(incr) ;
+            x--  ;
+        } else {
+            x -= lgMax-delta-1 ;
+
+        }
+    
+    }
+/*
+    for(x=5;;x++) {
+        int modx ;
+        if(isModeSparse == 0) {
+            memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+            nbY = 0 ;
+            for(y=2,modx=1;2*y<=x;y++) {
+                modx += 2*y-1 ; if(modx>=x) { modx -= x ;  }
+                int modx2 = x+1 -modx ;
+                if(modx < modx2) modx2 = modx ;
+                int curMy  ;
+                if((curMy=curMax[y]+1) == 1) continue ;
+                nbY++ ;
+                if(modx2<=1) {
+                    if(curMy>lgMax) lgMax = curMy ;
+                } else if (curMy >nextMax[modx2]) {
+                    nextMax[modx2] = curMy ;
+                }
+            }
+            if(nbY*nbY <=x) {
+                int iy = 0 ;
+                isModeSparse = 1 ;
+                memset(curMax,0,((x+1)/2+1)*sizeof(curMax[0])) ;
+
+                for(y=2,modx=1;2*y<=x;y++) {
+                    if(nextMax[y]) {
+ //                       curMax[iy] = nextMax[y] ;
+                        curModx[iy++] = y ;
+                    }
+                }
+                printf("SP(%d)=%d->%d",x,nbY,iy)  ;
+                nbY = iy ;
+                int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+               // bascule on ne permute pas car fait en calcul des nouvzau buffer
+            } else {
+                int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+ //               printf("%d ",nbY) ;
+            }
+        } else {
+ //           memset(nextMax,0,nbY*sizeof(nextMax[0])) ;
+            if(nbY > 1 ) {
+                nextMax[(x+1)/2+1] = 0 ;
+                int modx ;
+     //           printf("+%d ",nbY) ;
+                int iy ;
+                int nextNbY = 0 ;
+                for(iy=0;iy<nbY;iy++) {
+                    y =curModx[iy] ;
+                    int yMax = curMax[y]+1  ;
+                    curMax[y] = 0 ;
+                    modx = (y * y ) % x ;
+                    if(x+1 - modx < modx ) modx = x+1 - modx ;
+                    if(modx > 1) {
+                        //                   nextMax[nextNbY]=curMax[iy]+1 ;
+                        if(nextMax[modx] == 0) {
+                            nextMax[modx] = yMax ;
+                            nextModx[nextNbY++] = modx ;
+                        } else if(yMax > nextMax[modx]) {
+                            nextMax[modx] = yMax ;
+                        }
+ //                   } else {
+ //                       if(yMax > lgMax) { lgMax = yMax ; printf(" M=%d ",lgMax) ; }
+                    }
+                 }
+//                printf("%d ",nbY);
+                nbY = nextNbY ;
+                if(nbY == 0) printf(" 0M=%d",x-xStart) ;
+               int32_t * tmp = nextMax;
+                nextMax = curMax;
+                curMax = tmp ;
+                tmp = nextModx ;
+                nextModx = curModx ;
+                curModx = tmp ;
+            } else if (nbY==1) {
+                modx = curModx[0] ;
+                int yMax = curMax[modx]+1 ;
+                while(1) {
+                    modx = (modx * modx) % x ;
+ //                   printf("%d ",yMax);
+                    if(modx <= 1 ) break ;
+                    yMax++ ;
+                   x++ ;
+                 }
+                if(yMax > lgMax) { lgMax = yMax ; printf(" En=%d ",lgMax) ; }
+                else printf(" YM=%d",yMax);
+                nbY = 0 ;
+            }
+        }
+        // printf("\n");
+//        if((x % lgMax) == 0) {
+        if(isModeSparse && nbY == 0) {
+            if(x > n ) break ;
+            // on rebascule en mode
+            isModeSparse = 0 ;
+            xStart = x ;
+            printf("\n%.4fs %d-> ",(float)(clock() - pbR->nbClock)/ CLOCKS_PER_SEC,x);
+            memset(curMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+
+            for(y=2,modx=1;2*y<=x+1;y++) {
+                modx += 2*y-1 ; if(modx>=x) { modx -= x ;  }
+                int modx2 = x+1 -modx ;
+                if(modx < modx2) modx2 = modx ;
+                if(modx2>1) {
+                    curMax[modx2] = 1 ;
+                }
+            }
+        }
+        //     curMax[y] = 0 ;
+    }
+ */
+/*
+    int isChange  ;
+    do {
+        isChange = 0 ;
+        memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+        int modx ;
+        for(y=2,modx=1;2*y<=x;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ; if(modx>=x) modx -= x ; }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            int curMy ;
+            if((curMy=curMax[y]+1) == 1) continue ;
+            if(modx2<=1) {
+                if(curMy>lgMax) { lgMax = curMy ;  }
+            } else if (curMy >nextMax[modx2]) {
+                isChange = 1 ;
+                nextMax[modx2] = curMy ;
+            }
+        }
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+        
+        
+        x++ ;
+    } while (isChange );
+*/
+    printf("For n=%d lgMax=%d \n",n,lgMax+1);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",lgMax+1);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+/*
+int PB693(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    int n = PB693_MAX ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrimeNb(4*n)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int lastP = tbPrime[nbPrime-1] ;
+    int32_t * primeDiv = calloc(4*n+1,sizeof(primeDiv[0])) ;
+    for(int ip=0;ip<nbPrime;ip++) {
+        int p = tbPrime[ip] ;
+        if(p > 4*n ) break ;
+        primeDiv[p]=ip+1 ;
+        for(int kp=p*p;kp<=4*n;kp+=p) {
+            if(primeDiv[kp]==0)primeDiv[kp]=ip+1 ;
+        }
+    }
+ //   for(i=0;i<4*n;i++) printf("%d->%d ",i,tbPrime[primeDiv[i]-1]);
+    int32_t *tb1 = malloc(4*n*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(4*n*sizeof(tb2[0]));
+
+    int32_t *tbModx1 = malloc(4*n*sizeof(tbModx1[0]));
+    int32_t *tbModx2 = malloc(4*n*sizeof(tbModx2[0]));
+
+ 
+    int32_t *curMax = tb1 ;
+    int32_t *nextMax = tb2 ;
+
+    int32_t *curModx = tbModx1 ;
+    int32_t *nextModx = tbModx2 ;
+
+ 
+    int x,y;
+    int lgMax = 0;
+    curMax[2] = 1 ;
+     int nbP = 2 ; // 2 and 3
+    x=5 ;
+    int xDeb, xEnd ;
+    int nbY = 1 ;
+    int np = 3 ;
+    while (x<n) {
+        xDeb = x ;
+        memset(nextMax,0,nbY*sizeof(nextMax[0])) ;
+        int modx ;
+//        for(y=2,modx=1;2*y<=x;y++) {
+        int iy ;
+        for(iy=0;iy<nbY;iy++) {
+            y =tbPrime[iy+np] ;
+            modx = (y * y ) % x ;
+            nextMax[iy]=1 ;
+            nextModx[iy] = modx ;
+        }
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+        tmp = nextModx ;
+        nextModx = curModx ;
+        curModx = tmp ;
+        x++ ;
+        int isChange  ;
+        do {
+            int modx ;
+            isChange = 0 ;
+            //        printf("\n%d->%d ",x,nbP);
+            memset(nextMax,0,nbY*sizeof(nextMax[0])) ;
+            
+            
+            for(iy=0;iy<nbY;iy++) {
+                int curMy  ;
+                if((curMy=curMax[iy]+1)==1) continue ;
+                y = curModx[iy] ;
+                modx = (y *y ) % x ;
+                if(modx<=1) {
+                    if(curMy>lgMax) lgMax = curMy ;
+                } else if (curMy >nextMax[iy]) {
+                    isChange =1 ;
+                    nextMax[iy] = curMy ;
+                    nextModx[iy] = modx ;
+                }
+            }
+ //           printf("%d %d %d %d\n",nextMax[0],nextMax[1],nextMax[2],nextMax[3]);
+            int32_t * tmp = nextMax;
+            nextMax = curMax;
+            curMax = tmp ;
+            tmp = nextModx ;
+            nextModx = curModx ;
+            curModx = tmp ;
+            x++ ;
+        } while (isChange );
+        xEnd = x ;
+        if(xEnd-xDeb+1> lgMax ) {
+            lgMax = xEnd-xDeb+1 ;
+            printf("Nouveau bouchon %d -> %d Length=%d\n",xDeb,xEnd,xEnd-xDeb+1) ;
+        } else  {
+            printf(".");
+        }
+     //    x = xDeb +lgMax ;
+        x = xDeb + 1 ;
+    }
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",lgMax+1);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+*/
+
+/*
+int PB693(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    int n = PB693_MAX ;
+    CTX_PRIMETABLE * ctxP  ;
+    if((ctxP = Gen_tablePrimeNb(4*n)) == NULL) {
+        fprintf(stdout,"\t PB%s Fail to alloc prime table\n",pbR->ident);
+        return 0 ;
+    }
+    const T_prime * tbPrime = GetTbPrime(ctxP);
+    int nbPrime = GetNbPrime(ctxP) ;
+    int lastP = tbPrime[nbPrime-1] ;
+    int32_t * primeDiv = calloc(4*n+1,sizeof(primeDiv[0])) ;
+    for(int ip=0;ip<nbPrime;ip++) {
+        int p = tbPrime[ip] ;
+        if(p > 4*n ) break ;
+        primeDiv[p]=ip+1 ;
+        for(int kp=p*p;kp<=4*n;kp+=p) {
+            if(primeDiv[kp]==0)primeDiv[kp]=ip+1 ;
+        }
+    }
+    //   for(i=0;i<4*n;i++) printf("%d->%d ",i,tbPrime[primeDiv[i]-1]);
+    int32_t *tb1 = malloc(4*n*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(4*n*sizeof(tb2[0]));
+    
+    
+    int32_t *curMax = tb1 ;
+    int32_t *nextMax = tb2 ;
+    
+    int x,y;
+    int lgMax = 0;
+    curMax[2] = 1 ;
+    int nbP = 2 ; // 2 and 3
+    for(x=5;x<=n;x++) {
+        int modx ;
+        if(x+1 >= tbPrime[nbP]) nbP ++ ;
+        //       printf("\n%d->%d  ",x,nbP);
+        memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+        
+        for(y=2,modx=1;2*y<=x;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ;  }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            //            printf("%d ",modx);
+            int curMy  ;
+            if((curMy=curMax[y]+1) == 1) continue ;
+            if(modx2<=1) {
+                if(curMy>lgMax) lgMax = curMy ;
+            } else if (curMy >nextMax[modx2]) {
+                nextMax[modx2] = curMy ;
+            }
+        }
+        
+        int iy ;
+        // printf("\n");
+        for(iy=0;iy<nbP;iy++) {
+            y =tbPrime[iy] ;
+            modx = (y*y) % x ;
+            if(x+1-modx < modx) modx=x+1-modx ;
+            if(modx > 1) {
+                if (nextMax[modx]==0) {
+                    nextMax[modx] = 1 ;
+                }
+            }
+        }
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+    }
+    int isChange  ;
+    do {
+        int modx ;
+        isChange = 0 ;
+        //        printf("\n%d->%d ",x,nbP);
+        memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+        
+        
+        for(y=2,modx=1;2*y<=x;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ;  }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            int curMy  ;
+            if((curMy=curMax[y]+1) == 1) continue ;
+            if(modx2<=1) {
+                if(curMy>lgMax) lgMax = curMy ;
+            } else if (curMy >nextMax[modx2]) {
+                isChange =1 ;
+                nextMax[modx2] = curMy ;
+            }
+        }
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+        
+        x++ ;
+    } while (isChange );
+    printf("For n=%d lgMax=%d \n",n,lgMax+1);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",lgMax+1);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+*/
+
+int PB693a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int i ;
+    int n = PB693_MAX ;
+    int32_t *tb1 = malloc(4*n*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(4*n*sizeof(tb2[0]));
+    
+    int32_t *curMax = tb1 ;
+    int32_t *nextMax = tb2 ;
+    int x,y;
+    int lgMax = 0;
+    curMax[2] = 1 ;
+    memset(nextMax,0,3*sizeof(nextMax[0])) ;
+    //   curMax[3] = 1 ;
+    //   curMax[4] = 0 ;
+    for(x=5;x<=n;x++) {
+        int modx ;
+        memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+        
+        for(y=2,modx=1;2*y<=x;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ; /*if(modx>=x) modx -= x ;*/ }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            int curMy  ;
+            if((curMy=curMax[y]+1) == 1) continue ;
+            if(modx2<=1) {
+                if(curMy>lgMax) {
+                    lgMax = curMy ; printf("M=%d->%d ",lgMax,x) ;
+                }
+            } else if (curMy >nextMax[modx2]) {
+                nextMax[modx2] = curMy ;
+            }
+        }
+        // printf("\n");
+        for(y=2,modx=1;2*y<=x+1;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ; /*if(modx>=x) modx -= x ;*/ }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            if(modx2>1 && nextMax[modx2] == 0) {
+                nextMax[modx2] = 1 ;
+            }
+        }
+        //     curMax[y] = 0 ;
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+    }
+    int isChange  ;
+    do {
+        isChange = 0 ;
+        memset(nextMax,0,((x+1)/2+1)*sizeof(nextMax[0])) ;
+        int modx ;
+        for(y=2,modx=1;2*y<=x;y++) {
+            modx += 2*y-1 ; if(modx>=x) { modx -= x ; if(modx>=x) modx -= x ; }
+            int modx2 = x+1 -modx ;
+            if(modx < modx2) modx2 = modx ;
+            int curMy ;
+            if((curMy=curMax[y]+1) == 1) continue ;
+            if(modx2<=1) {
+                if(curMy>lgMax) { lgMax = curMy ;  }
+            } else if (curMy >nextMax[modx2]) {
+                isChange = 1 ;
+                nextMax[modx2] = curMy ;
+            }
+        }
+        int32_t * tmp = nextMax;
+        nextMax = curMax;
+        curMax = tmp ;
+        
+        
+        x++ ;
+    } while (isChange );
+    printf("For n=%d lgMax=%d \n",n,lgMax+1);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%d",lgMax+1);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
