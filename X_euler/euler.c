@@ -366,6 +366,7 @@ static PB_CALL ALL_calls[] = {
     
     ,PROTO_CALL(234,1259187438574927161,'Semidivisible numbers')
     ,PROTO_CALL(235,1.002322108633,'An Arithmetic Geometric sequence')
+    ,PROTO_CALL(345a,13938,'Matrix Sum')
 
     // a revoir beaucoup trop lent
     //    ,{100,  PB100,756872327473,'XX')
@@ -395,6 +396,19 @@ static PB_CALL ALL_calls[] = {
     ,PROTO_CALL(625a,551614306,'Gcd sum')
 //    ,PROTO_CALL(625b,551614306,'Gcd sum') // too slow
 //    ,PROTO_CALL(625,551614306,'Gcd sum') // verification for small values
+//    ,PROTO_CALL(687a,0.3285320869,'Shuffling Cards')
+//    ,PROTO_CALL(687,0.3285320869,'Shuffling Cards')
+
+    //    ,PROTO_CALL(691c,11570761,'Long substring with many repetitions')
+    ,PROTO_CALL(691d,11570761,'Long substring with many repetitions')
+ //   ,PROTO_CALL(691a,11570761,'Long substring with many repetitions')
+ //   ,PROTO_CALL(691b,11570761,'Long substring with many repetitions')
+ //   ,PROTO_CALL(691,11570761,'Long substring with many repetitions')
+     ,PROTO_CALL(693,699161,'Finite Sequence Generator')
+//   ,PROTO_CALL(693b,699161,'Finite Sequence Generator')
+//   ,PROTO_CALL(693a,699161,'Finite Sequence Generator')
+    ,PROTO_CALL(697,4343871.06,'Randomly Decaying Sequence')
+//    ,PROTO_CALL(697a,4343871.06,'Randomly Decaying Sequence')
 
     
     ,{ NULL,NULL,"","" }
@@ -407,8 +421,10 @@ static PB_CALL CUR_calls[] = {
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
 
     
-        PROTO_CALL(345a,13938,'Matrix Sum')
- //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
+//        PROTO_CALL(695,???,'Random Rectangles')
+         PROTO_CALL(696,436944244,'Mahjong')
+//        ,PROTO_CALL(690,???,'Tom and Jerry')
+  //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
 //   ,PROTO_CALL(681,2611227421428,'Maximal Area')
  //    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')
 
