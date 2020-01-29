@@ -2622,17 +2622,18 @@ int PB696(PB_RESULT *pbR) {
 #if 1
 #define PB696_NBS   3
 #define PB696_NBT   4
-#define PB696_NBN   20
+#define PB696_NBN   9
 
-/*
+
 #define PB696_NBS   1000
-#define PB696_NBT   5
-#define PB696_NBN   200
-*/
+#define PB696_NBT   30
+#define PB696_NBN   1000
 
-//#define PB696_NBS   100000000
-//#define PB696_NBT   30
-//#define PB696_NBN   100000000
+
+#define PB696_NBS   100000000
+#define PB696_NBT   30
+#define PB696_NBN   100000000
+
 
 #define PB696_MOD   1000000007
 
@@ -2970,8 +2971,8 @@ int PB696a(PB_RESULT *pbR) {
     int nty2nb1[NB_T696a] = { 4,3,3,2,2,2,1,1,1,1,0,0,0,0,0} ;
     int nty2nb2[NB_T696a] = { 4,3,4,2,3,4,1,2,3,4,0,1,2,3,4} ;
 
-    int32_t *tb1 = malloc(NB_T696a*(ntMax+1)*NB_STP696a*sizeof(tb1[0]));
-    int32_t *tb2 = malloc(NB_T696a*(ntMax+1)*NB_STP696a*sizeof(tb2[0]));
+    int64_t *tb1 = malloc(NB_T696a*(ntMax+1)*NB_STP696a*sizeof(tb1[0]));
+    int64_t *tb2 = malloc(NB_T696a*(ntMax+1)*NB_STP696a*sizeof(tb2[0]));
 
 #if defined(DBG)
     int64_t *val1 = calloc(NB_T696a*(ntMax+1)*NB_STP696a*10000,sizeof(val1[0]));
@@ -2980,27 +2981,31 @@ int PB696a(PB_RESULT *pbR) {
     int64_t *valAnt = val2 ;
 #endif
 
-    int64_t *nbNoP = calloc(ntMax+1,sizeof(nbNoP[0])) ;
-    int64_t *nbWithP = calloc(ntMax+1,sizeof(nbWithP[0])) ;
     int nt ;
-    int maxI = ntMax*4+5 ;
+//    int maxI = ntMax*4+5 ;
+    int maxI = ntMax*3+3 ;
+//    int maxI=n;
     if(maxI>n)maxI = n ;
+    printf("Maxi=%d n=%d\n",maxI,n);
     int64_t *nbConnextNoP = calloc((maxI+1)*(ntMax+1),sizeof(nbConnextNoP[0]));
     int64_t *nbConnextWithP = calloc((maxI+1)*(ntMax+1),sizeof(nbConnextWithP[0]));
-
+ //   int64_t *nbConnextNoP = calloc((n+1)*(ntMax+1),sizeof(nbConnextNoP[0]));
+ //  int64_t *nbConnextWithP = calloc((n+1)*(ntMax+1),sizeof(nbConnextWithP[0]));
+    nbConnextNoP[(maxI+1)*(ntMax+1)] = 12345678 ;
+    printf("NBconnect=%lld\n",nbConnextNoP[(maxI+1)*(ntMax+1)]);
     for(nt=0;nt<=ntMax;nt++) {
-        int32_t *tbCur= tb1 ;
-        int32_t *tbAnt = tb2 ;
+        int64_t *tbCur= tb1 ;
+        int64_t *tbAnt = tb2 ;
         memset(tbCur,0,NB_T696a*(nt+1)*NB_STP696a*sizeof(tbCur[0])) ;
         tbCur[0] = 1 ;
-        for(int i=0;i<maxI;i++) {
+        for(int in=0;in<maxI;in++) {
 #if defined(DBG)
             int64_t *val = valCur ;
             valCur = valAnt ;
             valAnt = val ;
             printf("\n************ %d **********\n",i);
 #endif
-            int32_t *tmp = tbCur ;
+            int64_t *tmp = tbCur ;
             tbCur = tbAnt ;
             tbAnt = tmp ;
             memset(tbCur,0,NB_T696a*(nt+1)*NB_STP696a*sizeof(tbCur[0])) ;
@@ -3008,10 +3013,10 @@ int PB696a(PB_RESULT *pbR) {
                 for(int nty=0;nty<NB_T696a;nty++) {
                     int nb2 = nty2nb2[nty] ;
                     int nb1 = nty2nb1[nty]   ;
-                    int isSerieAllowed = ( i<n-2) ? 1 : 0 ;
+                    int isSerieAllowed = ( in<n-2) ? 1 : 0 ;
                     for(int it=0;it<=nt;it++) {
                         int nxt, old = (it*NB_T696a+nty)*NB_STP696a+ip ;
-                        int na = tbAnt[ old] ;
+                        int64_t na = tbAnt[ old] ;
                         if(na==0) continue ;
 //                        if( isSerieAllowed  && nb1>=2 && (it < nt-1)  && (ip != 3) && (ip != 5) && (ip !=9 && (ip != 10))) {
                         if( isSerieAllowed  && nb1>=2 && (it < nt-1)  && (ip != 1) && (ip != 6)) {
@@ -3118,10 +3123,10 @@ int PB696a(PB_RESULT *pbR) {
                             if(it==nt) {
                                 if(ip==0) {
  //                                   printf("+%d(%d,%d) ",na,it,i);
-                                    nbConnextNoP[i*(ntMax+1)+it] += na ; nbConnextNoP[i*(ntMax+1)+it] %= PB696_MOD  ;
+                                    nbConnextNoP[in*(ntMax+1)+it] += na ; nbConnextNoP[in*(ntMax+1)+it] %= PB696_MOD  ;
                                 }else {
                                   //  printf("+w%d(%d,%d) ",na,it,i);
-                                    nbConnextWithP[i*(ntMax+1)+it] += na ; nbConnextWithP[i*(ntMax+1)+it] %= PB696_MOD  ;
+                                    nbConnextWithP[in*(ntMax+1)+it] += na ; nbConnextWithP[in*(ntMax+1)+it] %= PB696_MOD  ;
                                 }
                             }
                         } else {
@@ -3158,7 +3163,7 @@ int PB696a(PB_RESULT *pbR) {
                 }
             }
         }
-
+ 
         
 #if defined(DBG)
         int64_t *tbSortVal=malloc(100000*sizeof(tbSortVal[0]));
@@ -3178,8 +3183,8 @@ int PB696a(PB_RESULT *pbR) {
 #endif
             }
         }
-        nbNoP[nt] = noIP ;
-        nbWithP[nt] = withIP ;
+//        nbNoP[nt] = noIP ;
+//        nbWithP[nt] = withIP ;
 #if defined(DBG)
         int nbId = 0 ;
         printf("\n nbV=%d\n",nbV);
@@ -3244,24 +3249,30 @@ int PB696a(PB_RESULT *pbR) {
         }
 #endif
 
-        printf("nt=%d noIP=%lld , withIP=%lld\n",nt,nbNoP[nt],nbWithP[nt]);
+//        printf("nt=%d noIP=%lld , withIP=%lld\n",nt,nbNoP[nt],nbWithP[nt]);
     }
+    int64_t *nbNoP = calloc(ntMax+1,sizeof(nbNoP[0])) ;
+    int64_t *nbWithP = calloc(ntMax+1,sizeof(nbWithP[0])) ;
+
     
-    int maxN = ntMax*5+6 ;
-    if(maxN >n) maxN = n ;
-    int nbCMax =  ntMax ;
-    int64_t *nbN_NoP = calloc((maxN+1)*(nbCMax+1),sizeof(nbN_NoP[0]));
-    int64_t *nbN_WithP = calloc((maxN+1)*(nbCMax+2),sizeof(nbN_WithP[0]));
+//    int maxN = ntMax*5+6 ;
+//    int maxN = maxI ;
+//    if(maxN >n) maxN = n ;
+//    printf("maxN=%d n=%d\n",maxN,n);
+//    int nbCMax =  ntMax ;
+    int64_t *nbN_NoP = calloc((maxI+1)*(ntMax+1),sizeof(nbN_NoP[0]));
+    int64_t *nbN_WithP = calloc((maxI+1)*(ntMax+1),sizeof(nbN_WithP[0]));
     
-    int64_t *nbT_NoP1 = calloc((maxN+1)*(ntMax+1),sizeof(nbT_NoP1[0]));
-    int64_t *nbT_WithP1 = calloc((maxN+1)*(ntMax+1),sizeof(nbT_WithP1[0]));
-    int64_t *nbT_NoP2 = calloc((maxN+1)*(ntMax+1),sizeof(nbT_NoP1[0]));
-    int64_t *nbT_WithP2 = calloc((maxN+1)*(ntMax+1),sizeof(nbT_WithP1[0]));
+    int64_t *nbT_NoP1 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_NoP1[0]));
+    int64_t *nbT_WithP1 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_WithP1[0]));
+    int64_t *nbT_NoP2 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_NoP2[0]));
+    int64_t *nbT_WithP2 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_WithP2[0]));
     int64_t *cur_nbT_NoP = nbT_NoP1 ;
     int64_t *ant_nbT_NoP = nbT_NoP2 ;
     int64_t *cur_nbT_WithP = nbT_WithP1 ;
     int64_t *ant_nbT_WithP = nbT_WithP2 ;
     int i ;
+
     for(i=0;i<=maxI;i++) {
         int it ;
         for(it=0;it<=ntMax;it++) {
@@ -3269,62 +3280,61 @@ int PB696a(PB_RESULT *pbR) {
             cur_nbT_WithP[i*(ntMax+1)+it] = nbConnextWithP[i*(ntMax+1)+it] ;
         }
      }
-    for(i=maxI+1;i<maxN;i++) {
-        for(int it=0;it<=ntMax;it++) {
-            cur_nbT_NoP[i*(ntMax+1)+it] = 0 ;
-            cur_nbT_WithP[i*(ntMax+1)+it] = 0 ;
-        }
-    }
+/*
     {
         int it ;
         for(it=0;it<=ntMax;it++) {
             printf("itC=%d: ",it) ;
-            for(i=0;i<=maxN;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
+            for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
             printf("\n\tw: ") ;
-            for(i=0;i<=maxN;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
+            for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
             printf("\n");
        }
 
     }
+*/
     int64_t invI[ntMax+2] ;
+    invI[1] =1 ;
     for(int ii=2;ii<=ntMax+1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
      for(int it=0;it<=ntMax;it++) {
-        for(int in=1;in<=maxN;in++) {
+        for(int in=1;in<=maxI;in++) {
             nbNoP[it] += cur_nbT_NoP[in*(ntMax+1)+it] * (n-in+1) ; nbNoP[it] %= PB696_MOD ;
-            if(it==2 && cur_nbT_WithP[in*(ntMax+1)+it]) printf("C1-%lld+=(%d,%d)%lldx%lld ",nbWithP[it],in,it,cur_nbT_WithP[in*(ntMax+1)+it], n-in+1);
+//            if(it==2 && cur_nbT_WithP[in*(ntMax+1)+it]) printf("C1-%lld+=(%d,%d)%lldx%lld ",nbWithP[it],in,it,cur_nbT_WithP[in*(ntMax+1)+it], n-in+1);
             nbWithP[it] += cur_nbT_WithP[in*(ntMax+1)+it]*(n-in+1) ; nbWithP[it] %= PB696_MOD ;
-            int64_t fact = (n-in)*(n-in-1) ; fact %= PB696_MOD ;
-            if(it==2 && cur_nbT_NoP[in*(ntMax+1)+it]) printf("C1-%lld+=no(%d,%d)%lldx%lld ",nbWithP[it],in,it,cur_nbT_NoP[in*(ntMax+1)+it],fact);
+            int64_t fact = (n-in)*(int64_t)(n-in-1) ; fact %= PB696_MOD ;
+ //           if(it==2 && cur_nbT_NoP[in*(ntMax+1)+it]) printf("C1-%lld+=no(%d,%d)%lldx%lld ",nbWithP[it],in,it,cur_nbT_NoP[in*(ntMax+1)+it],fact);
             nbWithP[it] += cur_nbT_NoP[in*(ntMax+1)+it] * fact ; nbWithP[it] %= PB696_MOD ;
         }
     }
+/*
     printf("Cn=%d :",1) ;
     for(int it=0;it<=ntMax;it++) printf("%lld ",nbNoP[it]);
     printf("\n\tw:");
     for(int it=0;it<=ntMax;it++) printf("%lld ",nbWithP[it]);
     printf("\n");
-    for(int ic=2;ic<=ntMax;ic++) {
-//    for(int ic=2;ic<=2;ic++) {
+*/
+    int ic ;
+    for(ic=2;ic<=ntMax;ic++) {
         int64_t *tmp = ant_nbT_NoP ;
         ant_nbT_NoP = cur_nbT_NoP ;
         cur_nbT_NoP = tmp ;
         tmp = ant_nbT_WithP ;
         ant_nbT_WithP = cur_nbT_WithP ;
         cur_nbT_WithP = tmp ;
-        for(int t1=0;t1<=ntMax;t1++) {
-//            cur_nbT_NoP[0*(ntMax+1)+t1] = 0 ;
-            for(int i1=1;i1<=maxN;i1++) {
-//                printf("i1=%d t=%d ",i1,t1);
+        int t1,t2 ;
+        for(t1=0;t1<=ntMax;t1++) {
+            int i1,i2 ;
+            for(i1=1;i1<=maxI;i1++) {
                 int64_t Sno = 0;
                 int64_t Swith = 0 ;
-//                for(int t2 = 0 ; t2 <=t1;t2++) {
-                for(int t2 = 1 ; t2 <=t1-1;t2++) {
-                    for(int i2=1;i2<=i1-1;i2++) {
-//                            printf("+%lldx%lld",ant_nbT_NoP[i2*(ntMax+1)+t2],nbConnextNoP[(i1-i2)*(ntMax+1)+t1-t2]);
+                for(t2 = 1 ; t2 <=t1-1;t2++) {
+ //                   int i2min = i1-maxI ;
+ //                   if(i2min < 1) i2min = 1 ;
+                    for(i2=1;i2<=i1-1;i2++) {
                         Sno += ant_nbT_NoP[i2*(ntMax+1)+t2] * nbConnextNoP[(i1-i2)*(ntMax+1)+t1-t2] ;
                         Sno %= PB696_MOD ;
                     }
-                     for(int i2=1;i2<=i1-1;i2++) {
+                     for(i2=1;i2<=i1-1;i2++) {
                         Swith += ant_nbT_WithP[i2*(ntMax+1)+t2] * nbConnextNoP[(i1-i2)*(ntMax+1)+t1-t2]
                         + ant_nbT_NoP[i2*(ntMax+1)+t2] * nbConnextWithP[(i1-i2)*(ntMax+1)+t1-t2] ;
                         Swith %= PB696_MOD ;
@@ -3335,45 +3345,39 @@ int PB696a(PB_RESULT *pbR) {
                 cur_nbT_WithP[i1*(ntMax+1)+t1] = Swith ;
             }
         }
-        {
+/*        {
             printf("**** ic=%d ****\n",ic);
             int it,i ;
             for(it=0;it<=ntMax;it++) {
                 printf("it=%d:",it);
-                for(i=0;i<=maxN;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
+                for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
                 printf("\n   w ");
-                for(i=0;i<=maxN;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
+                for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
                 printf("\n");
             }
         }
+*/
         for(int it=ic;it<=ntMax;it++) {
-            for(int in=2;in<=maxN;in++) {
+            int in ;
+            for(in=2;in<=maxI;in++) {
                 int64_t fact = n-in+1 ;
                 for (int ij=2;ij<=ic;ij++) {
                     fact *=  (n-in+2-ij) ; fact %= PB696_MOD ;
                     fact *= invI[ij] ; fact %= PB696_MOD ;
                 }
-            // printf("+(i=%d,it=%d)%lld=%lldx%lld ",in,it,cur_nbT_NoP[in*(ntMax+1)+it] * fact,cur_nbT_NoP[in*(ntMax+1)+it],fact);
                 nbNoP[it] += cur_nbT_NoP[in*(ntMax+1)+it] * fact ; nbNoP[it] %= PB696_MOD ;
-                if(ic==2 && it == 2 && cur_nbT_WithP[in*(ntMax+1)+it]) printf("%lld*+(i=%d,it=%d)%lld=%lldx%lld ",nbWithP[it],in,it,cur_nbT_WithP[in*(ntMax+1)+it] * fact,cur_nbT_WithP[in*(ntMax+1)+it],fact);
                 nbWithP[it] += cur_nbT_WithP[in*(ntMax+1)+it] * fact ; nbWithP[it] %= PB696_MOD ;
                 fact *= (n-in+1-ic) ; fact %= PB696_MOD ;
-//                fact *= invI[ic+1] ; fact %= PB696_MOD ;
-                if(ic==2 && it == 2 && cur_nbT_NoP[(in-1)*(ntMax+1)+it]) {
-                    printf("%lld+(i=%d,it=%d)%lld=%lldx%lld ",nbWithP[it],in-1,it,cur_nbT_NoP[(in-1)*(ntMax+1)+it] * fact,cur_nbT_NoP[(in-1)*(ntMax+1)+it],fact);
-                }
                 nbWithP[it] += cur_nbT_NoP[(in-1)*(ntMax+1)+it] * fact ; nbWithP[it] %= PB696_MOD ;
             }
         }
-        printf("Cn=%d :",ic) ;
-        if(ic <= ntMax) {
-            for(int it=0;it<=ntMax;it++) printf("%lld ",nbNoP[it]);
-            printf("\n\tw:");
-        }
-        for(int it=0;it<=ntMax;it++) printf("%lld ",nbWithP[it]);
-        printf("\n");
-        
     }
+    nbNoP[0] = 1 ;
+    printf("Cn=%d :",ntMax) ;
+    for(int it=0;it<=ntMax;it++) printf("%lld ",nbNoP[it]);
+    printf("\n\tw:");
+    for(int it=0;it<=ntMax;it++) printf("%lld ",nbWithP[it]);
+    printf("\n");
 
     
     int64_t Sum = 0 ;
@@ -3385,6 +3389,7 @@ int PB696a(PB_RESULT *pbR) {
         CnbWithP[nt] = nbWithP[nt] ;
     }
     for(int is=2;is<=ns;is++) {
+        if((is & 0xFFFFFF) == 0) printf(".\n");
         int64_t OnbNoP[ntMax+1] ;
         int64_t OnbWithP[ntMax+1] ;
         memcpy(OnbNoP,CnbNoP,sizeof(OnbNoP)) ;
