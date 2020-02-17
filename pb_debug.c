@@ -36,15 +36,18 @@
 #define isSerie 1
 #define isT3    2
 #define isPaire 4
-
-#define NB_T696a 15     // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-
-#define NB_STP696a   8
+#define NB_T696a 9 // 44 33 34 22 23 24 12 13 02
 static inline int nb2ntya(int nb1,int nb2) {
-    static int nb2nty[]={10,6,3,1,0} ;
-    //    if(nb1>nb2) nb1 = nb2 ;
-    return nb2nty[nb1]+nb2-nb1 ;
+    switch(nb1){
+        case 4: return 0 ;
+        case 3: return nb2 - 2 ;
+        case 2: return nb2 + 1 ;
+        case 1: return nb2 + 4 ;
+        case 0:
+        default: return 8 ;
+    }
 }
+
 
 static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
     u_int64_t aPow2 = a % mod ;
@@ -59,8 +62,9 @@ static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
     return aPowExp ;
 }
 
-
-enum PB696ST { ST_Start = 0 ,   ST_C2=2 ,  ST_no2S = 3, ST_1T3=4 , ST_2T3=5, ST_NoT3 = 6 , ST_End=7} ;
+#define NB_STP696a   7
+// states (7) and automate to avoid multiple decompositions
+enum PB696ST { ST_Start = 0 ,   ST_C2=1 ,  ST_no2S = 2, ST_1T3=3 , ST_2T3=4, ST_NoT3 = 5 , ST_End=6} ;
 static inline enum PB696ST nxtSta (enum PB696ST st,int flag) {
     enum PB696ST nxtSt ;
     switch(st) {
@@ -77,6 +81,7 @@ static inline enum PB696ST nxtSta (enum PB696ST st,int flag) {
     }
     return nxtSt ;
 }
+
 
 
 typedef struct NB696 {
@@ -99,13 +104,12 @@ static void Conv(int ntMax1,NB696 *V1 , NB696 *V2 ,NB696 *Res ) {
     return ;
 }
 
-#define INDXITIN(it,in) (((it)-ib)*maxI1+(in))
 #define INDCOUNT(it,nty,st)    (((it)*NB_T696a+(nty))*NB_STP696a+(st))
 #define SIZEBREAK  ((ntMax1)*NB_T696a*NB_STP696a)
 #define SIZE_ITxIN  (maxI1*ntMax1)
-#define NXT(nbSerie,flags,nbIt) (ibCur+INDCOUNT(it+(nbIt),nb2ntya(nb2-(nbSerie),4-(nbSerie)),nxtSta(st,(flags))))
-#define SET_NXT tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD
-#define UPNXT(nxt,newSt)    (deltaBreak+((nxt) & 0xfffffff8) +(newSt) )
+#define NXT(nbSerie,nbIt,flags) int nxty = nb2ntya(nb2-(nbSerie),4-(nbSerie)) ; int nxst = nxtSta(st,(flags)) ; int nxit = it+(nbIt); int nxt = (ibCur+INDCOUNT(nxit,nxty,nxst))
+#define SET_NXT tbCur[nxt] = (int32_t)((na + tbCur[nxt]) % PB696_MOD)
+#define BRKNXT(newSt) (ibCur+deltaBreak+INDCOUNT(nxit,nxty,(newSt)))
 
 int PB696b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
@@ -116,17 +120,34 @@ int PB696b(PB_RESULT *pbR) {
     if(maxI>n)maxI = n ;
     int maxI1 = maxI+1 ;
     // number of free cases in the 2 next columns
-    // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-    int nty2nb1[NB_T696a] = { 4,3,3,2,2,2,1,1,1,1,0,0,0,0,0} ;
-    int nty2nb2[NB_T696a] = { 4,3,4,2,3,4,1,2,3,4,0,1,2,3,4} ;
+    // 44 33 34 22 23 24 12 13 02
+    int nty2nb1[NB_T696a] = { 4,3,3,2,2,2,1,1,0} ;
+    int nty2nb2[NB_T696a] = { 4,3,4,2,3,4,2,3,2} ;
+
+    int32_t *tb1 = malloc(ntMax1*SIZEBREAK*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(ntMax1*SIZEBREAK*sizeof(tb2[0]));
+    // precompute combination Cnp(ib,in) =
+    //  ( n-in+1 )
+    //  (   ib   )
+#define INDXIBIN(ib,in) ((ib)*maxI1+(in))
+    NB696 *nb_IT = calloc(ntMax1,sizeof(nb_IT[0])) ;
+    int64_t invI[ntMax1+2] ;
+    invI[1] =1 ;
+    for(int ii=2;ii<=ntMax1+1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
+    int64_t *Cnp = malloc(ntMax1*maxI1*sizeof(Cnp[0]));
+    for(int in=1;in<=maxI;in++) {
+        int64_t fact = 1 ;
+        for(int ib=0;ib<ntMax1;ib++) {
+            fact *= n-in+1-ib ; fact %= PB696_MOD ;  fact *= invI[ib+1] ; fact %= PB696_MOD ;
+            Cnp[INDXIBIN(ib,in)] = fact ;
+        }
+    }
+
     
-    int64_t *tb1 = malloc(ntMax1*SIZEBREAK*sizeof(tb1[0]));
-    int64_t *tb2 = malloc(ntMax1*SIZEBREAK*sizeof(tb2[0]));
-    NB696 ** pt_ITxIN = malloc(ntMax1*sizeof(pt_ITxIN[0])) ;
-    for(int ib=0;ib<ntMax1;ib++)pt_ITxIN[ib] = calloc((maxI1)*(ntMax1-ib),sizeof(pt_ITxIN[ib][0])) ;
+    
     int deltaBreak = SIZEBREAK;
-    int64_t *tbCur= tb1 ;
-    int64_t *tbAnt = tb2 ;
+    int32_t *tbCur= tb1 ;
+    int32_t *tbAnt = tb2 ;
     memset(tbCur,0,ntMax1*SIZEBREAK*sizeof(tbCur[0])) ;
     tbCur[0] = 1 ;
 // Compute the nb of compact hands (no missing tile numbers) by
@@ -136,15 +157,15 @@ int PB696b(PB_RESULT *pbR) {
     for(int in=0;in<=maxI;in++) { // loop on numbers
         int maxIb = ntMax1 ;
         if(maxIb > in+1) maxIb = in+1 ;
-        int isSerieAllowed = ( in<n-2) ? 1 : 0 ;
-        int64_t *tmp = tbCur ; tbCur = tbAnt ;  tbAnt = tmp ;
-          for(int ib=0;ib<maxIb;ib++){ // loop on breaks (frontiers between connected dev.)
-            NB696 *nb_ITxIN = pt_ITxIN[ib] ;
+        int isSerieAllowed = ( in<n-2) ? 1 : 0 ; //  for small values for n
+        int32_t *tmp = tbCur ; tbCur = tbAnt ;  tbAnt = tmp ;
+        for(int ib=0;ib<maxIb;ib++){ // loop on breaks (frontiers between connected dev.)
+            int64_t factCnp = Cnp[INDXIBIN(ib,in)] ;
             int ibCur = ib * deltaBreak ;
             for(int nty=0;nty<NB_T696a;nty++) {
                 int nb2 = nty2nb2[nty] ;
                 int nb1 = nty2nb1[nty]   ;
-                for(int st=0;st<NB_STP696a;st++){ // states to avoid with multiple representation
+                for(int st=0;st<NB_STP696a;st++){ // states to avoid multiple representations
                     for(int it=ib;it<ntMax1;it++) {
                         int old = ibCur + INDCOUNT(it,nty,st);
                         int64_t na = tbAnt[ old] ;
@@ -155,46 +176,46 @@ int PB696b(PB_RESULT *pbR) {
                             if(it < ntMax1 ){
                                 isBreak = 1 ;
                                 if(st==ST_Start ) {
-                                    nb_ITxIN[INDXITIN(it,in)].noP += na ; nb_ITxIN[INDXITIN(it,in)].noP %= PB696_MOD  ;
+                                    nb_IT[it].noP += na * factCnp ; nb_IT[it].noP %= PB696_MOD ;
                                 }  else  {
-                                    nb_ITxIN[INDXITIN(it,in)].withP += na; nb_ITxIN[INDXITIN(it,in)].withP %= PB696_MOD   ;
+                                    nb_IT[it].withP += na * factCnp ; nb_IT[it].withP %= PB696_MOD ;
                                 }
                             } else {   continue ; }
                         }
                         if( isSerieAllowed  && nb1>=2 && (it < ntMax1-2)  && ( ((st !=ST_no2S) && (st != ST_1T3) ) || isBreak)) {
                             // add 2 serials
-                            int nxt = NXT(2,isSerie,2) ;
-                            if( (st != ST_no2S) && (st != ST_1T3)  ) { SET_NXT ; }
-                            if(isBreak) {  nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                            NXT(2,2,isSerie) ;
+                            if( (st != ST_no2S) && (st != ST_1T3)  ) { SET_NXT ;  }
+                            if(isBreak) {  nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ;   }
                             if(nb1>=4 && (st==ST_Start)) { // add 2 serials + Pair
-                                int nxt = NXT(2,isPaire|isSerie,2) ; SET_NXT ;
+                                NXT(2,2,isPaire|isSerie) ; SET_NXT ;
                                 if(isBreak) { nxt += deltaBreak ; SET_NXT ; }
                             }
                         }
                         if( isSerieAllowed && nb1 && it < ntMax1-1){ // add 1xSerial ?
-                            int nxt = NXT(1,isSerie,1) ; SET_NXT ;
-                            if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak  ; SET_NXT ; }
+                            NXT(1,1,isSerie) ; SET_NXT ;
+                            if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak  ; SET_NXT ; }
                             if(nb1>=3 && (st==ST_Start) ) { // add 1xSerial + Pair
-                                int nxt = NXT(1,isSerie|isPaire,1) ; SET_NXT ;
+                                NXT(1,1,isSerie|isPaire) ; SET_NXT ;
                                 if(isBreak) {  nxt += deltaBreak ; SET_NXT ; }
                             }
                             if(nb1>=4 && (it < ntMax1 - 2) && ((st != ST_NoT3 ) || isBreak) ) { // add T3 ?
-                                int nxt = NXT(1,isSerie|isT3,2) ;
-                                if(st != ST_NoT3 ) { SET_NXT ; }
-                                if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                                NXT(1,2,isSerie|isT3) ;
+                                if(st != ST_NoT3 ) { SET_NXT ;   }
+                                if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ; }
                             }
                         }
                         if((st==ST_Start) && nb1>=2) { // add Pair ?
-                            int nxt = NXT(0,isPaire,0) ;   SET_NXT ;
+                            NXT(0,0,isPaire) ;   SET_NXT ;
                             if(isBreak) {  nxt += deltaBreak ; SET_NXT ; }
                         }
                         if(nb1>=3 && it < ntMax1-1 && ((st != ST_NoT3 ) || isBreak) ) { // add T3 ?
-                            int nxt = NXT(0,isT3,1) ;
-                            if(st != ST_NoT3 ){ SET_NXT ;}
-                            if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                            NXT(0,1,isT3) ;
+                            if(st != ST_NoT3 ){ SET_NXT ;  }
+                            if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ; }
                         }
                         if(nb1!=4) { // add nothing
-                            int nxt = NXT(0,0,0) ; SET_NXT ;
+                            NXT(0,0,0) ; SET_NXT ;
                         }
                     }
                  } // end bcl it
@@ -206,54 +227,7 @@ int PB696b(PB_RESULT *pbR) {
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s End phase 0 : compact hands %.6fs\n",pbR->ident,(float)(clock()-pbR->nbClock) / CLOCKS_PER_SEC);
     
     
-#define INDXIBIN(ib,in) ((ib)*maxI1+(in))
-/*    {
-        for(int ib=0;ib<ntMax1;ib++) {
-            printf("**** ib=%d ****\n",ib) ;
-            for(int it=ib;it<ntMax1;it++) {
-                printf("it=%d ",it) ;
-                for(int in=0;in<=maxI;in++) printf("%lld ",pt_ITxIN[ib][INDXITIN(it,in)].noP);
-                printf("\n   w ");
-                for(int in=0;in<=maxI;in++) printf("%lld ",pt_ITxIN[ib][INDXITIN(it,in)].withP);
-                printf("\n");
-           }
-        }
-    }
-*/
-// precompute combination Cnp(ib,in) =
-//  ( n-in+1 )
-//  (   ib   )
 
-    NB696 *nb_IT = calloc(ntMax1,sizeof(nb_IT[0])) ;
-    int64_t invI[ntMax1+2] ;
-    invI[1] =1 ;
-    for(int ii=2;ii<=ntMax1+1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
-    int64_t *Cnp = malloc(ntMax1*maxI1*sizeof(Cnp[0]));
-    for(int in=1;in<=maxI;in++) {
-        int64_t fact = 1 ;
-        for(int ib=0;ib<ntMax1;ib++) {
-             fact *= n-in+1-ib ; fact %= PB696_MOD ;  fact *= invI[ib+1] ; fact %= PB696_MOD ;
-            Cnp[INDXIBIN(ib,in)] = fact ;
-        }
-    }
-// From the number of hands (multiconnected, and compact(no missing number)
-// by IB (nb of connected parts), by IT(nb tiles) and IN(nb used numbers) computes:
-// the number of hands of length n
-// by inserting missing numbers <=> multiply by Cnp
-    for(int ib=0;ib<ntMax1;ib++) {
-        NB696 * nb_ITxIN = pt_ITxIN[ib] ;
-        for(int in=ib;in<=maxI;in++) {
-            int64_t fact = Cnp[INDXIBIN(ib,in)] ;
-            for(int it= ib;it<ntMax1;it++) {
-                int ind = INDXITIN(it,in) ;
-                if(nb_ITxIN[ind].noP) {
-                    nb_IT[it].noP += nb_ITxIN[ind].noP * fact ; nb_IT[it].noP %= PB696_MOD ;
-                 }
-                nb_IT[it].withP += nb_ITxIN[ind].withP * fact ; nb_IT[it].withP %= PB696_MOD ;
-            }
-        }
-    }
-    
     nb_IT[0].noP = 1 ;
 //    printf("C_Cn=%d :",ntMax1-1) ; for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].noP);
 //    printf("\n\tw:"); for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].withP); printf("\n");
