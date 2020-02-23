@@ -4,6 +4,8 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
+
 
 #define M_PI 3.14159265358979323846264338327950288
 
@@ -16,97 +18,20 @@
 #define PB701_H 7
 #define PB701_MAXCONNECT    5
 
-typedef uint32_t NsumInd  ;
-typedef uint8_t NsumVal ;
-typedef struct Nsum {
-    NsumInd N ;
-    NsumInd k ;
-    NsumInd *index ;
-} Nsum ;
 
-#define NS_IND(k,n) ((k) * NS->N +(n))
-Nsum * NsumAlloc(NsumInd N, NsumInd k) {
-    if(k<2) return NULL ;
-    Nsum * NS = calloc(1,sizeof(NS[0])) ;
-    NS->N = N+1 ;
-    NS->k = k ;
-    NS->index = malloc((k-1)*(N+1)*sizeof(NS->index[0]));
-    // init k-1 serie
-    NsumInd *ids = NS->index+ NS_IND(k-2,0) ;
-    ids[0] = 0 ;
-    for(int in=1;in<=N;in++){
-        ids[in] = ids[in-1] + N + 2 - in ;
-    }
-    for(int ik=k-3;ik>=0;ik--) {
-        NsumInd *idsAnt = ids ;
-        ids = NS->index+ NS_IND(ik,0) ;
-        ids[0] = 0 ;
-        NsumInd indAnt = idsAnt[N]+1 ;
-        for(int in=1;in<=N;in++){
-            ids[in] = ids[in-1] + indAnt - idsAnt[in-1] ;
-        }
-    }
-    return NS ;
-}
 
-Nsum * NsumFree(Nsum * NS) {
-    if(NS != NULL) {
-        free(NS->index);
-        free(NS);
-    }
-    return NULL ;
-}
-NsumInd NsumGetSize(Nsum *NS,int ks) {
-    if(ks<=1) {
-        return ks ? NS->N : 1 ;
-    }
-    return NS->index[NS_IND(NS->k-ks,NS->N-1)]+1 ;
-}
-
-NsumInd NsumGetIndex(Nsum *NS,int ks,NsumVal *sum) {
-   
-    int k = NS->k ;
-    int N = NS->N ;
-    NsumInd * index = NS->index + (k-ks)*N ;
-    switch(ks) {
-        case 0: return 0;
-        case 1: return sum[0] ;
-        case 2: return index[sum[0]]+sum[1] ;
-        case 3: return index[sum[0]] + index[N+sum[0]+sum[1]]-index[N+sum[0]]+sum[2];
-        case 4: return index[sum[0]] + index[N+sum[0]+sum[1]]-index[N+sum[0]]
-            + index[2*N+sum[0]+sum[1]+sum[2]]-index[2*N+sum[0]+sum[1]]  +sum[3];
-        default :
-            {
-                NsumInd ksum = *sum++ ;
-                NsumInd ind = index[ksum] ;
-                for(int ik=1;ik< ks-1;ik++) {
-                    NsumInd ksumNext = ksum + *sum++ ;
-                    ind += index[N*ik+ksumNext]-index[N*ik+ksum];
-                    ksum= ksumNext ;
-                }
-                return ind+ *sum ;
-            }
-
-    }
-}
-
-typedef union Contact {
- //   uint64_t   Glob ;
-    uint16_t   Set[PB701_MAXCONNECT] ;
-} Contact ;
 
 typedef struct PB701_PP {
     int num ;
     int globalContact ;
     int nbSet ;
-    Contact Cntc ;
- //   uint8_t sizeC[PB701_MAXCONNECT] ;
+    uint16_t   Set[PB701_MAXCONNECT]  ;
 } PB701_PP ;
 
 typedef struct PB701_CONN {
     int globalContact ;
     int nbSet ;
-    Contact Cntc ;
+    uint16_t Set[PB701_MAXCONNECT]  ;
     uint8_t sizeC[PB701_MAXCONNECT] ;
 }PB701_CONN ;
 
@@ -123,109 +48,119 @@ typedef struct PB701_INTER {
 
 
 #define PB701_BIG
-
-typedef struct PB701_COH {
-    uint16_t numPP ;
-    NsumVal Surf[PB701_MAXCONNECT+1] ;
-#if defined PB701_BIG
-    __int128 prob ;
+#if defined(PB701_BIG)
+typedef __int128 Prob701 ;
 #else
-    int64_t prob ;
+typedef uint64_t Prob701 ;
 #endif
-} PB701_COH ;
+
+typedef struct PB701_STATE {
+    uint16_t numPP ;    // PP corresponding
+    NsumVal  Surf[PB701_MAXCONNECT+1] ; // surface for each set (including hidden set)
+    Prob701  prob ;     // weight of the state
+} PB701_STATE ;
 
 
 
 
 
-int PB701a(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int dim = 1 << PB701_L ;
-    int FirstPPByFrontier[dim+1] ;
-    PB701_PP *PP = malloc(4000*sizeof(PP[0])) ;
-    PB701_CONN PC[dim] ;
-    int nbPP = 0 ;
-    int nbBit[512] ;
-    PB701_INTER interSec[dim*dim] ;
-    for(int i=0;i<dim;i++) {
+typedef struct PB701_DATA {
+    int nbCol ;   // number of differents column ( 1<<sizeColumn)
+    int nbPP ;  //  number of column partitions in connected parts
+    int *isSymetric  ; // 0 <=> mask symetric, +1 im > sym(im) , -1 im < sym(im)
+    PB701_PP *PP  ; // description for each column partition in connected masks
+    int *firstPPByMask ; // index of first PP by column.
+    PB701_TRANSF *PT ; // description of transformation to add a column to a partition
+} PB701_DATA ;
+
+static void PB701_Init(PB701_DATA *data701, int sizeColumn) {
+    data701->nbCol = 1 << sizeColumn ;
+    int *nbBit ;
+    nbBit = malloc(data701->nbCol*sizeof(nbBit[0]));
+// compute nb bits by mask
+    for(int ic=0;ic<data701->nbCol;ic++) {
         int nb = 0 ;
-        for(int j=0;j<PB701_L;j++) {
-            if(i & (1 << j)) nb++ ;
+        for(int j=0;j < sizeColumn ;j++) {
+            if(ic & (1 << j)) nb++ ;
         }
-        nbBit[i] = nb ;
+        nbBit[ic] = nb ;
     }
-    
-    for(int ic=0;ic<dim;ic++) {
-        for(int j=0;j<dim;j++) {
-            int k = ic & j ;
-            if(k==0) {
-                interSec[ic*dim+j].newContact = 0 ;
-                interSec[ic*dim+j].surfIncrement = 0 ;
+// compute symetry of mask
+    data701->isSymetric = malloc(data701->nbCol*sizeof(data701->isSymetric[0]));
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        int iSym =0 ;
+        for(int ib=0;ib<sizeColumn;ib++) {
+            iSym |= ((ic >> ib) & 1) << (sizeColumn -ib -1) ;
+        }
+        if(iSym == ic) data701->isSymetric[ic] = 0 ;
+        else if(ic > iSym) data701->isSymetric[ic] = 1;
+        else data701->isSymetric[ic] = -1;
+    }
+// compute intersection of 2 mask ,extended to connected parts for each mask.
+    PB701_INTER *interSec ; // intersection of 2 masks extended to connexion parts
+    interSec=malloc(data701->nbCol*data701->nbCol*sizeof(interSec[0]));
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        for(int jc=0;jc<data701->nbCol;jc++) {
+            int km = ic & jc ;
+            if(km==0) {
+                interSec[ic*data701->nbCol+jc].newContact = 0 ;
+                interSec[ic*data701->nbCol+jc].surfIncrement = 0 ;
                 continue ;
             }
-            int n = 0 ;
-            for(int m=0;m<PB701_L;m++) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
+            // extension to connected parts
+            for(int m=0;m<sizeColumn;m++) {
+                if(m>0  && ( (1<<(m-1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
+                if(m<sizeColumn-1  && ( (1<<(m+1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
             }
-            for(int m=PB701_L-1;m>=0;m--) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if((1 <<m) & k)  n++  ;
+            for(int m=sizeColumn-1;m>=0;m--) {
+                if(m>0  && ( (1<<(m-1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
+                if(m<sizeColumn-1  && ( (1<<(m+1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
             }
-            
-            interSec[ic*dim+j].surfIncrement = n ;
-            interSec[ic*dim+j].newContact = (uint16_t) k ;
-            //           printf("I(%x,%x)=%d(%x) ",ic,j,n,k) ;
+            interSec[ic*data701->nbCol+jc].surfIncrement = nbBit[km] ;
+            interSec[ic*data701->nbCol+jc].newContact = (uint16_t) km ;
         }
-    }
-    
-    FirstPPByFrontier[0] = 0 ;
-    PP[nbPP].num  = nbPP ;
-    PP[nbPP].globalContact = 0;
-    PP[nbPP].nbSet = 0 ;
-    memset(PP[nbPP].Cntc.Set,0,sizeof(PP[nbPP].Cntc.Set));
-    nbPP++ ;
-    int IsSymetric[dim] ;
-    IsSymetric[0] = 0 ;
-    for(int i=1;i<dim;i++) {
-        {
-            int iSym =0 ;
-            for(int ib=0;ib<PB701_L;ib++) {
-                iSym |= ((i >> ib) & 1) << (PB701_L -ib -1) ;
-            }
-            if(iSym == i) IsSymetric[i] = 0 ;
-            else if(i > iSym) IsSymetric[i] = 1;
-            else IsSymetric[i] = -1;
-        }
-        FirstPPByFrontier[i] = nbPP ;
-        PB701_PP *curPP = PP + nbPP ;
-        Contact  contact ;
-        memset(contact.Set,0,sizeof(contact.Set));
+     }
+// compute connected partition for each column
+    PB701_CONN *PC = malloc(data701->nbCol*sizeof(PC[0])) ;
+    int nbPPexp = 0 ;
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        uint16_t Set[PB701_MAXCONNECT]  ;
+        memset(Set,0,sizeof(Set));
         int nbConnect = 0 ;
-        int n = i & 1 ;
-        for(int j=1;j<=PB701_L;j++) {
-            if(i & (1 << j)) {
+        int n = ic & 1 ;
+        for(int j=1;j<=sizeColumn;j++) {
+            if(ic & (1 << j)) {
                 n++ ;
             } else {
                 if(n) {
-                    contact.Set[nbConnect] = (uint16_t)((1 << j) - (1<<(j-n))) ;
+                    Set[nbConnect] = (uint16_t)((1 << j) - (1<<(j-n))) ;
                     nbConnect++ ;
+                    n=0 ;
                 }
-                n = 0 ;
             }
         }
-        if(nbConnect > PB701_MAXCONNECT ){
-            nbConnect = PB701_MAXCONNECT ;
-            printf("PB_maxconnect\n");
-        }
-        PC[i].globalContact = i ;
-        PC[i].nbSet = nbConnect ;
-        PC[i].Cntc = contact ;
-#define INIT_PART(n)   curPP = PP + nbPP++ ; curPP->num = nbPP-1 ;  curPP->globalContact = i ; memset(curPP->Cntc.Set,0,sizeof(curPP->Cntc.Set)) ; curPP->nbSet = (n)
+        assert(nbConnect <= sizeColumn);
+        int ppByConnected[PB701_MAXCONNECT+1] = { 1,1,2,5,14,42} ;
+        nbPPexp += ppByConnected[nbConnect] ;
+        PC[ic].globalContact = ic ;
+        PC[ic].nbSet = nbConnect ;
+        memcpy(PC[ic].Set,Set,sizeof(Set)) ;
+    }
+    data701->PP = malloc(nbPPexp*sizeof(data701->PP[0]));
+    data701->firstPPByMask = malloc((data701->nbCol+1)*sizeof(data701->firstPPByMask[0])) ;
+// compute different partitions of column in connected parts
+// dont add impossible configurations as aaabbbaabbb (entrelacement not planar)
+    data701->nbPP = 0 ;
+    data701->firstPPByMask[0] = data701->nbPP ;
+   for(int ic=0;ic<data701->nbCol;ic++) {
+        PB701_PP *curPP = data701->PP + data701->nbPP ;
+        uint16_t Set[PB701_MAXCONNECT]  ;
+        memcpy(Set,PC[ic].Set,sizeof(Set)) ;
+        int nbConnect = PC[ic].nbSet ;
+#define INIT_PART(n)   curPP = data701->PP + data701->nbPP ; curPP->num = data701->nbPP++ ;  curPP->globalContact = ic ; memset(curPP->Set,0,sizeof(curPP->Set)) ; curPP->nbSet = (n)
         
-#define DST(i)  curPP->Cntc.Set[i]
-#define SRC(i)  contact.Set[i]
+#define DST(i)  curPP->Set[i]
+#define SRC(i)  Set[i]
         
 #define PART_A(i0)         INIT_PART(1) ; DST(0)=SRC(i0)
         
@@ -249,9 +184,10 @@ int PB701a(PB_RESULT *pbR) {
 #define PART_AB_CD_E(i0,i1,i2,i3,i4)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)|SRC(i3) ; DST(2)=SRC(i4)
 #define PART_AB_C_D_E(i0,i1,i2,i3,i4)  INIT_PART(4) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2) ; DST(2)=SRC(i3) ; DST(3)=SRC(i4)
 #define PART_A_B_C_D_E(i0,i1,i2,i3,i4) INIT_PART(5) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2) ; DST(3)=SRC(i3) ; DST(4)=SRC(i4)
-        
-        
         switch(nbConnect) {
+            case 0 :
+                INIT_PART(0) ;
+                break ;
             case 1 :
                 PART_A(0) ;
                 break ;
@@ -283,884 +219,231 @@ int PB701a(PB_RESULT *pbR) {
                 PART_A_B_C_D_E(0,1,2,3,4);
                 break ;
         }
-        FirstPPByFrontier[i+1] = nbPP ;
-        for(int ip = FirstPPByFrontier[i];ip<FirstPPByFrontier[i+1];ip++ ) {
-            int nbs = PP[ip].nbSet ;
+        // sort each partition set for future comparison between partitions
+        data701->firstPPByMask[ic+1] = data701->nbPP ;
+        for(int ip = data701->firstPPByMask[ic];ip<data701->firstPPByMask[ic+1];ip++ ) {
+            int nbs = data701->PP[ip].nbSet ;
             for(int is = 1;is<nbs;is++) {
                 for(int js=is;js<nbs;js++) {
-                    if(PP[ip].Cntc.Set[is-1] > PP[ip].Cntc.Set[js]) {
-                        uint16_t tmp = PP[ip].Cntc.Set[is-1] ;
-                        PP[ip].Cntc.Set[is-1] = PP[ip].Cntc.Set[js] ;
-                        PP[ip].Cntc.Set[js] = tmp ;
+                    if(data701->PP[ip].Set[is-1] > data701->PP[ip].Set[js]) {
+                        uint16_t tmp = data701->PP[ip].Set[is-1] ;
+                        data701->PP[ip].Set[is-1] = data701->PP[ip].Set[js] ;
+                        data701->PP[ip].Set[js] = tmp ;
                     }
                 }
             }
         }
+        data701->firstPPByMask[ic+1] = data701->nbPP ;
     }
-    FirstPPByFrontier[dim] = nbPP ;
-    PB701_TRANSF *PT = calloc(nbPP*dim,sizeof(PT[0]));
-    for(int ip=0;ip<nbPP;ip++) {
-        for(int j=0;j<dim;j++) {
+// compute for each partition every transformation to add a new column
+    data701->PT = calloc(data701->nbPP*data701->nbCol,sizeof(data701->PT[0]));
+    for(int ip=0;ip<data701->nbPP;ip++) { // loop on partition
+        for(int jc=0;jc<data701->nbCol;jc++) { // lopp on supplementary partition
             int nbSet = 0 ;
-            Contact  contact ;
-            memset(contact.Set,0,sizeof(contact.Set));
+            uint16_t Set[PB701_MAXCONNECT]  ;
+            memset(Set,0,sizeof(Set));
             int globalContact = 0 ;
-            //            printf("%x X n%2.2d %x=",j,PP[ip].num, PP[ip].globalContact) ;
-            //            for(int iss=0;iss<PP[ip].nbSet;iss++) printf("%x+",PP[ip].Cntc.Set[iss]);
-            //            printf("=> ");
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                uint16_t newContact = interSec[PP[ip].Cntc.Set[is]*dim+j].newContact ;
+            for(int is=0;is<data701->PP[ip].nbSet;is++) {
+                // for each connected part search the new set of connected parts in new column
+                // remove all intersecting precedent sets and add the new set.
+                // respect ascending order in sets for future comparison
+                uint16_t newContact = interSec[data701->PP[ip].Set[is]*data701->nbCol+jc].newContact ;
                 if(newContact){
                     int jj ;
-                    for(jj=0;jj<nbSet;jj++) {
-                        if((newContact & contact.Set[jj])) {
-                            newContact = interSec[(newContact | contact.Set[jj])*dim+j].newContact ;
+                    for(jj=0;jj<nbSet;jj++) { // remove intersecting sets
+                        if((newContact & Set[jj])) {
+                            newContact = interSec[(newContact | Set[jj]) * data701->nbCol+jc].newContact ;
                             int l ;
                             for(l=jj+1;l<nbSet ;l++) {
-                                contact.Set[l-1] = contact.Set[l] ;
+                                Set[l-1] = Set[l] ;
                             }
                             nbSet--; jj-- ;
-                            contact.Set[nbSet] = 0 ;
+                            Set[nbSet] = 0 ;
                         }
                     }
-                    int l ;
-                    for(l=nbSet-1;l>=0 && contact.Set[l] > newContact  ;l--) {
-                        contact.Set[l+1] = contact.Set[l] ;
+                    int l ; // add new set in good place
+                    for(l=nbSet-1;l>=0 && Set[l] > newContact  ;l--) {
+                        Set[l+1] = Set[l] ;
                     }
-                    contact.Set[l+1] = newContact ;
+                    Set[l+1] = newContact ;
                     nbSet++ ;
                 }
                 globalContact |= newContact ;
             }
-            if(globalContact != j) {
-                globalContact ^= j ;
-                for(int k=0;k<PC[j].nbSet;k++) {
-                    if((PC[j].Cntc.Set[k] & globalContact) == PC[j].Cntc.Set[k] ){
-                        
+            if(globalContact != jc) { // add missing connected parts of new column
+                globalContact ^= jc ;
+                for(int k=0;k<PC[jc].nbSet;k++) {
+                    if((PC[jc].Set[k] & globalContact) == PC[jc].Set[k] ){
                         int l ;
-                        for(l=nbSet-1;l>=0 && contact.Set[l] > PC[j].Cntc.Set[k]   ;l--) {
-                            contact.Set[l+1] = contact.Set[l] ;
+                        for(l=nbSet-1;l>=0 && Set[l] > PC[jc].Set[k]   ;l--) {
+                            Set[l+1] = Set[l] ;
                         }
-                        contact.Set[l+1] = PC[j].Cntc.Set[k] ;
+                        Set[l+1] = PC[jc].Set[k] ;
                         nbSet++ ;
                     }
                 }
-                
             }
-            int in ;
-            for(in=FirstPPByFrontier[j];in<FirstPPByFrontier[j+1];in++) {
-                if(memcmp(contact.Set,PP[in].Cntc.Set,sizeof(contact.Set))==0) break ;
-                //             if(contact.Glob==PP[in].Cntc.Glob) break ;
+            int in ; // find the resulting PP (if missing BIB BUG !!)
+            for(in=data701->firstPPByMask[jc];in<data701->firstPPByMask[jc+1];in++) {
+                if(memcmp(Set,data701->PP[in].Set,sizeof(Set))==0) break ;
             }
-            if(in == FirstPPByFrontier[j+1]) {
-                printf("!!!!!!!! PB !!!!!!Ident\n");
-                in = FirstPPByFrontier[j] ;
-            }
-            PT[ip*dim+j].numPP = in ;
-            for(int id=0;id < PP[in].nbSet ; id++) PT[ip*dim+j].delta[id] = nbBit [PP[in].Cntc.Set[id]] ;
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                if(PP[ip].Cntc.Set[is] & j) {
-                    for(int id=0;id < PP[in].nbSet ; id++){
-                        if( PP[ip].Cntc.Set[is] & PP[in].Cntc.Set[id] ) {
-                            PT[ip*dim+j].numCv[is] = id+1 ;
+            assert(in != data701->firstPPByMask[jc+1]) ;
+            data701->PT[ip*data701->nbCol+jc].numPP = in ;
+            // compute the transformation
+            // delta[] is the size of set (number ob black case to add)
+            for(int id=0;id < data701->PP[in].nbSet ; id++) data701->PT[ip*data701->nbCol+jc].delta[id] =  nbBit[data701->PP[in].Set[id]] ;
+            for(int is=0;is<data701->PP[ip].nbSet;is++) {
+                if(data701->PP[ip].Set[is] & jc) { // numCv[] is the correspondance of index from old PP to new PP.
+                    for(int id=0;id < data701->PP[in].nbSet ; id++){
+                        if( data701->PP[ip].Set[is] & data701->PP[in].Set[id] ) {
+                            data701->PT[ip*data701->nbCol+jc].numCv[is] = id+1 ;
                             break ;
                         }
-                        if(id == PP[in].nbSet) printf("!") ;
+                        assert(id < data701->PP[in].nbSet) ;
                     }
                 }
-                
             }
         }
     }
-    int firstCohByLevl[10] ;
-    PB701_COH *Coh= calloc(500000000,sizeof(Coh[0])) ;
-    int nbCoh = 0;
-    
-    //   Nsum * NS ;
-    NsumInd * p1IndCoh = calloc(nbPP,sizeof(p1IndCoh[0])) ;
-    NsumInd * p2IndCoh = calloc(nbPP,sizeof(p2IndCoh[0])) ;
-    NsumInd *curPPindCoh = p1IndCoh ;
-    NsumInd *antPPindCoh = p2IndCoh ;
-    //    NsumInd *curUsedIch = calloc(1,sizeof(curUsedIch[0]));
-    firstCohByLevl[0]= 0 ;
-    //   curUsedIch[nbCoh++] = 0 ;
-    nbCoh = 1;
-    firstCohByLevl[1]= nbCoh ;
-    Coh[0].prob = 1 ;
-    Coh[0].numPP = 0 ;
-    double S1 = 0 ;
-    int level ;
-    //    NS= NsumAlloc(0, 5) ;
-    //    printf("SizeNS=%d\n",NsumGetSize(NS,1));
-    //    for(level=0;level< PB701_L-1 ;level++) {
-    for(level=0;level< PB701_H-1 ;level++) {
-        //    for(level=0;level< PB701_L-2 ;level++) {
-        S1 = 0 ;
-        printf("**** %dx%d ",PB701_L,level+1) ;
-        
-        
-        NsumInd *tmp = antPPindCoh ;
-        antPPindCoh = curPPindCoh ;
-        curPPindCoh = tmp ;
-        int N=PB701_L*(level+1) ;
-        
-        Nsum * NS= NsumAlloc(N,PB701_MAXCONNECT+1) ;
-        /*
-         int SizeProb = 0 ;
-         int curSize ;
-         free(curUsedIch);
-         for(int ip=0;ip<nbPP;ip++) {
-         curPPindCoh[ip] = SizeProb ;
-         curSize = NsumGetSize(NS, PP[ip].nbSet+1) ;
-         SizeProb += curSize ;
-         }
-         curUsedIch = calloc(SizeProb,sizeof(curUsedIch[0])) ;
-         */
-        printf("Ich %d -> %d ",firstCohByLevl[level],firstCohByLevl[level+1]);
-        
-        int64_t Sprob = 0 ;
-        int maxIch = 0 ;
-        //       int maxj = (level) ? dim : dim/2 ;
-        for(int j=0;j<dim;j++) {
-            int isDouble = 0 ;
-            if(level==PB701_H-2) {
-                if(IsSymetric[j]< 0) continue ;
-                isDouble = IsSymetric[j] ? 1 : 0 ;
-            }
-            int SizeIch = 0 ;
-            int curSize ;
-            //            for(int ip=0;ip<nbPP;ip++) {
-            for(int ip=FirstPPByFrontier[j];ip<FirstPPByFrontier[j+1];ip++) {
-                curPPindCoh[ip] = SizeIch ;
-                curSize = NsumGetSize(NS, PP[ip].nbSet+1) ;
-                SizeIch += curSize ;
-            }
-            NsumInd * curUsedIch = calloc(SizeIch,sizeof(curUsedIch[0])) ;
-            if(SizeIch > maxIch) maxIch = SizeIch ;
-            for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-                PB701_COH *antCoh = Coh+ich ;
-                int ip = antCoh->numPP ;
-                PB701_TRANSF *trf = PT + ip*dim + j ;
-                int id = trf->numPP ;
-                PB701_COH *newCoh = Coh+nbCoh ;
-                NsumVal * surf = newCoh->Surf;
-                newCoh->numPP = id ;
-                surf[0] = antCoh->Surf[0] ;
-                for(int is=0;is<PP[id].nbSet;is++) {
-                    surf[is+1] = trf->delta[is] ;
-                }
-                for(int is=0;is<PP[ip].nbSet;is++) {
-                    if(trf->numCv[is]) {
-                        surf[trf->numCv[is]] += antCoh->Surf[is+1];
-                    } else {
-                        if(antCoh->Surf[is+1] >  surf[0] ) surf[0] = antCoh->Surf[is+1] ;
-                    }
-                }
-                NsumInd numCoh = curPPindCoh[id] + NsumGetIndex(NS, PP[id].nbSet+1, surf) ;
-                int newIch = curUsedIch[numCoh] ;
-#if defined PB701_BIG
-                __int128  prob = (isDouble) ? 2*antCoh->prob  : antCoh->prob ;
-#else
-                int64_t prob = (isDouble) ? 2*antCoh->prob  : antCoh->prob ;
-#endif
-                if(newIch == 0) {
-                    curUsedIch[numCoh]= nbCoh++ ;
-                    //                    newCoh->prob = antCoh->prob ;
-                    newCoh->prob = prob ;
-                } else {
-                    //                     Coh[newIch].prob += antCoh->prob ;
-                    Coh[newIch].prob += prob ;
-                }
-                //                Sprob += antCoh->prob ;
-                Sprob += prob ;
-            }
-            free(curUsedIch);
-            
-        }
-        
-        firstCohByLevl[level+2] = nbCoh ;
-        printf(" ->MaxIch=%d ",maxIch);
-#if defined PB701_BIG
-        __int128 S = 0 ;
-#else
-        uint64_t S = 0 ;
-#endif
-        
-        for(int ich=firstCohByLevl[level+1];ich < firstCohByLevl[level+2];ich++) {
-            PB701_COH * newCoh = Coh + ich  ;
-            int maxS = newCoh->Surf[0];
-            for(int is=0;is<PP[newCoh->numPP].nbSet;is++) {
-                if(newCoh->Surf[is+1] > maxS) maxS = newCoh->Surf[is+1]  ;
-            }
-            S += maxS * newCoh->prob ;
-        }
-        NS=NsumFree(NS);
-        double Sres ;
-#if defined PB701_BIG
-        Sres = (double)S / (double) (1LL << (level*PB701_L )) / (double)(1LL << PB701_L) ;
-        printf("S=%.8f S=%llu%llu Sprob2=%llx\n",Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL),Sprob);
-#else
-        Sres = SHigh / (double) (1LL << ((level+1)*PB701_L-16 )) + SLow / (double) (1LL << (level*PB701_L )) / (double)(1LL << PB701_L) ;
-        printf("S=%.8f S=%lld  Sprob2=%llx\n",Sres,SLow+ (SHigh << 16),Sprob);
-#endif
-    }
-    
-    double Sres ;
-    {
-        //       S = 0 ;
-        
-#if defined PB701_BIG
-        __int128 S = 0 ;
-#else
-        uint64_t SLow = 0;
-        uint64_t SHigh = 0 ;
-#endif
-        printf("**** %dx%d\n",PB701_L,level+1) ;
-        //      free(antUsedIch) ;
-        //        free(curUsedIch) ;
-        int64_t Sprob2 = 0 ;
-        printf("Ich %d -> %d \n",firstCohByLevl[level],firstCohByLevl[level+1]);
-        for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-            PB701_COH *antCoh = Coh + ich  ;
-            int ip = antCoh->numPP ;
-            //           int isSymetric = IsSymetric[PP[ip].globalContact] ;
-            for(int j=0;j<dim;j++) { // [0,1[
-                //               if(IsSymetric[j]<=0) continue ;
-                PB701_TRANSF *trf = PT + ip*dim + j ;
-                int id = trf->numPP ;
-                Sprob2 += antCoh->prob ;
-                NsumVal surf[PB701_MAXCONNECT+1] ;
-                surf[0] = antCoh->Surf[0] ;
-                for(int is=0;is<PP[id].nbSet;is++) {
-                    surf[is+1] = trf->delta[is] ;
-                }
-                for(int is=0;is<PP[ip].nbSet;is++) {
-                    if(trf->numCv[is]) {
-                        surf[trf->numCv[is]] += antCoh->Surf[is+1];
-                    } else {
-                        if(antCoh->Surf[is+1] >  surf[0] ) surf[0] = antCoh->Surf[is+1] ;
-                    }
-                }
-                int maxS = surf[0];
-                for(int is=0;is<PP[id].nbSet;is++) {
-                    if(surf[is+1] > maxS) maxS = surf[is+1]  ;
-                }
-                
-                
-                /*               if(isSymetric) {
-                 SLow += 2* maxS * (antCoh->prob & 0xffff) ;
-                 SHigh += 2* maxS * (antCoh->prob >> 16) ;
-                 } else
-                 */
-                
-#if defined PB701_BIG
-                S += maxS * antCoh->prob;
-#else
-                {
-                    SLow += maxS * (antCoh->prob & 0xffff) ;
-                    SHigh += maxS * (antCoh->prob >> 16) ;
-                }
-#endif
-                //               S += maxS * antCoh->prob ;
-            }
-        }
-        free(Coh);
-#if defined PB701_BIG
-        Sres = (double)S / (double) (1LL << (level*PB701_L )) / (double)(1LL << PB701_L) ;
-        printf("LxH=%dx%d S=%.8f S=%llu%llu S1=%.8f  Sprob2=%llx\n",PB701_L,PB701_H
-               ,Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL),S1,Sprob2);
-#else
-        Sres = SHigh / (double) (1LL << ((level+1)*PB701_L-16 )) + SLow / (double) (1LL << (level*PB701_L )) / (double)(1LL << PB701_L) ;
-        printf("S=%.8f S=%lld S1=%.8f  Sprob2=%llx\n",Sres,SLow+ (SHigh << 16),S1,Sprob2);
-#endif
-    }
-    
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.8f",Sres);
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
+    free(PC) ;
+    free(nbBit) ;
+    free(interSec);
 }
-
-typedef struct PB701_COHa {
-    uint16_t numPP ;
-    NsumVal Surf[PB701_MAXCONNECT+1] ;
-    int64_t prob ;
-} PB701_COHa ;
-
-
-typedef struct PB701_PPxPP {
-//    int     numPP ;
-    int nbSet ;
-    int nbSet0 ;
-    int nbSet1 ;
-    int8_t delta[PB701_MAXCONNECT] ;
-    uint8_t numCv0[PB701_MAXCONNECT] ;
-    uint8_t numCv1[PB701_MAXCONNECT] ;
-} PB701_PPxPP ;
-
-
 int PB701b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int dim = 1 << PB701_L ;
-    int FirstPPByFrontier[dim+1] ;
-    PB701_PP *PP = malloc(4000*sizeof(PP[0])) ;
-    PB701_CONN PC[dim] ;
-    int nbPP = 0 ;
-    int nbBit[512] ;
-    PB701_INTER interSec[dim*dim] ;
-    for(int i=0;i<dim;i++) {
-        int nb = 0 ;
-        for(int j=0;j<PB701_L;j++) {
-            if(i & (1 << j)) nb++ ;
-        }
-        nbBit[i] = nb ;
-    }
+    PB701_DATA data701 ;
+    int sizeColumn = PB701_L ;
+    int maxNbColumn =  PB701_H ;
+    PB701_Init(&data701,sizeColumn) ; // precompute all transformation to add a column
+    int nbCol = data701.nbCol ; // recover
+    PB701_PP * PP = data701.PP ;
+    PB701_TRANSF * PT = data701.PT;
     
-    for(int ic=0;ic<dim;ic++) {
-        for(int j=0;j<dim;j++) {
-            int k = ic & j ;
-            if(k==0) {
-                interSec[ic*dim+j].newContact = 0 ;
-                interSec[ic*dim+j].surfIncrement = 0 ;
-                continue ;
-            }
-            int n = 0 ;
-            for(int m=0;m<PB701_L;m++) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-            }
-            for(int m=PB701_L-1;m>=0;m--) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if((1 <<m) & k)  n++  ;
-            }
-            
-            interSec[ic*dim+j].surfIncrement = n ;
-            interSec[ic*dim+j].newContact = (uint16_t) k ;
-            //           printf("I(%x,%x)=%d(%x) ",ic,j,n,k) ;
-        }
-    }
-    
-    FirstPPByFrontier[0] = 0 ;
-    PP[nbPP].num  = nbPP ;
-    PP[nbPP].globalContact = 0;
-    PP[nbPP].nbSet = 0 ;
-    memset(PP[nbPP].Cntc.Set,0,sizeof(PP[nbPP].Cntc.Set));
-    nbPP++ ;
-    int IsSymetric[dim] ;
-    IsSymetric[0] = 0 ;
-    PC[0].globalContact = 0 ;
-    PC[0].nbSet = 0 ;
-    memset(PC[0].Cntc.Set,0,sizeof(PC[0].Cntc.Set)) ;
-
-    for(int i=1;i<dim;i++) {
-        {
-            int iSym =0 ;
-            for(int ib=0;ib<PB701_L;ib++) {
-                iSym |= ((i >> ib) & 1) << (PB701_L -ib -1) ;
-            }
-            if(iSym == i) IsSymetric[i] = 0 ;
-            else if(i > iSym) IsSymetric[i] = 1;
-            else IsSymetric[i] = -1;
-        }
-        FirstPPByFrontier[i] = nbPP ;
-        PB701_PP *curPP = PP + nbPP ;
-        Contact  contact ;
-        memset(contact.Set,0,sizeof(contact.Set));
-         int nbConnect = 0 ;
-        int n = i & 1 ;
-        for(int j=1;j<=PB701_L;j++) {
-            if(i & (1 << j)) {
-                n++ ;
-            } else {
-                if(n) {
-                    contact.Set[nbConnect] = (uint16_t)((1 << j) - (1<<(j-n))) ;
-                    nbConnect++ ;
-                }
-                n = 0 ;
-            }
-        }
-        if(nbConnect > PB701_MAXCONNECT ){
-            nbConnect = PB701_MAXCONNECT ;
-            printf("PB_maxconnect\n");
-        }
-        PC[i].globalContact = i ;
-        PC[i].nbSet = nbConnect ;
-        PC[i].Cntc = contact ;
-#define INIT_PART(n)   curPP = PP + nbPP++ ; curPP->num = nbPP-1 ;  curPP->globalContact = i ; memset(curPP->Cntc.Set,0,sizeof(curPP->Cntc.Set)) ; curPP->nbSet = (n)
-
-#define DST(i)  curPP->Cntc.Set[i]
-#define SRC(i)  contact.Set[i]
-
-#define PART_A(i0)         INIT_PART(1) ; DST(0)=SRC(i0)
-
-#define PART_AB(i0,i1)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)
-#define PART_A_B(i0,i1)    INIT_PART(2) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1)
-
-#define PART_ABC(i0,i1,i2)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)
-#define PART_AB_C(i0,i1,i2)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)
-#define PART_A_B_C(i0,i1,i2)   INIT_PART(3) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2)
-
-#define PART_ABCD(i0,i1,i2,i3)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3)
-#define PART_AB_CD(i0,i1,i2,i3)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)|SRC(i3)
-#define PART_ABC_D(i0,i1,i2,i3)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3)
-#define PART_AB_C_D(i0,i1,i2,i3)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2) ; DST(2)=SRC(i3)
-#define PART_A_B_C_D(i0,i1,i2,i3)  INIT_PART(4) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2) ; DST(3)=SRC(i3)
-
-#define PART_ABCDE(i0,i1,i2,i3,i4)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3)|SRC(i4)
-#define PART_ABCD_E(i0,i1,i2,i3,i4)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3) ; DST(1) = SRC(i4)
-#define PART_ABC_DE(i0,i1,i2,i3,i4)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3)|SRC(i4)
-#define PART_ABC_D_E(i0,i1,i2,i3,i4)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3) ; DST(2)=SRC(i4)
-#define PART_AB_CD_E(i0,i1,i2,i3,i4)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)|SRC(i3) ; DST(2)=SRC(i4)
-#define PART_AB_C_D_E(i0,i1,i2,i3,i4)  INIT_PART(4) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2) ; DST(2)=SRC(i3) ; DST(3)=SRC(i4)
-#define PART_A_B_C_D_E(i0,i1,i2,i3,i4) INIT_PART(5) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2) ; DST(3)=SRC(i3) ; DST(4)=SRC(i4)
-
-        
-        switch(nbConnect) {
-            case 1 :
-                PART_A(0) ;
-                break ;
-            case 2:
-                PART_AB(0,1) ;PART_A_B(0,1);
-                break ;
-            case 3:
-                PART_ABC(0,1,2);
-                PART_AB_C(0,1,2) ; PART_AB_C(0,2,1) ; PART_AB_C(1,2,0) ;
-                PART_A_B_C(0,1,2);
-                break ;
-            case 4:
-                PART_ABCD(0,1,2,3);
-                PART_ABC_D(0,1,2,3)  ; PART_ABC_D(0,1,3,2) ;PART_ABC_D(0,2,3,1) ;PART_ABC_D(1,2,3,0) ;
-                PART_AB_CD(0,1,2,3)  ; PART_AB_CD(0,3,1,2) ;
-                PART_AB_C_D(0,1,2,3) ; PART_AB_C_D(0,2,1,3);PART_AB_C_D(0,3,1,2);PART_AB_C_D(1,2,0,3);PART_AB_C_D(1,3,0,2);PART_AB_C_D(2,3,0,1) ;
-                PART_A_B_C_D(0,1,2,3);
-                break ;
-            case 5:
-                PART_ABCDE(0,1,2,3,4);
-                PART_ABCD_E(0,1,2,3,4)  ;PART_ABCD_E(0,1,2,4,3)  ;PART_ABCD_E(0,1,3,4,2)  ;PART_ABCD_E(0,2,3,4,1)  ;PART_ABCD_E(1,2,3,4,0) ;
-                PART_ABC_DE(0,1,2,3,4)  ;PART_ABC_DE(0,1,4,2,3)  ;PART_ABC_DE(0,3,4,1,2)  ;PART_ABC_DE(2,3,4,0,1)  ;PART_ABC_DE(1,2,3,0,4) ;
-                PART_ABC_D_E(0,1,2,3,4) ;PART_ABC_D_E(0,1,3,2,4) ;PART_ABC_D_E(0,2,3,1,4) ;PART_ABC_D_E(1,2,3,0,4) ;PART_ABC_D_E(0,1,4,2,3);
-                PART_ABC_D_E(0,2,4,1,3) ;PART_ABC_D_E(1,2,4,0,3) ;PART_ABC_D_E(0,3,4,1,2) ;PART_ABC_D_E(1,3,4,0,2) ;PART_ABC_D_E(2,3,4,0,1);
-                PART_AB_CD_E(0,1,2,3,4) ;PART_AB_CD_E(0,3,1,2,4) ;PART_AB_CD_E(0,1,2,4,3) ;PART_AB_CD_E(0,4,1,2,3) ;PART_AB_CD_E(0,1,3,4,2);
-                PART_AB_CD_E(0,4,1,3,2) ;PART_AB_CD_E(0,2,3,4,1) ;PART_AB_CD_E(0,4,2,3,1) ;PART_AB_CD_E(1,2,3,4,0) ;PART_AB_CD_E(1,4,2,3,0);
-                PART_AB_C_D_E(0,1,2,3,4);PART_AB_C_D_E(0,2,1,3,4);PART_AB_C_D_E(0,3,1,2,4);PART_AB_C_D_E(0,4,1,2,3);PART_AB_C_D_E(1,2,0,3,4);
-                PART_AB_C_D_E(1,3,0,2,4);PART_AB_C_D_E(1,4,0,2,3);PART_AB_C_D_E(2,3,0,1,4);PART_AB_C_D_E(2,4,0,1,3);PART_AB_C_D_E(3,4,0,1,2) ;
-                PART_A_B_C_D_E(0,1,2,3,4);
-                break ;
-        }
-        FirstPPByFrontier[i+1] = nbPP ;
-         for(int ip = FirstPPByFrontier[i];ip<FirstPPByFrontier[i+1];ip++ ) {
-            int nbs = PP[ip].nbSet ;
-            for(int is = 1;is<nbs;is++) {
-                for(int js=is;js<nbs;js++) {
-                    if(PP[ip].Cntc.Set[is-1] > PP[ip].Cntc.Set[js]) {
-                        uint16_t tmp = PP[ip].Cntc.Set[is-1] ;
-                        PP[ip].Cntc.Set[is-1] = PP[ip].Cntc.Set[js] ;
-                        PP[ip].Cntc.Set[js] = tmp ;
-                    }
-                }
-            }
-        }
-    }
-    FirstPPByFrontier[dim] = nbPP ;
-    PB701_TRANSF *PT = calloc(nbPP*dim,sizeof(PT[0]));
-    for(int ip=0;ip<nbPP;ip++) {
-        for(int j=0;j<dim;j++) {
-            int nbSet = 0 ;
-            Contact  contact ;
-            memset(contact.Set,0,sizeof(contact.Set));
-            int globalContact = 0 ;
-            //            printf("%x X n%2.2d %x=",j,PP[ip].num, PP[ip].globalContact) ;
-            //            for(int iss=0;iss<PP[ip].nbSet;iss++) printf("%x+",PP[ip].Cntc.Set[iss]);
-            //            printf("=> ");
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                uint16_t newContact = interSec[PP[ip].Cntc.Set[is]*dim+j].newContact ;
-                if(newContact){
-                    int jj ;
-                    for(jj=0;jj<nbSet;jj++) {
-                        if((newContact & contact.Set[jj])) {
-                            newContact = interSec[(newContact | contact.Set[jj])*dim+j].newContact ;
-                            int l ;
-                            for(l=jj+1;l<nbSet ;l++) {
-                                contact.Set[l-1] = contact.Set[l] ;
-                            }
-                            nbSet--; jj-- ;
-                            contact.Set[nbSet] = 0 ;
-                        }
-                    }
-                    int l ;
-                    for(l=nbSet-1;l>=0 && contact.Set[l] > newContact  ;l--) {
-                        contact.Set[l+1] = contact.Set[l] ;
-                    }
-                    contact.Set[l+1] = newContact ;
-                    nbSet++ ;
-                }
-                globalContact |= newContact ;
-            }
-            if(globalContact != j) {
-                globalContact ^= j ;
-                for(int k=0;k<PC[j].nbSet;k++) {
-                    if((PC[j].Cntc.Set[k] & globalContact) == PC[j].Cntc.Set[k] ){
-                        
-                        int l ;
-                        for(l=nbSet-1;l>=0 && contact.Set[l] > PC[j].Cntc.Set[k]   ;l--) {
-                            contact.Set[l+1] = contact.Set[l] ;
-                        }
-                        contact.Set[l+1] = PC[j].Cntc.Set[k] ;
-                        nbSet++ ;
-                    }
-                }
-                
-            }
-            int in ;
-            for(in=FirstPPByFrontier[j];in<FirstPPByFrontier[j+1];in++) {
-                if(memcmp(contact.Set,PP[in].Cntc.Set,sizeof(contact.Set))==0) break ;
-   //             if(contact.Glob==PP[in].Cntc.Glob) break ;
-            }
-            if(in == FirstPPByFrontier[j+1]) {
-                printf("!!!!!!!! PB !!!!!!Ident\n");
-                in = FirstPPByFrontier[j] ;
-            }
-            PT[ip*dim+j].numPP = in ;
-           for(int id=0;id < PP[in].nbSet ; id++) PT[ip*dim+j].delta[id] = nbBit [PP[in].Cntc.Set[id]] ;
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                if(PP[ip].Cntc.Set[is] & j) {
-                    for(int id=0;id < PP[in].nbSet ; id++){
-                        if( PP[ip].Cntc.Set[is] & PP[in].Cntc.Set[id] ) {
-                            PT[ip*dim+j].numCv[is] = id+1 ;
-                            break ;
-                        }
-                        if(id == PP[in].nbSet) printf("!") ;
-                    }
-                }
-                
-            }
-        }
-    }
-    PB701_PPxPP *PPxPP = calloc(nbPP*nbPP,sizeof(PPxPP[0]));
-    for(int ip0=0;ip0<nbPP;ip0++) {
-        int global0 = PP[ip0].globalContact ;
-        for(int ip1=0;ip1<nbPP;ip1++) {
-            int global1 = PP[ip1].globalContact ;
-            if(global0 != global1) continue ;
-            int nbSet = 0 ;
-            Contact  contact ;
-            memset(contact.Set,0,sizeof(contact.Set));
-            int globalContact = 0 ;
-            for(int is0=0;is0<PP[ip0].nbSet;is0++) {
-                uint16_t newContact = interSec[PP[ip0].Cntc.Set[is0]*dim+global1].newContact ;
-                if(newContact){
-                    int jj ;
-                    for(jj=0;jj<nbSet;jj++) {
-                        if((newContact & contact.Set[jj])) {
-                            newContact = interSec[(newContact | contact.Set[jj])*dim+global1].newContact ;
-                            int l ;
-                            for(l=jj+1;l<nbSet ;l++) {
-                                contact.Set[l-1] = contact.Set[l] ;
-                            }
-                            nbSet--; jj-- ;
-                            contact.Set[nbSet] = 0 ;
-                        }
-                    }
-                    int l ;
-                    for(l=nbSet-1;l>=0 && contact.Set[l] > newContact  ;l--) {
-                        contact.Set[l+1] = contact.Set[l] ;
-                    }
-                    contact.Set[l+1] = newContact ;
-                    nbSet++ ;
-                }
-                globalContact |= newContact ;
-            }
-   
-            for(int is1=0;is1<PP[ip1].nbSet;is1++) {
-                uint16_t newContact = interSec[PP[ip1].Cntc.Set[is1]*dim+global1].newContact ;
-                if(newContact){
-                    int jj ;
-                    for(jj=0;jj<nbSet;jj++) {
-                        if((newContact & contact.Set[jj])) {
-                            newContact = interSec[(newContact | contact.Set[jj])*dim+global1].newContact ;
-                            int l ;
-                            for(l=jj+1;l<nbSet ;l++) {
-                                contact.Set[l-1] = contact.Set[l] ;
-                            }
-                            nbSet--; jj-- ;
-                            contact.Set[nbSet] = 0 ;
-                        }
-                    }
-                    int l ;
-                    for(l=nbSet-1;l>=0 && contact.Set[l] > newContact  ;l--) {
-                        contact.Set[l+1] = contact.Set[l] ;
-                    }
-                    contact.Set[l+1] = newContact ;
-                    nbSet++ ;
-                }
-                globalContact |= newContact ;
-            }
-
-            
-            
-            
-            for(int k=0;k<PC[global1].nbSet;k++) {
-                if((PC[global1].Cntc.Set[k] & globalContact) == 0 ){
-                    
-                    int l ;
-                    for(l=nbSet-1;l>=0 && contact.Set[l] > PC[global1].Cntc.Set[k]   ;l--) {
-                        contact.Set[l+1] = contact.Set[l] ;
-                    }
-                    contact.Set[l+1] = PC[global1].Cntc.Set[k] ;
-                    nbSet++ ;
-                    globalContact |= PC[global1].Cntc.Set[k] ;
-                }
-            }
- /*
-            int in ;
-            for(in=FirstPPByFrontier[globalContact];in<FirstPPByFrontier[globalContact+1];in++) {
-                if(memcmp(contact.Set,PP[in].Cntc.Set,sizeof(contact.Set))==0) break ;
-                //             if(contact.Glob==PP[in].Cntc.Glob) break ;
-            }
-            if(in == FirstPPByFrontier[globalContact+1]) {
-                printf("!!! PB !!!!PPxPP \n");
-                in = FirstPPByFrontier[globalContact] ;
-            }
-  */
-            PPxPP[ip0*dim+ip1].nbSet = nbSet ;
-            PPxPP[ip0*dim+ip1].nbSet0 = PP[ip0].nbSet ;
-            PPxPP[ip0*dim+ip1].nbSet1 = PP[ip1].nbSet ;
-           int is01[PB701_MAXCONNECT] ;
-            memset(is01,0,sizeof(is01));
-            for(int is0=0;is0<PP[ip0].nbSet;is0++) {
-                if(PP[ip0].Cntc.Set[is0] & globalContact) {
-                    for(int id=0;id < nbSet ; id++){
-                        if( PP[ip0].Cntc.Set[is0] & contact.Set[id] ) {
-                            PPxPP[ip0*dim+ip1].numCv0[is0] = id+1 ;
-                            is01[id] |= 1 ;
-                            break ;
-                        }
-                        if(id == nbSet) printf("!") ;
-                    }
-                }
-            }
-            for(int is1=0;is1<PP[ip1].nbSet;is1++) {
-                if(PP[ip1].Cntc.Set[is1] & globalContact) {
-                    for(int id=0;id < nbSet ; id++){
-                        if( PP[ip1].Cntc.Set[is1] & contact.Set[id] ) {
-                            PPxPP[ip0*dim+ip1].numCv1[is1] = id+1 ;
-                            is01[id] |=2 ;
-                            break ;
-                        }
-                        if(id == nbSet) printf("!") ;
-                    }
-                }
-            }
-            for(int id=0;id < nbSet ; id++){
-                if(is01[id]==3) {
-                    PPxPP[ip0*dim+ip1].delta[id] = -nbBit[contact.Set[id]] ;
-                } else {
-                    PPxPP[ip0*dim+ip1].delta[id] = 0 ;
-                }
-            }
-/*            printf("%x=%x: PP0=",global0,global1);
-            for(int is=0;is<PP[ip0].nbSet;is++) {printf("%x,",PP[ip0].Cntc.Set[is]);}
-            printf(" PP1=");
-            for(int is=0;is<PP[ip1].nbSet;is++) {printf("%x,",PP[ip1].Cntc.Set[is]);}
-            printf(" PPfinal(%d)=",in);
-            for(int is=0;is<PP[in].nbSet;is++) {printf("%x,",PP[in].Cntc.Set[is]);}
-            printf(" cv0=") ;
-            for(int is=0;is<PP[ip0].nbSet;is++) {printf("%d ",PPxPP[ip0*dim+ip1].numCv0[is]);}
-            printf(" cv1=") ;
-            for(int is=0;is<PP[ip1].nbSet;is++) {printf("%d ",PPxPP[ip0*dim+ip1].numCv1[is]);}
-            printf(" delta=") ;
-            for(int is=0;is<PP[ip1].nbSet;is++) {printf("%d ",PPxPP[ip0*dim+ip1].delta[is]);}
-            printf("\n");
-*/        }
-    }
-
-    
-
-    int firstCohByLevl[10] ;
-    PB701_COHa *Coh= calloc(100000000,sizeof(Coh[0])) ;
-    int nbCoh = 0;
-     NsumInd * p1IndCoh = calloc(nbPP,sizeof(p1IndCoh[0])) ;
-    NsumInd * p2IndCoh = calloc(nbPP,sizeof(p2IndCoh[0])) ;
-    NsumInd *curPPindCoh = p1IndCoh ;
-    NsumInd *antPPindCoh = p2IndCoh ;
-    firstCohByLevl[0]= 0 ;
-    nbCoh = 1;
-    firstCohByLevl[1]= nbCoh ;
-    Coh[0].prob = 1 ;
-    Coh[0].numPP = 0 ;
-    double S1 = 0 ;
-    int level ;
-//    for(level=0;level< PB701_H-1 ;level++) {
-   for(level=0;level< (PB701_H+1)/2 ;level++) {
-        S1 = 0 ;
-        printf("**** %dx%d ",PB701_L,level+1) ;
-        
- 
-        NsumInd *tmp = antPPindCoh ;
-        antPPindCoh = curPPindCoh ;
-        curPPindCoh = tmp ;
-         int N=PB701_L*(level+1) ;
-   
+    PB701_STATE *State= calloc(300000000,sizeof(State[0])) ;
+    int nbState = 0;
+    NsumInd * PPindState = calloc(data701.nbPP,sizeof(PPindState[0])) ;
+    int firstNbState , lastNbState ;
+    firstNbState = 0 ;
+    State[0].prob = 1 ; State[0].numPP = 0 ;
+    nbState = lastNbState = 1;
+    double Sres ;
+    for(int nbColumn=1;nbColumn< maxNbColumn ;nbColumn++) { // loops on column
+        printf("\t%.3fs %dx%d ",(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC ,sizeColumn,nbColumn) ;
+        int N=sizeColumn*nbColumn ;
         Nsum * NS= NsumAlloc(N,PB701_MAXCONNECT+1) ;
-
-        printf("Ich %d -> %d ",firstCohByLevl[level],firstCohByLevl[level+1]);
-
-        int64_t Sprob = 0 ;
-         int maxIch = 0 ;
-         for(int j=0;j<dim;j++) {
+        printf("States [%d -> %d[ ",firstNbState,lastNbState);
+        Prob701 S=0 , ST = 0 ;
+        int maxHash = 0 ;
+        int maxState = 0 ;
+        for(int jc=0;jc<nbCol;jc++) { // loop on differents column the current added column
             int isDouble = 0 ;
-            if(level==(PB701_H+1)/2-1) {
-                if(IsSymetric[j]< 0) continue ;
-                isDouble = IsSymetric[j] ? 1 : 0 ;
+            if(nbColumn==maxNbColumn-1) { // if last one, check symetry
+                if(data701.isSymetric[jc]< 0) continue ;
+                isDouble = data701.isSymetric[jc] ? 1 : 0 ;
             }
-
-            int SizeIch = 0 ;
-            int curSize ;
-            for(int ip=FirstPPByFrontier[j];ip<FirstPPByFrontier[j+1];ip++) {
-                curPPindCoh[ip] = SizeIch ;
-                curSize = NsumGetSize(NS, PP[ip].nbSet+1) ;
-                SizeIch += curSize ;
+            // compute size of exact hash for current added column
+            int SizeHash = 0 ;
+            int firstStateForColumn = nbState ;
+            for(int ip=data701.firstPPByMask[jc];ip<data701.firstPPByMask[jc+1];ip++) {
+                PPindState[ip] = SizeHash ;
+                SizeHash += NsumGetSize(NS,PP[ip].nbSet+1)  ;
             }
-            NsumInd * curUsedIch = calloc(SizeIch,sizeof(curUsedIch[0])) ;
-            if(SizeIch > maxIch) maxIch = SizeIch ;
-
-            
-            
-            
-
-            for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-                PB701_COHa *antCoh = Coh+ich ;
-                int ip = antCoh->numPP ;
-                PB701_TRANSF *trf = PT + ip*dim + j ;
+            // alloc hash states merge
+            NsumInd * hashState = calloc(SizeHash,sizeof(hashState[0])) ;
+            if(SizeHash > maxHash) maxHash = SizeHash ;
+            for(int istate=firstNbState;istate < lastNbState;istate++) { // loop on state from preceedind column
+                PB701_STATE *antState = State+istate ;
+                int ip = antState->numPP ;
+                PB701_TRANSF *trf = PT + ip*nbCol + jc ;
                 int id = trf->numPP ;
-                PB701_COHa *newCoh = Coh+nbCoh ;
-                NsumVal * surf = newCoh->Surf;
-                newCoh->numPP = id ;
-                surf[0] = antCoh->Surf[0] ;
+                PB701_STATE *newState = State+nbState ;
+                NsumVal * surf = newState->Surf;
+                newState->numPP = id ;
+                surf[0] = antState->Surf[0] ;
                 for(int is=0;is<PP[id].nbSet;is++) {
                     surf[is+1] = trf->delta[is] ;
                 }
-               for(int is=0;is<PP[ip].nbSet;is++) {
+                for(int is=0;is<PP[ip].nbSet;is++) {
                     if(trf->numCv[is]) {
-                        surf[trf->numCv[is]] += antCoh->Surf[is+1];
+                        surf[trf->numCv[is]] += antState->Surf[is+1];
                     } else {
-                        if(antCoh->Surf[is+1] >  surf[0] ) surf[0] = antCoh->Surf[is+1] ;
+                        if(antState->Surf[is+1] >  surf[0] ) surf[0] = antState->Surf[is+1] ;
                     }
                 }
-                NsumInd numCoh = curPPindCoh[id] + NsumGetIndex(NS, PP[id].nbSet+1, surf) ;
-                 int newIch = curUsedIch[numCoh] ;
-//                int64_t prob = (isDouble) ? 2*antCoh->prob  : antCoh->prob ;
-               int64_t prob =  antCoh->prob ;
-                if(newIch == 0) {
-                     curUsedIch[numCoh]= nbCoh++ ;
-                    newCoh->prob = prob ;
-                 } else {
-                    Coh[newIch].prob += prob ;
+                NsumInd numHash = PPindState[id] + NsumGetIndex(NS, PP[id].nbSet+1, surf) ;
+                int newIstate = hashState[numHash] ;
+                if(newIstate == 0) { // not used state
+                    hashState[numHash]= nbState++ ;
+                     newState->prob = isDouble ? 2*antState->prob  : antState->prob ;
+                } else { // used state , cumulate only prob
+                    State[newIstate].prob += isDouble ? 2*antState->prob  : antState->prob  ;
                 }
-                Sprob += prob ;
+             }
+            free(hashState);
+            for(int istate = firstStateForColumn ; istate<nbState; istate++) {
+                PB701_STATE * newState = State + istate  ;
+                int maxS = newState->Surf[0];
+                for(int is=0;is<PP[newState->numPP].nbSet;is++) {
+                    if(newState->Surf[is+1] > maxS) maxS = newState->Surf[is+1]  ;
+                }
+                S += maxS * newState->prob ;
             }
-            free(curUsedIch);
-
+            if(nbColumn==maxNbColumn-1) { // last column, special case not, necessary to save new states)
+                for(int istate=firstStateForColumn;istate < nbState;istate++) {
+                    PB701_STATE *antState = State + istate  ;
+                    int ip = antState->numPP ;
+                    for(int jc=0;jc<nbCol;jc++) { // [0,1[
+                        PB701_TRANSF *trf = PT + ip*nbCol + jc ;
+                        int id = trf->numPP ;
+                        NsumVal surf[PB701_MAXCONNECT] ;
+                        int maxS = antState->Surf[0] ;
+                        for(int is=0;is<PP[id].nbSet;is++) {
+                            surf[is] = trf->delta[is] ;
+                        }
+                        for(int is=0;is<PP[ip].nbSet;is++) {
+                            if(trf->numCv[is]) {
+                                surf[trf->numCv[is]-1] += antState->Surf[is+1];
+                            } else {
+                                if(antState->Surf[is+1] >  maxS ) maxS = antState->Surf[is+1] ;
+                            }
+                        }
+                        for(int is=0;is<PP[id].nbSet;is++) {
+                            if(surf[is] > maxS) maxS = surf[is]  ;
+                        }
+                        ST += maxS * antState->prob;
+                    }
+                }
+                if(nbState > maxState) maxState = nbState ;
+                nbState = firstStateForColumn ; // remins, the used states for last pass are not necessary
+            }
         }
         
-        firstCohByLevl[level+2] = nbCoh ;
-        printf(" ->MaxIch=%d ",maxIch);
-        uint64_t S = 0 ;
-      
-        for(int ich=firstCohByLevl[level+1];ich < firstCohByLevl[level+2];ich++) {
-            PB701_COHa * newCoh = Coh + ich  ;
-            int maxS = newCoh->Surf[0];
-            for(int is=0;is<PP[newCoh->numPP].nbSet;is++) {
-                if(newCoh->Surf[is+1] > maxS) maxS = newCoh->Surf[is+1]  ;
-            }
-            S += maxS * newCoh->prob ;
-        }
+        firstNbState = lastNbState ;
+        lastNbState = nbState ;
+        printf(" ->MaxHash=%d ",maxHash);
         NS=NsumFree(NS);
-       double Sres ;
-       Sres = (double)S / (double) (1LL << (level*PB701_L )) / (double)(1LL << PB701_L) ;
-       printf("S=%.8f S=%llu%llu Sprob2=%llx\n",Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL),Sprob);
-    }
-    
-    double Sres ;
-    {
-        __int128 S = 0 ;
-        int64_t Sprob2 = 0 ;
-        int levelAnt = PB701_H - level ;
-        printf("Ich %dx%d X %dx%d-> %d X %d\n",PB701_L,levelAnt,PB701_L,level,
-               firstCohByLevl[levelAnt+1]-firstCohByLevl[levelAnt],
-               firstCohByLevl[level+1]-firstCohByLevl[level]);
-        int antGlobal  = 0 ;
-        int lastich = firstCohByLevl[level] ;
-        for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-            PB701_COHa *coh = Coh + ich  ;
-            PB701_PP *PPi = PP + coh->numPP ;
-            int ip = coh->numPP ;
-             int global = PPi->globalContact ;
-            if(global == antGlobal && ich+1 != firstCohByLevl[level+1]) continue;
-            else {
-                if(ich+1 == firstCohByLevl[level+1]) ich++ ;
-                int isDouble = (IsSymetric[antGlobal]==0) ? 0 : 1 ;
- //               printf("%x[%d,%d[ ",antGlobal,lastich,ich);fflush(stdout) ;
-                for(int ich0 = lastich;ich0<ich;ich0++) {
-                    PB701_COHa *coh0 = Coh + ich0  ;
-                    int ip0 = coh0->numPP ;
-                    int64_t prob0 = coh0->prob ;
-                    for(int ich1=ich0;ich1 < ich;ich1++) {
-                        PB701_COHa *coh1 = Coh + ich1  ;
-                        int ip1 = coh1->numPP ;
-                        int64_t prob1 = coh1->prob ;
-                        PB701_PPxPP * ppxpp = PPxPP+ip0*dim + ip1 ;
-                        uint16_t surf[PB701_MAXCONNECT+1] ;
-                          surf[0] = coh0->Surf[0] ;
-                        for(int is=0;is<ppxpp->nbSet;is++) {
-                            surf[is+1] = ppxpp->delta[is] ;
-                        }
-                        if(coh1->Surf[0] > surf[0] ) surf[0] = coh1->Surf[0] ;
-                        for(int is0=0;is0<ppxpp->nbSet0;is0++) {
-                            surf[ppxpp->numCv0[is0]] += coh0->Surf[is0+1];
-                        }
-                        for(int is1=0;is1<ppxpp->nbSet1;is1++) {
-                            surf[ppxpp->numCv1[is1]] += coh1->Surf[is1+1];
-                        }
-                        int maxS = surf[0];
-                          for(int is=0;is<ppxpp->nbSet;is++) {
-//                              if(surf[is+1]-nbBit[PP[id].Cntc.Set[is]] > maxS) maxS = surf[is+1]-nbBit[PP[id].Cntc.Set[is]]  ;
-                          if(surf[is+1] > maxS) maxS = surf[is+1]  ;
-                        }
-                        if(ich0==ich1) {
-                            if(isDouble) {
-                                S += 2 * maxS * prob0 * prob1;
-                                Sprob2 += 2* prob0 * prob1 ;
-                            } else {
-                                S += maxS * prob0 * prob1;
-                                Sprob2 += prob0 * prob1 ;
-
-                            }
-                        } else {
-                            if(isDouble) {
-                                S += 4 * maxS * prob0 * prob1;
-                                Sprob2 += 4 * prob0 * prob1 ;
-                           } else {
-                                S += 2 * maxS *  prob0 * prob1;
-                                Sprob2 += 2 * prob0 * prob1 ;
-                            }
-
-                        }
-                  }
-                    
-                }
-                antGlobal = global ;
-                lastich = ich ;
-            }
+        int exp2 = (nbColumn)*sizeColumn ;
+        Sres = (double)S / (double) (1LL << (exp2/2)) / (double)(1LL << ((exp2+1)/2)) ;
+#if defined PB701_BIG
+        printf("S=%.8f S=%llu%llu\n",Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL));
+#else
+        printf("S=%.8f S=%llu\n",Sres,S);
+#endif
+        if(nbColumn == maxNbColumn-1) {
+            exp2 = (nbColumn+1)*sizeColumn ;
+            Sres = (double)ST / (double) (1LL << (exp2/2 )) / (double)(1LL << ((exp2+1)/2)) ;
+#if defined PB701_BIG
+            printf("%.3fs LxH=%dx%d MaxStates=%d S=%.8f S=%llu%llu\n",(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC
+                   ,sizeColumn,maxNbColumn,maxState
+                   ,Sres,(int64_t)(ST / 1000000000000000LL), (int64_t)(ST % 1000000000000000LL));
+#else
+            printf("S=%.8f S=%llu\n",Sres,ST);
+#endif
         }
-        Sres = (double)S / (double) (1LL << (level*PB701_L )) / (double)(1LL <<(levelAnt* PB701_L)) ;
-        printf("LxH=%dx%d S=%.8f S=%llu%llu S1=%.8f  Sprob2=%llx\n",PB701_L,PB701_H
-               ,Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL),S1,Sprob2);
     }
-
+    free(PPindState);
+    free(State);
     snprintf(pbR->strRes, sizeof(pbR->strRes),"%.8f",Sres);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
-
-
