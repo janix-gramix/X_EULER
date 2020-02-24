@@ -3,7 +3,6 @@
 //  X_euler
 //
 //  Created by Jeannot on 17/12/2019.
-//  Copyright © 2019 Jeannot. All rights reserved.
 //
 
 #ifndef ukkonen_h
