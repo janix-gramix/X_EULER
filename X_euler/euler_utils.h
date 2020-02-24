@@ -156,5 +156,23 @@ int CalkWilfFindFrac(uint64_t num,uint64_t den,uint64_t *nbits,int sizeNbits);
 // le denominateur donne le nb de decomposition en 2^n apparaissant au plus 2 fois.
 void CalkWilfFrac(uint64_t *ptNum,uint64_t *ptDen,uint64_t *nbits,int nb);
 
+// to count number of decomposition of
+// N = n1 + n2 + n3 + ... nk
+// the ni can be null
+// We have more than the count, a perfect hash to find number for a decomposition
+
+typedef uint32_t NsumInd  ;
+typedef uint8_t NsumVal ;
+typedef struct Nsum {
+    NsumInd N ;
+    NsumInd k ;
+    NsumInd *index ;
+} Nsum ;
+Nsum * NsumAlloc(NsumInd N, NsumInd k) ; // allocationof structure
+Nsum * NsumFree(Nsum * NS) ;
+NsumInd NsumGetSize(Nsum *NS,int ks) ; // get the number of decomposition
+// perfect hash, ks is the number of ni non null
+NsumInd NsumGetIndex(Nsum *NS,int ks,NsumVal *sum) ;
+
 
 #endif /* euler_utils_h */

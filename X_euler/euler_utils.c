@@ -737,3 +737,67 @@ int CalkWilfFindFrac(uint64_t num,uint64_t den,uint64_t *nbits,int sizeNbits){
     *ptDen = den ;
 }
 
+#define NS_IND(k,n) ((k) * NS->N +(n))
+Nsum * NsumAlloc(NsumInd N, NsumInd k) {
+    if(k<2) return NULL ;
+    Nsum * NS = calloc(1,sizeof(NS[0])) ;
+    NS->N = N+1 ;
+    NS->k = k ;
+    NS->index = malloc((k-1)*(N+1)*sizeof(NS->index[0]));
+    // init k-1 serie
+    NsumInd *ids = NS->index+ NS_IND(k-2,0) ;
+    ids[0] = 0 ;
+    for(int in=1;in<=N;in++){
+        ids[in] = ids[in-1] + N + 2 - in ;
+    }
+    for(int ik=k-3;ik>=0;ik--) {
+        NsumInd *idsAnt = ids ;
+        ids = NS->index+ NS_IND(ik,0) ;
+        ids[0] = 0 ;
+        NsumInd indAnt = idsAnt[N]+1 ;
+        for(int in=1;in<=N;in++){
+            ids[in] = ids[in-1] + indAnt - idsAnt[in-1] ;
+        }
+    }
+    return NS ;
+}
+
+Nsum * NsumFree(Nsum * NS) {
+    if(NS != NULL) {
+        free(NS->index);
+        free(NS);
+    }
+    return NULL ;
+}
+NsumInd NsumGetSize(Nsum *NS,int ks) {
+    if(ks<=1) {
+        return ks ? NS->N : 1 ;
+    }
+    return NS->index[NS_IND(NS->k-ks,NS->N-1)]+1 ;
+}
+
+NsumInd NsumGetIndex(Nsum *NS,int ks,NsumVal *sum) {
+    
+    int k = NS->k ;
+    int N = NS->N ;
+    NsumInd * index = NS->index + (k-ks)*N ;
+    switch(ks) {
+        case 0: return 0;
+        case 1: return sum[0] ;
+        case 2: return index[sum[0]]+sum[1] ;
+        case 3: return index[sum[0]] + index[N+sum[0]+sum[1]]-index[N+sum[0]]+sum[2];
+        case 4: return index[sum[0]] + index[N+sum[0]+sum[1]]-index[N+sum[0]]
+            + index[2*N+sum[0]+sum[1]+sum[2]]-index[2*N+sum[0]+sum[1]]  +sum[3];
+        default : {
+            NsumInd ksum = *sum++ ;
+            NsumInd ind = index[ksum] ;
+            for(int ik=1;ik< ks-1;ik++) {
+                NsumInd ksumNext = ksum + *sum++ ;
+                ind += index[N*ik+ksumNext]-index[N*ik+ksum];
+                ksum= ksumNext ;
+            }
+            return ind+ *sum ;
+        }
+    }
+}
+
