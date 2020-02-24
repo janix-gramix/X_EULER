@@ -18,6 +18,7 @@
 #include "PB201_250.h"
 #include "PB_gmp.h"
 #include "PB_other.h"
+#include "pb_debug.h"
 
 
 
@@ -409,6 +410,7 @@ static PB_CALL ALL_calls[] = {
 //   ,PROTO_CALL(693a,699161,'Finite Sequence Generator')
     ,PROTO_CALL(697,4343871.06,'Randomly Decaying Sequence')
 //    ,PROTO_CALL(697a,4343871.06,'Randomly Decaying Sequence')
+    ,PROTO_CALL(701,13.51099836,'Random connected area')
 
     
     ,{ NULL,NULL,"","" }
@@ -420,10 +422,11 @@ static PB_CALL CUR_calls[] = {
  //   {100,756872327473,'XX'),
 //    PROTO_CALL(103d,20313839404245,'Special subset sums: optimum')
 
-    
 //        PROTO_CALL(695,???,'Random Rectangles')
+
          PROTO_CALL(696,436944244,'Mahjong')
-//        ,PROTO_CALL(690,???,'Tom and Jerry')
+
+    //        ,PROTO_CALL(690,???,'Tom and Jerry')
   //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
 //   ,PROTO_CALL(681,2611227421428,'Maximal Area')
  //    PROTO_CALL(495,???,'Writing n as the product of k distinct positive integers')
