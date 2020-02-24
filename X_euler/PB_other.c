@@ -8,6 +8,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 #define M_PI 3.14159265358979323846264338327950288
 
@@ -2283,17 +2284,14 @@ int PB693a(PB_RESULT *pbR) {
 
 //**************************************
 
-
-
-#define PB696_NBS   3
+/*
+ #define PB696_NBS   3
 #define PB696_NBT   4
 #define PB696_NBN   30
-
-/*
-#define PB696_NBS   1000
-#define PB696_NBT   5
-#define PB696_NBN   1000
 */
+
+
+
 
 
 #define PB696_NBS   100000000
@@ -2306,15 +2304,18 @@ int PB693a(PB_RESULT *pbR) {
 #define isSerie 1
 #define isT3    2
 #define isPaire 4
-
-#define NB_T696a 15     // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-
-#define NB_STP696a   8
+#define NB_T696a 9 // 44 33 34 22 23 24 12 13 02
 static inline int nb2ntya(int nb1,int nb2) {
-    static int nb2nty[]={10,6,3,1,0} ;
-    //    if(nb1>nb2) nb1 = nb2 ;
-    return nb2nty[nb1]+nb2-nb1 ;
+    switch(nb1){
+        case 4: return 0 ;
+        case 3: return nb2 - 2 ;
+        case 2: return nb2 + 1 ;
+        case 1: return nb2 + 4 ;
+        case 0:
+        default: return 8 ;
+    }
 }
+
 
 static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
     u_int64_t aPow2 = a % mod ;
@@ -2329,8 +2330,9 @@ static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
     return aPowExp ;
 }
 
-
-enum PB696ST { ST_Start = 0 , ST_NoBreak = 1 ,  ST_C2=2 ,  ST_no2S = 3, ST_1T3=4 , ST_2T3=5, ST_NoT3 = 6 , ST_End=7} ;
+#define NB_STP696a   7
+// states (7) and automate to avoid multiple decompositions
+enum PB696ST { ST_Start = 0 ,   ST_C2=1 ,  ST_no2S = 2, ST_1T3=3 , ST_2T3=4, ST_NoT3 = 5 , ST_End=6} ;
 static inline enum PB696ST nxtSta (enum PB696ST st,int flag) {
     enum PB696ST nxtSt ;
     switch(st) {
@@ -2341,7 +2343,6 @@ static inline enum PB696ST nxtSta (enum PB696ST st,int flag) {
         case ST_no2S: nxtSt =  ST_C2 ; break ;
         case ST_C2:   nxtSt = ST_NoT3; break ;
         case ST_NoT3: nxtSt = (flag & isSerie) ? ST_no2S : ST_End ; break ;
-        case ST_NoBreak :
         case ST_1T3: nxtSt = (flag & isT3) ? ST_2T3 : ST_End ; break ;
         case ST_2T3: nxtSt = (flag & isT3) ? ST_NoT3 : ST_End ; break ;
         case ST_End: nxtSt = ST_End; break ;
@@ -2349,20 +2350,14 @@ static inline enum PB696ST nxtSta (enum PB696ST st,int flag) {
     return nxtSt ;
 }
 
-#define INDXITIN(it,in) ((it)*maxI1+(in))
-#define INDCOUNT(it,nty,st)    (((it)*NB_T696a+(nty))*NB_STP696a+(st))
-#define SIZEBREAK  ((ntMax1)*NB_T696a*NB_STP696a)
-#define SIZE_ITxIN  (maxI1*ntMax1)
-#define NXT(nbSerie,flags,nbIt) (ibCur+INDCOUNT(it+(nbIt),nb2ntya(nb2-(nbSerie),4-(nbSerie)),nxtSta(st,(flags))))
-#define SET_NXT tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD
-#define UPNXT(nxt,newSt)    (deltaBreak+((nxt) & 0xfffffff8) +(newSt) )
+
 
 typedef struct NB696 {
     int64_t noP ;
     int64_t withP ;
 } NB696 ;
 
-void Conv(int ntMax1,NB696 *V1 , NB696 *V2 ,NB696 *Res ) {
+static void Conv(int ntMax1,NB696 *V1 , NB696 *V2 ,NB696 *Res ) {
     for(int t1=0;t1<ntMax1;t1++) {
         int64_t S = 0 , SP = 0 ;
         for(int t2=0;t2<=t1;t2++) {
@@ -2377,7 +2372,14 @@ void Conv(int ntMax1,NB696 *V1 , NB696 *V2 ,NB696 *Res ) {
     return ;
 }
 
-int PB696a(PB_RESULT *pbR) {
+#define INDCOUNT(it,nty,st)    (((it)*NB_T696a+(nty))*NB_STP696a+(st))
+#define SIZEBREAK  ((ntMax1)*NB_T696a*NB_STP696a)
+#define SIZE_ITxIN  (maxI1*ntMax1)
+#define NXT(nbSerie,nbIt,flags) int nxty = nb2ntya(nb2-(nbSerie),4-(nbSerie)) ; int nxst = nxtSta(st,(flags)) ; int nxit = it+(nbIt); int nxt = (ibCur+INDCOUNT(nxit,nxty,nxst))
+#define SET_NXT tbCur[nxt] = (int32_t)((na + tbCur[nxt]) % PB696_MOD)
+#define BRKNXT(newSt) (ibCur+deltaBreak+INDCOUNT(nxit,nxty,(newSt)))
+
+int PB696(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int n = PB696_NBN ;
     int ntMax1 = PB696_NBT+1 ;
@@ -2386,16 +2388,34 @@ int PB696a(PB_RESULT *pbR) {
     if(maxI>n)maxI = n ;
     int maxI1 = maxI+1 ;
     // number of free cases in the 2 next columns
-    // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-    int nty2nb1[NB_T696a] = { 4,3,3,2,2,2,1,1,1,1,0,0,0,0,0} ;
-    int nty2nb2[NB_T696a] = { 4,3,4,2,3,4,1,2,3,4,0,1,2,3,4} ;
-
-    int64_t *tb1 = malloc(ntMax1*SIZEBREAK*sizeof(tb1[0]));
-    int64_t *tb2 = malloc(ntMax1*SIZEBREAK*sizeof(tb2[0]));
-    NB696 *nb_ITxIN = calloc(ntMax1*SIZE_ITxIN,sizeof(nb_ITxIN[0]));
+    // 44 33 34 22 23 24 12 13 02
+    int nty2nb1[NB_T696a] = { 4,3,3,2,2,2,1,1,0} ;
+    int nty2nb2[NB_T696a] = { 4,3,4,2,3,4,2,3,2} ;
+    
+    int32_t *tb1 = malloc(ntMax1*SIZEBREAK*sizeof(tb1[0]));
+    int32_t *tb2 = malloc(ntMax1*SIZEBREAK*sizeof(tb2[0]));
+    // precompute combination Cnp(ib,in) =
+    //  ( n-in+1 )
+    //  (   ib   )
+#define INDXIBIN(ib,in) ((ib)*maxI1+(in))
+    NB696 *nb_IT = calloc(ntMax1,sizeof(nb_IT[0])) ;
+    int64_t invI[ntMax1+2] ;
+    invI[1] =1 ;
+    for(int ii=2;ii<=ntMax1+1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
+    int64_t *Cnp = malloc(ntMax1*maxI1*sizeof(Cnp[0]));
+    for(int in=1;in<=maxI;in++) {
+        int64_t fact = 1 ;
+        for(int ib=0;ib<ntMax1;ib++) {
+            fact *= n-in+1-ib ; fact %= PB696_MOD ;  fact *= invI[ib+1] ; fact %= PB696_MOD ;
+            Cnp[INDXIBIN(ib,in)] = fact ;
+        }
+    }
+    
+    
+    
     int deltaBreak = SIZEBREAK;
-    int64_t *tbCur= tb1 ;
-    int64_t *tbAnt = tb2 ;
+    int32_t *tbCur= tb1 ;
+    int32_t *tbAnt = tb2 ;
     memset(tbCur,0,ntMax1*SIZEBREAK*sizeof(tbCur[0])) ;
     tbCur[0] = 1 ;
     // Compute the nb of compact hands (no missing tile numbers) by
@@ -2403,67 +2423,67 @@ int PB696a(PB_RESULT *pbR) {
     //   - IN (nb of tile numbers)
     //   - IB (nb of connected parts)
     for(int in=0;in<=maxI;in++) { // loop on numbers
-        int isSerieAllowed = ( in<n-2) ? 1 : 0 ;
-        int64_t *tmp = tbCur ; tbCur = tbAnt ;  tbAnt = tmp ;
-        memset(tbCur,0,ntMax1*SIZEBREAK*sizeof(tbCur[0])) ;
-        for(int ib=0;ib<ntMax1-1;ib++){ // loop on breaks (frontiers between connected dev.)
-            int indIb = ib * SIZE_ITxIN ;
+        int maxIb = ntMax1 ;
+        if(maxIb > in+1) maxIb = in+1 ;
+        int isSerieAllowed = ( in<n-2) ? 1 : 0 ; //  for small values for n
+        int32_t *tmp = tbCur ; tbCur = tbAnt ;  tbAnt = tmp ;
+        for(int ib=0;ib<maxIb;ib++){ // loop on breaks (frontiers between connected dev.)
+            int64_t factCnp = Cnp[INDXIBIN(ib,in)] ;
             int ibCur = ib * deltaBreak ;
             for(int nty=0;nty<NB_T696a;nty++) {
                 int nb2 = nty2nb2[nty] ;
                 int nb1 = nty2nb1[nty]   ;
-                for(int st=0;st<NB_STP696a;st++){ // states to avoid with multiple representation
-                    for(int it=0;it<ntMax1;it++) {
+                for(int st=0;st<NB_STP696a;st++){ // states to avoid multiple representations
+                    for(int it=ib;it<ntMax1;it++) {
                         int old = ibCur + INDCOUNT(it,nty,st);
                         int64_t na = tbAnt[ old] ;
                         if(na==0) continue ;
+                        else tbAnt[old] = 0 ;
                         int isBreak = 0 ;
                         if(in && nb1==4){ // break possible (if not in==0 and no remaining serial<=> nb1==4)
-                            if(it < ntMax1 && st != ST_NoBreak ) isBreak = 1 ;
                             if(it < ntMax1 ){
+                                isBreak = 1 ;
                                 if(st==ST_Start ) {
-                                    nb_ITxIN[indIb+INDXITIN(it,in)].noP += na ; nb_ITxIN[indIb+INDXITIN(it,in)].noP %= PB696_MOD  ;
-                                }else if(st != ST_NoBreak) {
-                                    nb_ITxIN[indIb+INDXITIN(it,in)].withP += na; nb_ITxIN[indIb+INDXITIN(it,in)].withP %= PB696_MOD  ;
+                                    nb_IT[it].noP += na * factCnp ; nb_IT[it].noP %= PB696_MOD ;
+                                }  else  {
+                                    nb_IT[it].withP += na * factCnp ; nb_IT[it].withP %= PB696_MOD ;
                                 }
                             } else {   continue ; }
                         }
-                        if( isSerieAllowed  && nb1>=2 && (it < ntMax1-2)  && ( ((st !=ST_no2S) && (st != ST_1T3) && (st != ST_NoBreak)) || isBreak)) {
+                        if( isSerieAllowed  && nb1>=2 && (it < ntMax1-2)  && ( ((st !=ST_no2S) && (st != ST_1T3) ) || isBreak)) {
                             // add 2 serials
-                            int nxt = NXT(2,isSerie,2) ;
-                            if( (st != ST_no2S) && (st != ST_1T3) && (st != ST_NoBreak)) { SET_NXT ; }
-                            if(isBreak) {  nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                            NXT(2,2,isSerie) ;
+                            if( (st != ST_no2S) && (st != ST_1T3)  ) { SET_NXT ;  }
+                            if(isBreak) {  nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ;   }
                             if(nb1>=4 && (st==ST_Start)) { // add 2 serials + Pair
-                                int nxt = NXT(2,isPaire|isSerie,2) ; SET_NXT ;
+                                NXT(2,2,isPaire|isSerie) ; SET_NXT ;
                                 if(isBreak) { nxt += deltaBreak ; SET_NXT ; }
                             }
                         }
                         if( isSerieAllowed && nb1 && it < ntMax1-1){ // add 1xSerial ?
-                            int nxt = NXT(1,isSerie,1) ; SET_NXT ;
-                            if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak  ; SET_NXT ; }
+                            NXT(1,1,isSerie) ; SET_NXT ;
+                            if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak  ; SET_NXT ; }
                             if(nb1>=3 && (st==ST_Start) ) { // add 1xSerial + Pair
-                                int nxt = NXT(1,isSerie|isPaire,1) ; SET_NXT ;
+                                NXT(1,1,isSerie|isPaire) ; SET_NXT ;
                                 if(isBreak) {  nxt += deltaBreak ; SET_NXT ; }
                             }
                             if(nb1>=4 && (it < ntMax1 - 2) && ((st != ST_NoT3 ) || isBreak) ) { // add T3 ?
-                                int nxt = NXT(1,isSerie|isT3,2) ;
-                                if(st != ST_NoT3 ) { SET_NXT ; }
-                                if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                                NXT(1,2,isSerie|isT3) ;
+                                if(st != ST_NoT3 ) { SET_NXT ;   }
+                                if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ; }
                             }
                         }
                         if((st==ST_Start) && nb1>=2) { // add Pair ?
-                            int nxt = NXT(0,isPaire,0) ;
-                            if(in==0) nxt = (nxt & 0xfffff8) + ST_NoBreak ;
-                            SET_NXT ;
-                            if(isBreak) { nxt = UPNXT(nxt,ST_NoBreak) ; SET_NXT ; }
+                            NXT(0,0,isPaire) ;   SET_NXT ;
+                            if(isBreak) {  nxt += deltaBreak ; SET_NXT ; }
                         }
                         if(nb1>=3 && it < ntMax1-1 && ((st != ST_NoT3 ) || isBreak) ) { // add T3 ?
-                            int nxt = NXT(0,isT3,1) ;
-                            if(st != ST_NoT3 ){ SET_NXT ;}
-                            if(isBreak) { nxt = (st) ? UPNXT(nxt,ST_End) : nxt+deltaBreak ; SET_NXT ; }
+                            NXT(0,1,isT3) ;
+                            if(st != ST_NoT3 ){ SET_NXT ;  }
+                            if(isBreak) { nxt = (st) ? BRKNXT(ST_End) : nxt+deltaBreak ; SET_NXT ; }
                         }
                         if(nb1!=4) { // add nothing
-                            int nxt = NXT(0,0,0) ; SET_NXT ;
+                            NXT(0,0,0) ; SET_NXT ;
                         }
                     }
                 } // end bcl it
@@ -2473,66 +2493,12 @@ int PB696a(PB_RESULT *pbR) {
     free(tbCur); tbCur = NULL ;
     free(tbAnt); tbAnt = NULL ;
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s End phase 0 : compact hands %.6fs\n",pbR->ident,(float)(clock()-pbR->nbClock) / CLOCKS_PER_SEC);
-/*
-    {
-        for(int ib=0;ib<ntMax1-1;ib++) {
-            printf("**** ib=%d ****\n",ib) ;
-            int ofs_ib = ib*maxI1*ntMax1 ;
-            for(int it=0;it<ntMax1;it++) {
-                printf("it=%d ",it) ;
-                for(int in=0;in<=maxI;in++) printf("%lld ",nb_ITxIN[ofs_ib+INDXITIN(it,in)].noP);
-                printf("\n   w ");
-                for(int in=0;in<=maxI;in++) printf("%lld ",nb_ITxIN[ofs_ib+INDXITIN(it,in)].withP);
-                printf("\n");
-            }
-        }
-    }
-*/
     
-#define INDXIBIN(ib,in) ((ib)*(maxI1+1)+(in))
-    // precompute combination Cnp(ib,in) =
-    //  ( n-in+1 )
-    //  (   ib   )
-    NB696 *nb_IT = calloc(ntMax1,sizeof(nb_IT[0])) ;
-    int64_t invI[ntMax1+1] ;
-    invI[1] =1 ;
-    for(int ii=2;ii<=ntMax1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
-    int64_t *Cnp = malloc(ntMax1*(maxI1+2)*sizeof(Cnp[0]));
-    for(int in=1;in<=maxI+1;in++) {
-        int64_t fact = 1 ;
-        for(int ib=0;ib<ntMax1-1;ib++) {
-            fact *= n-in+1-ib ; fact %= PB696_MOD ;  fact *= invI[ib+1] ; fact %= PB696_MOD ;
-            Cnp[INDXIBIN(ib,in)] = fact ;
-        }
-    }
-
-int64_t *PB_IB  = calloc(2*(maxI+2),sizeof(PB_IB[0])) ;
-int64_t *PB_IB_IN1 = calloc((maxI+2),sizeof(PB_IB_IN1[0])) ;
-
-    // From the number of hands (multiconnected, and compact(no missing number)
-    // by IB (nb of connected parts), by IT(nb tiles) and IN(nb used numbers) computes:
-    // the number of hands of length n
-    // by inserting missing numbers <=> multiply by Cnp
-    for(int ib=0;ib<ntMax1-1;ib++) {
-        int ofs_ib = ib*maxI1*ntMax1 ;
-        for(int in=ib+1;in<=maxI;in++) {
-            int64_t fact = Cnp[INDXIBIN(ib,in)] ;
-            int64_t fact2 =0 ;
-            if(in < n-ib-1) { fact2 = Cnp[INDXIBIN(ib,in+1)] * (n-in-ib-1) ; fact2 %= PB696_MOD ;}
-            // no treatment for it=0 (only possible with ic=0)
-            for(int it=ib ? ib : 1 ;it<ntMax1;it++) {
-                int ind = ofs_ib+INDXITIN(it,in) ;
-                if(nb_ITxIN[ind].noP) {
-                    nb_IT[it].noP += nb_ITxIN[ind].noP * fact ; nb_IT[it].noP %= PB696_MOD ;
-                    if(fact2) { nb_IT[it].withP += nb_ITxIN[ind].noP * fact2 ; nb_IT[it].withP %= PB696_MOD ; }
-                }
-                nb_IT[it].withP += nb_ITxIN[ind].withP * fact ; nb_IT[it].withP %= PB696_MOD ;
-            }
-        }
-    }
-    nb_IT[0].noP = 1 ;   nb_IT[0].withP = n ; // special case for no tiles expet pair)
-//        printf("C_Cn=%d :",ntMax1-1) ; for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].noP);
-//        printf("\n\tw:"); for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].withP); printf("\n");
+    
+    
+    nb_IT[0].noP = 1 ;
+    //    printf("C_Cn=%d :",ntMax1-1) ; for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].noP);
+    //    printf("\n\tw:"); for(int it=0;it<ntMax1;it++) printf("%lld ",nb_IT[it].withP); printf("\n");
     if(pbR->isVerbose) fprintf(stdout,"\tPB%s End phase 1 : hands for one suit %.6fs\n",pbR->ident,(float)(clock()-pbR->nbClock) / CLOCKS_PER_SEC);
     int64_t Sum = 0 ;
     
@@ -2571,600 +2537,6 @@ int64_t *PB_IB_IN1 = calloc((maxI+2),sizeof(PB_IB_IN1[0])) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
-
-
-
-#define NB_T696 15     // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-
-#define NB_STP696   11
-static inline int nb2nty(int nb1,int nb2) {
-    static int nb2nty[]={10,6,3,1,0} ;
-    //    if(nb1>nb2) nb1 = nb2 ;
-    return nb2nty[nb1]+nb2-nb1 ;
-}
-
-// #define DBG
-#if defined(DBG)
-#define DBG_PRINT_2 0
-#define DBG_PRINT_1 1
-
-#define DBGSDIG    10
-#define DBGSH2  100
-#define DBGD2   11
-#define DBGT3   111
-#define DBGP3   (DBGD2+1)
-#define DBGM3   (DBGSH2-1)
-#define DBGSH3  1000
-#define DBGSH5  100000
-#define DBGSH6  1000000
-#define DBGSH8  100000000
-#define DBGFMT  "%lld->%lld\n"
-
-#endif
-
-//
-
-typedef struct VAL2 {
-    int64_t val ;
-    int64_t vald ;
-} VAL2 ;
-int cmpVal2(const void * el1, const void *el2) {
-    VAL2 v1 = ((VAL2 *)el1)[0] ;
-    VAL2 v2 = ((VAL2 *)el2)[0] ;
-    if(v1.vald>v2.vald) return 1;
-    else if (v1.vald<v2.vald) return -1;
-    return 0 ;
-}
-
-
-int cmpVal696(const void * el1, const void *el2) {
-    int64_t i1 = ((int64_t *)el1)[0] ;
-    int64_t i2 = ((int64_t *)el2)[0] ;
-    if(i1>i2) return 1;
-    else if (i1<i2) return -1;
-    if(el1 > el2) return 1;
-    else return -1 ;
-    //    return 0 ;
-}
-
-
-
-//
-static inline int nxtIp (int ip,int flag) {
-    int nxtIp ;
-    if(ip==0) {
-        if(flag & isPaire ) nxtIp = (flag & isSerie) ? 1 : 6 ;
-        else nxtIp = 0 ;
-    } else if(ip==1 && (flag & isT3) )nxtIp= 4 ;
-    else if(ip==6 && !(flag & isT3) ) nxtIp = 10 ;
-    else if(ip==7 && !(flag & isT3) ) nxtIp = 10 ;
-    else if (ip==4 && !(flag & isT3) ) nxtIp = 3;
-    else if(ip==3) nxtIp = (flag & isSerie) ? 1 : 10 ;
-    else if(ip==5) nxtIp = (flag & isSerie) ? 1 : 10 ;
-    else if(ip==8) nxtIp = (flag & isSerie) ? 1 : 10  ;
-    else nxtIp = (ip==10) ? 10 : ip+1 ;
-    return nxtIp ;
-}
-
-int PB696(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int n = PB696_NBN ;
-    int ntMax = PB696_NBT ;
-    int ns = PB696_NBS ;
-    //    // 44 33 34 22 23 24 11 12 13 14 00 01 02 03 04
-    int nty2nb1[NB_T696] = { 4,3,3,2,2,2,1,1,1,1,0,0,0,0,0} ;
-    int nty2nb2[NB_T696] = { 4,3,4,2,3,4,1,2,3,4,0,1,2,3,4} ;
-    
-    int64_t *tb1 = malloc(NB_T696*(ntMax+1)*NB_STP696*sizeof(tb1[0]));
-    int64_t *tb2 = malloc(NB_T696*(ntMax+1)*NB_STP696*sizeof(tb2[0]));
-    
-#if defined(DBG)
-    int64_t *val1 = calloc(NB_T696*(ntMax+1)*NB_STP696*10000,sizeof(val1[0]));
-    int64_t *val2 = calloc(NB_T696*(ntMax+1)*NB_STP696*10000,sizeof(val2[0]));
-    int64_t *valCur= val1 ;
-    int64_t *valAnt = val2 ;
-    int dbg_print2 = DBG_PRINT_2 ;
-
-#if defined(DBG)
-    int64_t *tbSortVal=malloc(100000*sizeof(tbSortVal[0]));
-    VAL2 * tbVal2 = malloc(100000*sizeof(tbVal2[0]));
-    int nbV=0 ;
-
-#endif
-
-#endif
-    
-    int nt ;
-    //    int maxI = ntMax*4+5 ;
-    int maxI = ntMax*3+1 ;
-    //    int maxI=n;
-    if(maxI>n)maxI = n ;
-    int maxI1 = maxI+1 ;
-#define INDXITIN(it,in) ((it)*maxI1+(in))
-    
-    printf("Maxi=%d n=%d\n",maxI,n);
-    int64_t *nbConnextNoP = calloc((maxI+1)*(ntMax+1),sizeof(nbConnextNoP[0]));
-    int64_t *nbConnextWithP = calloc((maxI+1)*(ntMax+1),sizeof(nbConnextWithP[0]));
-     nt = ntMax ;
-    {
-        int64_t *tbCur= tb1 ;
-        int64_t *tbAnt = tb2 ;
-        memset(tbCur,0,NB_T696*(nt+1)*NB_STP696*sizeof(tbCur[0])) ;
-        tbCur[0] = 1 ;
-        for(int in=0;in<=maxI;in++) {
-#if defined(DBG)
-            int64_t *val = valCur ;
-            valCur = valAnt ;
-            valAnt = val ;
-            printf("\n************ %d **********\n",in);
-#endif
-            int64_t *tmp = tbCur ;
-            tbCur = tbAnt ;
-            tbAnt = tmp ;
-            memset(tbCur,0,NB_T696*(nt+1)*NB_STP696*sizeof(tbCur[0])) ;
-            for(int ip=0;ip<NB_STP696;ip++) { // paire ou pas paire
-                for(int nty=0;nty<NB_T696;nty++) {
-                    int nb2 = nty2nb2[nty] ;
-                    int nb1 = nty2nb1[nty]   ;
-                    int isSerieAllowed = ( in<n-2) ? 1 : 0 ;
-                    for(int it=0;it<=nt;it++) {
-                        int nxt, old = (it*NB_T696+nty)*NB_STP696+ip ;
-                        int64_t na = tbAnt[ old] ;
-                        if(na==0) continue ;
-                        //                        if( isSerieAllowed  && nb1>=2 && (it < nt-1)  && (ip != 3) && (ip != 5) && (ip !=9 && (ip != 10))) {
-                        if( isSerieAllowed  && nb1>=2 && (it < nt-1)  && (ip != 1) && (ip != 6)) {
-                            // on rajoute 2xfois la serie
-                            int nxty = nb2nty(nb2-2,2);
-                            int nxtp =  nxtIp (ip,isSerie);
-                            int nxit = it+2 ;
-                            nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                            for(int iv=0;iv<na;iv++) {
-                                valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH6 + (DBGT3*(in+1)+DBGP3) * (DBGSH3+1) ;
-                                if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)" DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                            }
-#endif
-                            tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                            if(nb1>=4 && ip==0) {
-                                int nxty = nb2nty(nb2-2,2) ;
-                                int nxtp = nxtIp(0,isPaire| isSerie) ;
-                                int nxit = it+2 ;
-                                // on rajoute 2xfois la serie + la paire
-                                nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                                for(int iv=0;iv<na;iv++) {
-                                    valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH8 + (DBGT3*(in+1)+DBGP3) * (DBGSH2*(DBGSH3+1)) + DBGD2*(in+1) ;
-                                    if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                                }
-#endif
-                                tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                            }
-                        }
-                        
-                        if( isSerieAllowed && nb1 && it < nt){ // Serie possible
-                            // on rajoute la serie
-                            int nxty = nb2nty(nb2-1,3) ;
-                            int nxtp =  nxtIp (ip,isSerie);
-                            int nxit = it+1 ;
-                            nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                            for(int iv=0;iv<na;iv++) {
-                                valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH3 + (DBGT3*(in+1)+DBGP3) ;
-                                if(dbg_print2) printf("(%d,%d,%d=%d=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                            }
-#endif
-                            tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                            if(nb1>=3 && ip==0) {
-                                // on rajoute la serie +P0
-                                int nxty = nb2nty(nb2-1,3) ;
-                                int nxtp = nxtIp(0,isPaire|isSerie) ;
-                                int nxit = it+1 ;
-                                nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                                for(int iv=0;iv<na;iv++) {
-                                    valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH5 + (DBGT3*(in+1)+DBGP3)*DBGSH2 + DBGD2*(in+1) ;
-                                    if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                                }
-#endif
-                                tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                            }
-                            if(nb1>=4 && (it < nt - 1) && ip != 3 && ip != 5 && ip != 8) {
-                                // on rajoute la serie +T0 // nxty = 0
-                                int nxty =  nb2nty(nb2-1,3) ;
-                                int nxtp =  nxtIp (ip,isSerie|isT3);
-                                int nxit = it + 2 ;
-                                nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                                for(int iv=0;iv<na;iv++) {
-                                    valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH6 + (DBGT3*(in+1)+DBGP3)*DBGSH3 + DBGT3*(in+1) ;
-                                    if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                                }
-#endif
-                                tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD  ;
-                            }
-                            
-                        }
-                        if(ip==0 && nb1>=2) {
-                            // on rajoute P0
-                            int nxty = nb2nty(nb2,4)  ; //
-                            int nxtp = nxtIp(0,isPaire) ;
-                            int nxit = it ;
-                            nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                            for(int iv=0;iv<na;iv++) {
-                                valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH2 + DBGD2*(in+1) ;
-                                if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                            }
-#endif
-                            tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                        }
-                        if(nb1>=3 && it < nt && ip != 3 && ip != 5 && ip !=8 ) {
-                            // on rajoute T0
-                            int nxty = nb2nty(nb2,4) ; //
-                            int nxtp =  nxtIp (ip,isT3);
-                            int nxit = it + 1 ;
-                            nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                            for(int iv=0;iv<na;iv++) {
-                                valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] * DBGSH3 + DBGT3*(in+1) ;
-                                if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                            }
-#endif
-                            tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                        }
-                        if(nb1==4) {
- //                           if(it==nt)
-                            {
-                                if(ip==0) {
-                                    nbConnextNoP[INDXITIN(it,in)] += na ; nbConnextNoP[INDXITIN(it,in)] %= PB696_MOD  ;
-                                }else {
-#if defined(DBG)
-                                    for(int iv=0;iv<na;iv++) {
-                                        tbSortVal[nbV++] = valAnt[old*10000+iv] ;
-                                    }
-#endif
-                                    nbConnextWithP[INDXITIN(it,in)] += na ; nbConnextWithP[INDXITIN(it,in)] %= PB696_MOD  ;
-
-                                }
-                            }
-                        } else {
-                            
-                            int nxty = nb2nty(nb2,4) ;
-                            int nxtp =  nxtIp (ip,0);
-                            int nxit = it ;
-                            nxt = (nxit*NB_T696+nxty)*NB_STP696+nxtp ;
-#if defined(DBG)
-                            for(int iv=0;iv<na;iv++) {
-                                valCur[nxt*10000+tbCur[nxt]+iv] = valAnt[old*10000+iv] ;
-                                if(dbg_print2) printf("(%d,%d,%d=%lld=>%d,%d,%d)"  DBGFMT ,it,nty,ip,na,nxit,nxty,nxtp,valAnt[old*10000+iv],valCur[nxt*10000+tbCur[nxt]+iv]);
-                            }
-#endif
-                            tbCur[nxt] += na ; tbCur[nxt] %= PB696_MOD ;
-                        }
-                    }
-                    
-                }
-            }
-        }
-        
-        
-        int noIP = 0, withIP = 0 ;
-        for(int ii=0;ii<NB_T696;ii++) {
-            noIP += tbCur[(nt*NB_T696+ii)*NB_STP696] ; noIP %= PB696_MOD  ;
-            for(int iip=1;iip<NB_STP696;iip++) {
-                int ind = (nt*NB_T696+ii)*NB_STP696+iip ;
-                withIP += tbCur[ind] ; withIP %= PB696_MOD ;
-#if defined(DBG)
-//                for(int iv=0;iv<tbCur[ind];iv++) tbSortVal[nbV++] = valCur[10000*ind+iv] ;
-                
-#endif
-            }
-        }
- #if defined(DBG)
-        int nbId = 0 ;
-        printf("\n nbV=%d\n",nbV);
-        qsort(tbSortVal,nbV,sizeof(tbSortVal[0]),cmpVal696) ;
-        for(int iv=1;iv<nbV;iv++) {
-            if(tbSortVal[iv-1]==tbSortVal[iv])
-                printf("?%lld\n",tbSortVal[iv]);
-        }
-        int dig[20] ;
-        int histo[DBGSDIG] ;
-        for(int iv=0;iv<nbV;iv++) {
-            memset(histo,0,sizeof(histo));
-            int64_t val = tbSortVal[iv] ;
-            int nbd ;
-            for(nbd=0;nbd<nt*3+2 ;nbd++) {
-                dig[nbd] = val % DBGSDIG ;
-                if(dig[nbd] == 0) break;
-                val /= DBGSDIG ;
-                histo[dig[nbd]]++ ;
-                if(histo[dig[nbd]]>4) printf("PBBBB %lld\n",tbSortVal[iv]);
-            }
-            tbVal2[iv].val = tbSortVal[iv] ;
-            int64_t vald = 0 ;
-            for(int id=1;id<DBGSDIG;id++) {
-                for(int ih=0;ih<histo[id];ih++) vald = DBGSDIG *vald + id ;
-            }
-            tbVal2[iv].vald = vald ;
-             int isOK = 0;
-            int ip ;
-            for(ip=0;ip<nbd;ip+=3) {
-                if(dig[ip] == dig[ip+1]) {
-                    int it ;
-                    for(it=0;it<ip; it+=3) {
-                        if(dig[it] == dig[it+1] && dig[it] == dig[it+2]) continue ;
-                        if(dig[it] == dig[it+1]+1 && dig[it] == dig[it+2]+2) continue ;
-                        break ;
-                    }
-                    if(it != ip) continue ;
-                    for(it=ip+2;it<nbd;it+=3) {
-                        if(dig[it] == dig[it+1] && dig[it] == dig[it+2]) continue ;
-                        if(dig[it] == dig[it+1]+1 && dig[it] == dig[it+2]+2) continue ;
-                        break ;
-                    }
-                    if(it==nbd) { isOK =1 ; break ; }
-                 }
-            }
-            if(!isOK) {
-                for(int i=0;i<nbd;i++) printf("%d",dig[i]) ; printf("*%lld\n",tbSortVal[iv]);
-            } else {
-#if defined(DBG_PRINT_1)
-                   for(int it=nbd-3;it>=ip+2;it-=3) if(dig[it]) printf("%d%d%d.",dig[it+2],dig[it+1],dig[it]) ;
-                   printf("%d%d.",dig[ip],dig[ip+1]) ;
-                   for(int it=ip-3;it>=0;it-=3) printf("%d%d%d.",dig[it+2],dig[it+1],dig[it]) ;
-                   printf("\n");
-#endif
-                
-            }
-            
-        }
-        qsort(tbVal2 ,nbV,sizeof(tbVal2[0]),cmpVal2) ;
-        for(int iv=1;iv<nbV;iv++) {
-            if(tbVal2[iv-1].vald==tbVal2[iv].vald) {
-                nbId++ ;
-                if(tbVal2[iv-1].val>tbVal2[iv].val) printf(DBGFMT,tbVal2[iv-1].val,tbVal2[iv].val);
-                else printf(DBGFMT,tbVal2[iv].val,tbVal2[iv-1].val);
-            }
-        }
-#endif
-        
-        //        printf("nt=%d noIP=%lld , withIP=%lld\n",nt,nbNoP[nt],nbWithP[nt]);
-    }
-    int64_t *nbNoP = calloc(ntMax+1,sizeof(nbNoP[0])) ;
-    int64_t *nbWithP = calloc(ntMax+1,sizeof(nbWithP[0])) ;
-    
-    
-    
-    
-    int64_t *nbN_NoP = calloc((maxI+1)*(ntMax+1),sizeof(nbN_NoP[0]));
-    int64_t *nbN_WithP = calloc((maxI+1)*(ntMax+1),sizeof(nbN_WithP[0]));
-    
-    int64_t *nbT_NoP1 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_NoP1[0]));
-    int64_t *nbT_WithP1 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_WithP1[0]));
-    int64_t *nbT_NoP2 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_NoP2[0]));
-    int64_t *nbT_WithP2 = calloc((maxI+1)*(ntMax+1),sizeof(nbT_WithP2[0]));
-    int64_t *cur_nbT_NoP = nbT_NoP1 ;
-    int64_t *ant_nbT_NoP = nbT_NoP2 ;
-    int64_t *cur_nbT_WithP = nbT_WithP1 ;
-    int64_t *ant_nbT_WithP = nbT_WithP2 ;
-    int i ;
-    
-    for(i=0;i<=maxI;i++) {
-        int it ;
-        for(it=0;it<=ntMax;it++) {
-            cur_nbT_NoP[INDXITIN(it,i)] = nbConnextNoP[INDXITIN(it,i)] ;
-            cur_nbT_WithP[INDXITIN(it,i)] = nbConnextWithP[INDXITIN(it,i)] ;
-        }
-    }
-    /*
-     {
-     int it ;
-     for(it=0;it<=ntMax;it++) {
-     printf("itC=%d: ",it) ;
-     for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
-     printf("\n\tw: ") ;
-     for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
-     printf("\n");
-     }
-     
-     }
-     */
-    int64_t invI[ntMax+2] ;
-    invI[1] =1 ;
-    for(int ii=2;ii<=ntMax+1;ii++) invI[ii] = modPow(ii,PB696_MOD-2 , PB696_MOD) ;
-    for(int it=0;it<=ntMax;it++) {
-        for(int in=1;in<=maxI;in++) {
-            nbNoP[it] += cur_nbT_NoP[INDXITIN(it,in)] * (n-in+1) ; nbNoP[it] %= PB696_MOD ;
-            nbWithP[it] += cur_nbT_WithP[INDXITIN(it,in)]*(n-in+1) ; nbWithP[it] %= PB696_MOD ;
-            int64_t fact = (n-in)*(int64_t)(n-in-1) ; fact %= PB696_MOD ;
-            nbWithP[it] += cur_nbT_NoP[INDXITIN(it,in)] * fact ; nbWithP[it] %= PB696_MOD ;
-        }
-    }
-    /*
-     printf("Cn=%d :",1) ;
-     for(int it=0;it<=ntMax;it++) printf("%lld ",nbNoP[it]);
-     printf("\n\tw:");
-     for(int it=0;it<=ntMax;it++) printf("%lld ",nbWithP[it]);
-     printf("\n");
-     */
-    int ic ;
-    for(ic=2;ic<=ntMax;ic++) {
-        int64_t *tmp = ant_nbT_NoP ;
-        ant_nbT_NoP = cur_nbT_NoP ;
-        cur_nbT_NoP = tmp ;
-        tmp = ant_nbT_WithP ;
-        ant_nbT_WithP = cur_nbT_WithP ;
-        cur_nbT_WithP = tmp ;
-        int t1,t2 ;
-        int i1,i2 ;
-        for(t1=0;t1<=ntMax;t1++) {
-            int maxi1 = 3*t1+1 ;
-            if(maxi1>maxI) maxi1=maxI ;
-            for(i1=1;i1<=maxi1;i1++) {
-                if(i1*4 < t1*3) continue ;
-                int64_t Sno = 0;
-                int64_t Swith = 0 ;
-                for(t2 = 1 ; t2 <t1;t2++) {
-                    int maxi2 = 3*t2+2 ;
-                    if(maxi2>i1)maxi2=i1 ;
-                    for(i2=1;i2<maxi2;i2++) {
-                        int64_t delta = ant_nbT_NoP[INDXITIN(t2,i2)] * nbConnextNoP[INDXITIN(t1-t2,i1-i2)] ;
-                        if(delta){ Sno += delta ; Sno %= PB696_MOD ;  }
-                        delta = ant_nbT_WithP[INDXITIN(t2,i2)] * nbConnextNoP[INDXITIN(t1-t2,i1-i2)]
-                        + ant_nbT_NoP[INDXITIN(t2,i2)] * nbConnextWithP[INDXITIN(t1-t2,i1-i2)] ;
-                        if(delta)  {  Swith += delta ; Swith %= PB696_MOD ;   }
-                    }
-                }
-                cur_nbT_NoP[INDXITIN(t1,i1)] = Sno ;
-                cur_nbT_WithP[INDXITIN(t1,i1)] = Swith ;
-            }
-        }
-        /*        {
-         printf("**** ic=%d ****\n",ic);
-         int it,i ;
-         for(it=0;it<=ntMax;it++) {
-         printf("it=%d:",it);
-         for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_NoP[i*(ntMax+1)+it]);
-         printf("\n   w ");
-         for(i=0;i<=maxI;i++) printf("%lld ",cur_nbT_WithP[i*(ntMax+1)+it]);
-         printf("\n");
-         }
-         }
-         */
-        for(int it=ic;it<=ntMax;it++) {
-            int in ;
-            for(in=2;in<=maxI;in++) {
-                int64_t fact = n-in+1 ;
-                for (int ij=2;ij<=ic;ij++) {
-                    fact *=  (n-in+2-ij) ; fact %= PB696_MOD ;
-                    fact *= invI[ij] ; fact %= PB696_MOD ;
-                }
-                nbNoP[it] += cur_nbT_NoP[INDXITIN(it,in)] * fact ; nbNoP[it] %= PB696_MOD ;
-                nbWithP[it] += cur_nbT_WithP[INDXITIN(it,in)] * fact ; nbWithP[it] %= PB696_MOD ;
-                fact *= (n-in+1-ic) ; fact %= PB696_MOD ;
-                nbWithP[it] += cur_nbT_NoP[INDXITIN(it,in-1)] * fact ; nbWithP[it] %= PB696_MOD ;
-            }
-        }
-    }
-    
-    free(nbN_NoP) ; nbN_NoP= NULL ;
-    free(nbN_WithP) ; nbN_WithP= NULL ;
-    free(cur_nbT_NoP); cur_nbT_NoP = NULL ;
-    free(ant_nbT_NoP); ant_nbT_NoP = NULL ;
-    free(cur_nbT_WithP); cur_nbT_WithP = NULL ;
-    free(ant_nbT_WithP); ant_nbT_WithP = NULL ;
-    
-    
-    nbNoP[0] = 1 ;
-    printf("Cn=%d :",ntMax) ;
-    for(int it=0;it<=ntMax;it++) printf("%lld ",nbNoP[it]);
-    printf("\n\tw:");
-    for(int it=0;it<=ntMax;it++) printf("%lld ",nbWithP[it]);
-    printf("\n");
-    
-    printf(" End phase 1 %.6fs\n", (float)(clock()-pbR->nbClock) / CLOCKS_PER_SEC);
-    int64_t Sum = 0 ;
-/*
-    int64_t CnbNoP[ntMax+1] ;
-    int64_t CnbWithP[ntMax+1] ;
-    for(nt=0;nt<=ntMax;nt++) {
-        CnbNoP[nt] = nbNoP[nt] ;
-        CnbWithP[nt] = nbWithP[nt] ;
-    }
-*/
-    int64_t invFactorial[ntMax+2] ;
-    int64_t arrangement[ntMax+2] ;
-    int64_t *nbNoP_Mult = malloc(ntMax*(ntMax+1)*sizeof(nbNoP_Mult[0]));
-    
-    {
-        int64_t fact = 1 ;
-        int64_t factA = 1 ;
-        invFactorial[0] = invFactorial[1] = fact ;
-        arrangement[0] = factA ;
-        factA = ns ;
-        arrangement[1] = factA ;
-        int64_t n ;
-        for(n=2;n<=ntMax+1;n++) {
-            fact *= invI[n] ; fact %= PB696_MOD ;
-            invFactorial[n] = fact ;
-            factA *= ns -n +1 ; factA %= PB696_MOD ;
-            arrangement[n] = factA ;
-        }
-        for(int it=1;it<=ntMax;it++) {
-            fact = 1 ;
-            nbNoP_Mult[(it-1)*(ntMax+1)] = fact ;
-            int ie , iemax = ntMax / it ;
-            for(ie=1;ie<=iemax;ie++) {
-                fact *= nbNoP[it] ; fact %= PB696_MOD ; fact *= invI[ie] ; fact %= PB696_MOD ;
-                nbNoP_Mult[(it-1)*(ntMax+1)+ie] = fact ;
-            }
-        }
-    }
-    
-    {
-        int exps ;
-        for(exps=0; (1<<exps) <= ns ;exps++) ;
-        
-        int64_t *nbNoP_exps = malloc(exps*(ntMax+1)*sizeof(nbNoP_exps[0]));
-        int64_t *nbWithP_exps = malloc(exps*(ntMax+1)*sizeof(nbWithP_exps[0]));
-        for(int it=0;it<=ntMax;it++) {
-            nbNoP_exps[it] = nbNoP[it];
-            nbWithP_exps[it] = nbWithP[it];
-        }
-        for(int is=1;is<exps;is++) {
-            for(int t1=0;t1<=ntMax;t1++) {
-                int64_t S = 0 , SP = 0 ;
-                for(int t2=0;t2<=t1;t2++) {
-                    int64_t delta = nbNoP_exps[(is-1)*(ntMax+1)+t2] * nbNoP_exps[(is-1)*(ntMax+1)+t1-t2] ;
-                    delta %= PB696_MOD ;
-                    S += delta ; S %= PB696_MOD ;
-                    delta = nbWithP_exps[(is-1)*(ntMax+1)+t2] * nbNoP_exps[(is-1)*(ntMax+1)+t1-t2]
-                    + nbNoP_exps[(is-1)*(ntMax+1)+t2] * nbWithP_exps[(is-1)*(ntMax+1)+t1-t2]  ;
-                    SP += delta ; SP %= PB696_MOD ;
-                }
-                nbNoP_exps[is*(ntMax+1)+t1] = S ;
-                nbWithP_exps[is*(ntMax+1)+t1] = SP ;
-            }
-        }
-        int is,nis = 0 ;
-        for(is=0;is<exps;is++) {
-            if((1<<is) & ns) nis++ ;
-        }
-        int64_t *nbNoP_nis = malloc(nis*(ntMax+1)*sizeof(nbNoP_nis[0]));
-        int64_t *nbWithP_nis = malloc(nis*(ntMax+1)*sizeof(nbWithP_nis[0]));
-        for(is=0;is<exps;is++) {
-            if((1<<is) & ns) break ;
-        }
-        memcpy(nbNoP_nis,nbNoP_exps+is*(ntMax+1),(ntMax+1)*sizeof(nbNoP_exps[0]));
-        memcpy(nbWithP_nis,nbWithP_exps+is*(ntMax+1),(ntMax+1)*sizeof(nbWithP_exps[0]));
-        for(nis=0,++is;is<exps;is++) {
-            if((1<<is) & ns) {
-                for(int t1=0;t1<=ntMax;t1++) {
-                    int64_t S = 0 , SP = 0 ;
-                    for(int t2=0;t2<=t1;t2++) {
-                        int64_t delta = nbNoP_nis[nis*(ntMax+1)+t2] * nbNoP_exps[is*(ntMax+1)+t1-t2] ;
-                        delta %= PB696_MOD ;
-                        S += delta ; S %= PB696_MOD ;
-                        delta = nbWithP_nis[nis*(ntMax+1)+t2] * nbNoP_exps[is*(ntMax+1)+t1-t2]
-                        + nbNoP_nis[nis*(ntMax+1)+t2] * nbWithP_exps[is*(ntMax+1)+t1-t2]  ;
-                        SP += delta ; SP %= PB696_MOD ;
-                    }
-                    nbNoP_nis[(nis+1)*(ntMax+1)+t1] = S ;
-                    nbWithP_nis[(nis+1)*(ntMax+1)+t1] = SP ;
-                }
-                nis++ ;
-            }
-        }
-        Sum =nbWithP_nis[nis*(ntMax+1)+ntMax];
-        printf("%.6fs nt=%d ns=%d n=%d SP=%lld \n",(float)(clock()-pbR->nbClock) / CLOCKS_PER_SEC,ntMax,ns,n,nbWithP_nis[nis*(ntMax+1)+ntMax]);
-    }
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%lld",Sum);
-    free(tb1) ; free(tb2) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
-}
-
 
 
 
@@ -3253,667 +2625,443 @@ int PB697a(PB_RESULT *pbR) {
     return 1 ;
 }
 
-#define PB701_L 4
+#define PB701_L 7
+#define PB701_H 7
+#define PB701_MAXCONNECT    5
 
-typedef union Contact {
-    uint32_t   Glob ;
-    uint8_t    Set[4] ;
-} Contact ;
 
-typedef struct PB701_PART {
+
+
+typedef struct PB701_PP {
     int num ;
     int globalContact ;
     int nbSet ;
-    Contact Cntc ;
-    uint8_t sizeC[4] ;
-}PB701_PART ;
+    uint16_t   Set[PB701_MAXCONNECT]  ;
+} PB701_PP ;
 
 typedef struct PB701_CONN {
     int globalContact ;
     int nbSet ;
-    Contact Cntc ;
-    uint8_t sizeC[4] ;
+    uint16_t Set[PB701_MAXCONNECT]  ;
+    uint8_t sizeC[PB701_MAXCONNECT] ;
 }PB701_CONN ;
 
 typedef struct PB701_TRANSF {
     int     numPP ;
-    uint8_t numCv[4] ;
-    uint8_t delta[4] ;
+    uint8_t numCv[PB701_MAXCONNECT] ;
+    uint8_t delta[PB701_MAXCONNECT] ;
 } PB701_TRANSF ;
 
 typedef struct PB701_INTER {
     uint8_t surfIncrement ;
-    uint8_t newContact ;
+    uint16_t newContact ;
 } PB701_INTER ;
 
 
-typedef struct PB701_COH {
-    int numPP ;
-    uint8_t Surf[5] ;
-    double prob ;
-    
-} PB701_COH ;
+#define PB701_BIG
+#if defined(PB701_BIG)
+typedef __int128 Prob701 ;
+#else
+typedef uint64_t Prob701 ;
+#endif
+
+typedef struct PB701_STATE {
+    uint16_t numPP ;    // PP corresponding
+    NsumVal  Surf[PB701_MAXCONNECT+1] ; // surface for each set (including hidden set)
+    Prob701  prob ;     // weight of the state
+} PB701_STATE ;
 
 
-int SurfMax1(int nr, int nc, uint64_t S) {
-    int b[25] ;
-    int nb = 1;
-    int histo[26] ;
-    int in = 0 ;
-    int corresp[26] ;
-    corresp[0] = 0 ;
-    for(int ic=0;ic<nc;ic++) {
-        for(int ir=0;ir<nr;ir++) {
-            b[in] = ( S >> (in) ) & 1 ;
-            if(b[in]) {
-                if(ic>0 && b[in-nr]) {
-                    b[in] = b[in-nr] ; histo[b[in]]++ ;
-                } else if(ir>0 && b[in-1]) {
-                     b[in] = b[in-1] ; histo[b[in]]++ ;
-                } else {
-                    b[in] = nb ; histo[nb++] = 1 ;
-                }
-            }
-            in++ ; // in = ic*nr+ir
-       }
-    }
-    if(nb>25) printf("!!!!!!!!");
-    for(int i=1;i<nb;i++) corresp[i] =i ;
-    
-    int isChange = 0 ;
-    do {
-        isChange = 0 ;
-        in = 0 ;
-        for(int ic=0;ic<nc;ic++) {
-            for(int ir=0;ir<nr;ir++) {
-                if(b[in]) {
-                    if(ic>0 && b[in-nr]) {
-                        if(corresp[b[in]] < corresp[b[in-nr]]) {
-                            corresp[b[in-nr]] = corresp[b[in]] ;
-                            b[in-nr] = b[in] ; isChange= 1 ;
-                        } else if(corresp[b[in]] > corresp[b[in-nr]]) {
-                            corresp[b[in]] = corresp[b[in-nr]] ;
-                            b[in] = b[in-nr] ; isChange= 1 ;
-                        }
-                    }
-                    if(ir>0 && b[in-1]) {
-                         if(corresp[b[in]] < corresp[b[in-1]]) {
-                             corresp[b[in-1]] = corresp[b[in]] ;
-                             b[in-1] = b[in] ; isChange= 1 ;
-                         } else if(corresp[b[in]] > corresp[b[in-1]]) {
-                             corresp[b[in]] = corresp[b[in-1]] ;
-                             b[in] = b[in-1] ; isChange= 1 ;
-                       }
-                    }
-                }
-                in++ ; // in = ic*nr+ir
-            }
-        }
-    } while(isChange );
-    int imax = 0 ;
-    for(int i=nb-1;i>0;i--) {
-        if(corresp[i] != i) {
-            histo[corresp[i]] += histo[i] ;
-             histo[i] = 0 ;
-            if(histo[corresp[i]] > imax) imax = histo[corresp[i]]  ;
-        } else {
-            if(histo[i] > imax) imax = histo[i] ;
-        }
-    }
-    return imax ;
-}
 
 
-int CmpCoh(const void *el1,const void *el2) {
-    const PB701_COH * coh1 = (PB701_COH *) el1 ;
-    const PB701_COH * coh2 = (PB701_COH *) el2 ;
-    int diff = coh1->numPP - coh2->numPP ;
-    if(diff) return diff ;
-    for(int i=0;i<4;i++) {
-        diff = coh1->Surf[i] - coh2->Surf[i] ;
-        if(diff) return diff ;
-    }
-    diff = coh1->Surf[4] - coh2->Surf[4] ;
-    return diff ;
-}
 
-int PB701(PB_RESULT *pbR) {
-    pbR->nbClock = clock() ;
-    int dim = 1 << PB701_L ;
-    int FirstPPByFrontier[dim+1] ;
-    int LastCohByLevel[PB701_L] ;
-    PB701_PART *PP = malloc(1000*sizeof(PP[0])) ;
-    PB701_CONN PC[dim] ;
-    int nbPP = 0 ;
-     int nxtPSFree = 0 ;
-    PB701_COH *coh= malloc(100000000*sizeof(coh[0])) ;
-    int nbCoh = 0;
-    int nbBit[128] ;
-    PB701_INTER interSec[dim*dim] ;
-    double dimM1 = 1.0/dim ;
-    for(int i=0;i<dim;i++) {
+typedef struct PB701_DATA {
+    int nbCol ;   // number of differents column ( 1<<sizeColumn)
+    int nbPP ;  //  number of column partitions in connected parts
+    int *isSymetric  ; // 0 <=> mask symetric, +1 im > sym(im) , -1 im < sym(im)
+    PB701_PP *PP  ; // description for each column partition in connected masks
+    int *firstPPByMask ; // index of first PP by column.
+    PB701_TRANSF *PT ; // description of transformation to add a column to a partition
+} PB701_DATA ;
+
+void PB701_Init(PB701_DATA *data701, int sizeColumn) {
+    data701->nbCol = 1 << sizeColumn ;
+    int *nbBit ;
+    nbBit = malloc(data701->nbCol*sizeof(nbBit[0]));
+    // compute nb bits by mask
+    for(int ic=0;ic<data701->nbCol;ic++) {
         int nb = 0 ;
-        for(int j=0;j<PB701_L;j++) {
-            if(i & (1 << j)) nb++ ;
+        for(int j=0;j < sizeColumn ;j++) {
+            if(ic & (1 << j)) nb++ ;
         }
-        nbBit[i] = nb ;
+        nbBit[ic] = nb ;
     }
-    
-    for(int ic=0;ic<dim;ic++) {
-        for(int j=0;j<dim;j++) {
-            int k = ic & j ;
-            if(k==0) {
-                interSec[ic*dim+j].newContact = 0 ;
-                interSec[ic*dim+j].surfIncrement = 0 ;
+    // compute symetry of mask
+    data701->isSymetric = malloc(data701->nbCol*sizeof(data701->isSymetric[0]));
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        int iSym =0 ;
+        for(int ib=0;ib<sizeColumn;ib++) {
+            iSym |= ((ic >> ib) & 1) << (sizeColumn -ib -1) ;
+        }
+        if(iSym == ic) data701->isSymetric[ic] = 0 ;
+        else if(ic > iSym) data701->isSymetric[ic] = 1;
+        else data701->isSymetric[ic] = -1;
+    }
+    // compute intersection of 2 mask ,extended to connected parts for each mask.
+    PB701_INTER *interSec ; // intersection of 2 masks extended to connexion parts
+    interSec=malloc(data701->nbCol*data701->nbCol*sizeof(interSec[0]));
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        for(int jc=0;jc<data701->nbCol;jc++) {
+            int km = ic & jc ;
+            if(km==0) {
+                interSec[ic*data701->nbCol+jc].newContact = 0 ;
+                interSec[ic*data701->nbCol+jc].surfIncrement = 0 ;
                 continue ;
             }
-            int n = 0 ;
-            for(int m=0;m<PB701_L;m++) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
+            // extension to connected parts
+            for(int m=0;m<sizeColumn;m++) {
+                if(m>0  && ( (1<<(m-1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
+                if(m<sizeColumn-1  && ( (1<<(m+1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
             }
-            for(int m=PB701_L-1;m>=0;m--) {
-                if(m>0  && ( (1<<(m-1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if(m<PB701_L-1  && ( (1<<(m+1)) & k ) && ( (1<<m)& j) ) k |= 1 << m ;
-                if((1 <<m) & k)  n++  ;
+            for(int m=sizeColumn-1;m>=0;m--) {
+                if(m>0  && ( (1<<(m-1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
+                if(m<sizeColumn-1  && ( (1<<(m+1)) & km ) && ( (1<<m)& jc) ) km |= 1 << m ;
             }
-            
-            interSec[ic*dim+j].surfIncrement = n ;
-            interSec[ic*dim+j].newContact = (uint8_t) k ;
- //           printf("I(%x,%x)=%d(%x) ",ic,j,n,k) ;
+            interSec[ic*data701->nbCol+jc].surfIncrement = nbBit[km] ;
+            interSec[ic*data701->nbCol+jc].newContact = (uint16_t) km ;
         }
     }
-
-    FirstPPByFrontier[0] = 0 ;
-    PP[nbPP].num  = nbPP ;
-    PP[nbPP].globalContact = 0;
-    PP[nbPP].nbSet = 0 ;
-    PP[nbPP].Cntc.Glob = 0 ;
-    nbPP++ ;
-    for(int i=1;i<dim;i++) {
-        FirstPPByFrontier[i] = nbPP ;
-        PB701_PART *curPP = PP + nbPP ;
-        Contact  contact ;
-        contact.Glob = 0 ;
+    // compute connected partition for each column
+    PB701_CONN *PC = malloc(data701->nbCol*sizeof(PC[0])) ;
+    int nbPPexp = 0 ;
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        uint16_t Set[PB701_MAXCONNECT]  ;
+        memset(Set,0,sizeof(Set));
         int nbConnect = 0 ;
-        int n = i & 1 ;
-        for(int j=1;j<=PB701_L;j++) {
-            if(i & (1 << j)) {
+        int n = ic & 1 ;
+        for(int j=1;j<=sizeColumn;j++) {
+            if(ic & (1 << j)) {
                 n++ ;
             } else {
                 if(n) {
-                    contact.Set[nbConnect] = (uint8_t)((1 << j) - (1<<(j-n))) ;
+                    Set[nbConnect] = (uint16_t)((1 << j) - (1<<(j-n))) ;
                     nbConnect++ ;
+                    n=0 ;
                 }
-                n = 0 ;
             }
         }
-        PC[i].globalContact = i ;
-        PC[i].nbSet = nbConnect ;
-        PC[i].Cntc = contact ;
-        int is , isbs ;
+        assert(nbConnect <= sizeColumn);
+        int ppByConnected[PB701_MAXCONNECT+1] = { 1,1,2,5,14,42} ;
+        nbPPexp += ppByConnected[nbConnect] ;
+        PC[ic].globalContact = ic ;
+        PC[ic].nbSet = nbConnect ;
+        memcpy(PC[ic].Set,Set,sizeof(Set)) ;
+    }
+    data701->PP = malloc(nbPPexp*sizeof(data701->PP[0]));
+    data701->firstPPByMask = malloc((data701->nbCol+1)*sizeof(data701->firstPPByMask[0])) ;
+    // compute different partitions of column in connected parts
+    // dont add impossible configurations as aaabbbaabbb (entrelacement not planar)
+    data701->nbPP = 0 ;
+    data701->firstPPByMask[0] = data701->nbPP ;
+    for(int ic=0;ic<data701->nbCol;ic++) {
+        PB701_PP *curPP = data701->PP + data701->nbPP ;
+        uint16_t Set[PB701_MAXCONNECT]  ;
+        memcpy(Set,PC[ic].Set,sizeof(Set)) ;
+        int nbConnect = PC[ic].nbSet ;
+#define INIT_PART(n)   curPP = data701->PP + data701->nbPP ; curPP->num = data701->nbPP++ ;  curPP->globalContact = ic ; memset(curPP->Set,0,sizeof(curPP->Set)) ; curPP->nbSet = (n)
         
+#define DST(i)  curPP->Set[i]
+#define SRC(i)  Set[i]
+        
+#define PART_A(i0)         INIT_PART(1) ; DST(0)=SRC(i0)
+        
+#define PART_AB(i0,i1)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)
+#define PART_A_B(i0,i1)    INIT_PART(2) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1)
+        
+#define PART_ABC(i0,i1,i2)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)
+#define PART_AB_C(i0,i1,i2)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)
+#define PART_A_B_C(i0,i1,i2)   INIT_PART(3) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2)
+        
+#define PART_ABCD(i0,i1,i2,i3)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3)
+#define PART_AB_CD(i0,i1,i2,i3)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)|SRC(i3)
+#define PART_ABC_D(i0,i1,i2,i3)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3)
+#define PART_AB_C_D(i0,i1,i2,i3)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2) ; DST(2)=SRC(i3)
+#define PART_A_B_C_D(i0,i1,i2,i3)  INIT_PART(4) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2) ; DST(3)=SRC(i3)
+        
+#define PART_ABCDE(i0,i1,i2,i3,i4)     INIT_PART(1) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3)|SRC(i4)
+#define PART_ABCD_E(i0,i1,i2,i3,i4)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2)|SRC(i3) ; DST(1) = SRC(i4)
+#define PART_ABC_DE(i0,i1,i2,i3,i4)    INIT_PART(2) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3)|SRC(i4)
+#define PART_ABC_D_E(i0,i1,i2,i3,i4)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1)|SRC(i2) ; DST(1)=SRC(i3) ; DST(2)=SRC(i4)
+#define PART_AB_CD_E(i0,i1,i2,i3,i4)   INIT_PART(3) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2)|SRC(i3) ; DST(2)=SRC(i4)
+#define PART_AB_C_D_E(i0,i1,i2,i3,i4)  INIT_PART(4) ; DST(0)=SRC(i0)|SRC(i1) ; DST(1)=SRC(i2) ; DST(2)=SRC(i3) ; DST(3)=SRC(i4)
+#define PART_A_B_C_D_E(i0,i1,i2,i3,i4) INIT_PART(5) ; DST(0)=SRC(i0) ; DST(1)=SRC(i1) ; DST(2)=SRC(i2) ; DST(3)=SRC(i3) ; DST(4)=SRC(i4)
         switch(nbConnect) {
+            case 0 :
+                INIT_PART(0) ;
+                break ;
             case 1 :
-                curPP->globalContact = i ;
-                curPP->nbSet = 1;
-                PP[nbPP].Cntc.Glob = 0 ;
- 
-                curPP->Cntc.Set[0] = contact.Set[0] ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->num = nbPP++ ;
+                PART_A(0) ;
                 break ;
             case 2:
-                curPP->globalContact = i ;
-                curPP->nbSet = 1;
-                PP[nbPP].Cntc.Glob = 0 ;
-
-                curPP->Cntc.Set[0] = contact.Set[0] | contact.Set[1] ;
-                curPP->sizeC[0] = nbBit[contact.Set[0] | contact.Set[1]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->Cntc.Set[1] = contact.Set[1]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[1]] ;
-                curPP->num = nbPP++ ;
+                PART_AB(0,1) ;PART_A_B(0,1);
                 break ;
             case 3:
-                curPP->globalContact = i ;
-                curPP->nbSet = 1;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0] | contact.Set[1] | contact.Set[2];
-                curPP->sizeC[0] = nbBit[contact.Set[0] | contact.Set[1]| contact.Set[2]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0] ;
-                curPP->sizeC[0] = nbBit[contact.Set[0] ] ;
-                curPP->Cntc.Set[1] =  contact.Set[1] | contact.Set[2];
-                curPP->sizeC[1] = nbBit[ contact.Set[1]| contact.Set[2]] ;
-                curPP->num = nbPP++ ;
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[1] ;
-                curPP->sizeC[0] = nbBit[contact.Set[1] ] ;
-                curPP->Cntc.Set[1] =  contact.Set[0] | contact.Set[2];
-                curPP->sizeC[1] = nbBit[ contact.Set[0]| contact.Set[2]] ;
-                curPP->num = nbPP++ ;
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                 curPP->Cntc.Set[0] =  contact.Set[0] | contact.Set[1];
-                curPP->sizeC[0] = nbBit[ contact.Set[0]| contact.Set[1]] ;
-                curPP->Cntc.Set[1] = contact.Set[2] ;
-                curPP->sizeC[1] = nbBit[contact.Set[2] ] ;
-                 curPP->num = nbPP++ ;
-
- 
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0] ;
-                curPP->sizeC[0] = nbBit[contact.Set[0] ] ;
-                curPP->Cntc.Set[1] = contact.Set[1] ;
-                curPP->sizeC[1] = nbBit[contact.Set[1] ] ;
-                curPP->Cntc.Set[2] = contact.Set[2] ;
-                curPP->sizeC[2] = nbBit[contact.Set[2] ] ;
-                curPP->num = nbPP++ ;
+                PART_ABC(0,1,2);
+                PART_AB_C(0,1,2) ; PART_AB_C(0,2,1) ; PART_AB_C(1,2,0) ;
+                PART_A_B_C(0,1,2);
                 break ;
-
             case 4:
-                curPP->globalContact = i ;
-                curPP->nbSet = 1;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0] | contact.Set[1] | contact.Set[2] | contact.Set[3];
-                curPP->sizeC[0] = nbBit[contact.Set[0] | contact.Set[1]| contact.Set[2]| contact.Set[3]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0] ;
-                curPP->sizeC[0] = nbBit[contact.Set[0] ] ;
-                curPP->Cntc.Set[1] =  contact.Set[1] | contact.Set[2]| contact.Set[3];
-                curPP->sizeC[1] = nbBit[ contact.Set[1]| contact.Set[2]| contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[1] ;
-                curPP->sizeC[0] = nbBit[contact.Set[1] ] ;
-                curPP->Cntc.Set[1] =  contact.Set[0] | contact.Set[2]| contact.Set[3];
-                curPP->sizeC[1] = nbBit[ contact.Set[0]| contact.Set[2]| contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[2] ;
-                curPP->sizeC[0] = nbBit[contact.Set[2] ] ;
-                curPP->Cntc.Set[1] =  contact.Set[0] | contact.Set[1]| contact.Set[3];
-                curPP->sizeC[1] = nbBit[ contact.Set[0]| contact.Set[1]| contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] =  contact.Set[0] | contact.Set[1]| contact.Set[2];
-                curPP->sizeC[0] = nbBit[ contact.Set[0]| contact.Set[1]| contact.Set[2] ] ;
-                curPP->Cntc.Set[1] = contact.Set[3] ;
-                curPP->sizeC[1] = nbBit[contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-                
-
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] =  contact.Set[0] | contact.Set[1];
-                curPP->sizeC[0] = nbBit[ contact.Set[0]| contact.Set[1] ] ;
-                curPP->Cntc.Set[1] = contact.Set[2] |  contact.Set[3] ;
-                curPP->sizeC[1] = nbBit[contact.Set[2] | contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 2;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] =  contact.Set[1] | contact.Set[2];
-                curPP->sizeC[0] = nbBit[ contact.Set[1]| contact.Set[2] ] ;
-                curPP->Cntc.Set[1] = contact.Set[0] |  contact.Set[3] ;
-                curPP->sizeC[1] = nbBit[contact.Set[0] | contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-  
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] =  contact.Set[0] | contact.Set[1];
-                curPP->sizeC[0] = nbBit[ contact.Set[0]| contact.Set[1] ] ;
-                curPP->Cntc.Set[1] = contact.Set[2]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[2]] ;
-                curPP->Cntc.Set[2] = contact.Set[3]  ;
-                curPP->sizeC[2] = nbBit[contact.Set[3]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[1]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[1]] ;
-                curPP->Cntc.Set[1] =  contact.Set[0] | contact.Set[2];
-                curPP->sizeC[1] = nbBit[ contact.Set[0]| contact.Set[2] ] ;
-                curPP->Cntc.Set[2] = contact.Set[3]  ;
-                curPP->sizeC[2] = nbBit[contact.Set[3]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[1]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[1]] ;
-                 curPP->Cntc.Set[1] = contact.Set[2]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[2]] ;
-                curPP->Cntc.Set[2] =  contact.Set[0] | contact.Set[3];
-                curPP->sizeC[2] = nbBit[ contact.Set[0]| contact.Set[3] ] ;
-               curPP->num = nbPP++ ;
- 
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->Cntc.Set[1] =  contact.Set[1] | contact.Set[2];
-                curPP->sizeC[1] = nbBit[ contact.Set[1]| contact.Set[2] ] ;
-                curPP->Cntc.Set[2] = contact.Set[3]  ;
-                curPP->sizeC[2] = nbBit[contact.Set[3]] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->Cntc.Set[1] = contact.Set[2]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[2]] ;
-                curPP->Cntc.Set[2] =  contact.Set[1] | contact.Set[3];
-                curPP->sizeC[2] = nbBit[ contact.Set[1]| contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-  
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 3;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->Cntc.Set[1] = contact.Set[1]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[1]] ;
-                curPP->Cntc.Set[2] =  contact.Set[2] | contact.Set[3];
-                curPP->sizeC[2] = nbBit[ contact.Set[2]| contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-                
-                curPP++ ;
-                curPP->globalContact = i ;
-                curPP->nbSet = 4;
-                PP[nbPP].Cntc.Glob = 0 ;
-                curPP->Cntc.Set[0] = contact.Set[0]  ;
-                curPP->sizeC[0] = nbBit[contact.Set[0]] ;
-                curPP->Cntc.Set[1] = contact.Set[1]  ;
-                curPP->sizeC[1] = nbBit[contact.Set[1]] ;
-                curPP->Cntc.Set[2] =  contact.Set[2] ;
-                curPP->sizeC[2] = nbBit[ contact.Set[2] ] ;
-                curPP->Cntc.Set[3] =  contact.Set[3] ;
-                curPP->sizeC[3] = nbBit[ contact.Set[3] ] ;
-                curPP->num = nbPP++ ;
-                
-                
+                PART_ABCD(0,1,2,3);
+                PART_ABC_D(0,1,2,3)  ; PART_ABC_D(0,1,3,2) ;PART_ABC_D(0,2,3,1) ;PART_ABC_D(1,2,3,0) ;
+                PART_AB_CD(0,1,2,3)  ; PART_AB_CD(0,3,1,2) ;
+                PART_AB_C_D(0,1,2,3) ; PART_AB_C_D(0,2,1,3);PART_AB_C_D(0,3,1,2);PART_AB_C_D(1,2,0,3);PART_AB_C_D(1,3,0,2);PART_AB_C_D(2,3,0,1) ;
+                PART_A_B_C_D(0,1,2,3);
+                break ;
+            case 5:
+                PART_ABCDE(0,1,2,3,4);
+                PART_ABCD_E(0,1,2,3,4)  ;PART_ABCD_E(0,1,2,4,3)  ;PART_ABCD_E(0,1,3,4,2)  ;PART_ABCD_E(0,2,3,4,1)  ;PART_ABCD_E(1,2,3,4,0) ;
+                PART_ABC_DE(0,1,2,3,4)  ;PART_ABC_DE(0,1,4,2,3)  ;PART_ABC_DE(0,3,4,1,2)  ;PART_ABC_DE(2,3,4,0,1)  ;PART_ABC_DE(1,2,3,0,4) ;
+                PART_ABC_D_E(0,1,2,3,4) ;PART_ABC_D_E(0,1,3,2,4) ;PART_ABC_D_E(0,2,3,1,4) ;PART_ABC_D_E(1,2,3,0,4) ;PART_ABC_D_E(0,1,4,2,3);
+                PART_ABC_D_E(0,2,4,1,3) ;PART_ABC_D_E(1,2,4,0,3) ;PART_ABC_D_E(0,3,4,1,2) ;PART_ABC_D_E(1,3,4,0,2) ;PART_ABC_D_E(2,3,4,0,1);
+                PART_AB_CD_E(0,1,2,3,4) ;PART_AB_CD_E(0,3,1,2,4) ;PART_AB_CD_E(0,1,2,4,3) ;PART_AB_CD_E(0,4,1,2,3) ;PART_AB_CD_E(0,1,3,4,2);
+                PART_AB_CD_E(0,4,1,3,2) ;PART_AB_CD_E(0,2,3,4,1) ;PART_AB_CD_E(0,4,2,3,1) ;PART_AB_CD_E(1,2,3,4,0) ;PART_AB_CD_E(1,4,2,3,0);
+                PART_AB_C_D_E(0,1,2,3,4);PART_AB_C_D_E(0,2,1,3,4);PART_AB_C_D_E(0,3,1,2,4);PART_AB_C_D_E(0,4,1,2,3);PART_AB_C_D_E(1,2,0,3,4);
+                PART_AB_C_D_E(1,3,0,2,4);PART_AB_C_D_E(1,4,0,2,3);PART_AB_C_D_E(2,3,0,1,4);PART_AB_C_D_E(2,4,0,1,3);PART_AB_C_D_E(3,4,0,1,2) ;
+                PART_A_B_C_D_E(0,1,2,3,4);
                 break ;
         }
+        // sort each partition set for future comparison between partitions
+        data701->firstPPByMask[ic+1] = data701->nbPP ;
+        for(int ip = data701->firstPPByMask[ic];ip<data701->firstPPByMask[ic+1];ip++ ) {
+            int nbs = data701->PP[ip].nbSet ;
+            for(int is = 1;is<nbs;is++) {
+                for(int js=is;js<nbs;js++) {
+                    if(data701->PP[ip].Set[is-1] > data701->PP[ip].Set[js]) {
+                        uint16_t tmp = data701->PP[ip].Set[is-1] ;
+                        data701->PP[ip].Set[is-1] = data701->PP[ip].Set[js] ;
+                        data701->PP[ip].Set[js] = tmp ;
+                    }
+                }
+            }
+        }
+        data701->firstPPByMask[ic+1] = data701->nbPP ;
     }
-    FirstPPByFrontier[dim] = nbPP ;
-    PB701_TRANSF *PT = calloc(nbPP*dim,sizeof(PT[0]));
-    for(int j=0;j<dim;j++) {
-        for(int ip=0;ip<nbPP;ip++) {
+    // compute for each partition every transformation to add a new column
+    data701->PT = calloc(data701->nbPP*data701->nbCol,sizeof(data701->PT[0]));
+    for(int ip=0;ip<data701->nbPP;ip++) { // loop on partition
+        for(int jc=0;jc<data701->nbCol;jc++) { // lopp on supplementary partition
             int nbSet = 0 ;
-            Contact  contact ;
-            contact.Glob = 0 ;
+            uint16_t Set[PB701_MAXCONNECT]  ;
+            memset(Set,0,sizeof(Set));
             int globalContact = 0 ;
-            printf("%x X n%2.2d %x=> ",j,PP[ip].num, PP[ip].globalContact) ;
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                uint8_t newContact = interSec[PP[ip].Cntc.Set[is]*dim+j].newContact ;
-                globalContact |= newContact ;
-  //              printf("(%x->%x,%x)",PP[ip].Cntc.Set[is],newContact,globalContact);
+            for(int is=0;is<data701->PP[ip].nbSet;is++) {
+                // for each connected part search the new set of connected parts in new column
+                // remove all intersecting precedent sets and add the new set.
+                // respect ascending order in sets for future comparison
+                uint16_t newContact = interSec[data701->PP[ip].Set[is]*data701->nbCol+jc].newContact ;
                 if(newContact){
-                    int j ;
-                    for(j=0;j<nbSet;j++) {
-                        if((newContact & contact.Set[j]) ==contact.Set[j]) {contact.Set[j] = newContact ; break ; }
-                        if((newContact & contact.Set[j]) ==newContact) break ;
-
-                    }
-                    if(j==nbSet){
-                        int l ;
-                        for(l=nbSet-1;l>=0 && contact.Set[l] > newContact  ;l--) {
-                            contact.Set[l+1] = contact.Set[l] ;
+                    int jj ;
+                    for(jj=0;jj<nbSet;jj++) { // remove intersecting sets
+                        if((newContact & Set[jj])) {
+                            newContact = interSec[(newContact | Set[jj]) * data701->nbCol+jc].newContact ;
+                            int l ;
+                            for(l=jj+1;l<nbSet ;l++) {
+                                Set[l-1] = Set[l] ;
+                            }
+                            nbSet--; jj-- ;
+                            Set[nbSet] = 0 ;
                         }
-                        contact.Set[l+1] = newContact ;
+                    }
+                    int l ; // add new set in good place
+                    for(l=nbSet-1;l>=0 && Set[l] > newContact  ;l--) {
+                        Set[l+1] = Set[l] ;
+                    }
+                    Set[l+1] = newContact ;
+                    nbSet++ ;
+                }
+                globalContact |= newContact ;
+            }
+            if(globalContact != jc) { // add missing connected parts of new column
+                globalContact ^= jc ;
+                for(int k=0;k<PC[jc].nbSet;k++) {
+                    if((PC[jc].Set[k] & globalContact) == PC[jc].Set[k] ){
+                        int l ;
+                        for(l=nbSet-1;l>=0 && Set[l] > PC[jc].Set[k]   ;l--) {
+                            Set[l+1] = Set[l] ;
+                        }
+                        Set[l+1] = PC[jc].Set[k] ;
                         nbSet++ ;
- //                     printf("#+%x ",newContact);
-                        
                     }
                 }
-//                printf("%x->%x(+%d) ",PP[ip].setContact[is],interSec[PP[ip].setContact[is]*dim+j].newContact,interSec[PP[ip].setContact[is]*dim+j].surfIncrement);
             }
-            if(globalContact != j) {
-                globalContact ^= j ;
-                for(int k=0;k<PC[j].nbSet;k++) {
-                    if((PC[j].Cntc.Set[k] & globalContact) == PC[j].Cntc.Set[k] ){
-                        
-                        int l ;
-                        for(l=nbSet-1;l>=0 && contact.Set[l] > PC[j].Cntc.Set[k]   ;l--) {
-                            contact.Set[l+1] = contact.Set[l] ;
-                        }
-                        contact.Set[l+1] = PC[j].Cntc.Set[k] ;
- //                       printf("+[%d]%x ",l+1,PC[j].setContact[k] );
-                        nbSet++ ;
-                        
-                    }
-                }
-                
+            int in ; // find the resulting PP (if missing BIB BUG !!)
+            for(in=data701->firstPPByMask[jc];in<data701->firstPPByMask[jc+1];in++) {
+                if(memcmp(Set,data701->PP[in].Set,sizeof(Set))==0) break ;
             }
-            for(int is=0; is<nbSet;is++) printf("%x ",contact.Set[is]);
-            int in ;
-            for(in=FirstPPByFrontier[j];in<FirstPPByFrontier[j+1];in++) {
-                if(contact.Glob==PP[in].Cntc.Glob) break ;
-            }
-            PT[ip*dim+j].numPP = in ;
-            for(int id=0;id < PP[in].nbSet ; id++) PT[ip*dim+j].delta[id] = PP[in].sizeC[id] ;
-            for(int is=0;is<PP[ip].nbSet;is++) {
-                if(PP[ip].Cntc.Set[is] & j) {
-                    for(int id=0;id < PP[in].nbSet ; id++){
-                        if( PP[ip].Cntc.Set[is] & PP[in].Cntc.Set[id] ) {
-                            PT[ip*dim+j].numCv[is] = id+1 ;
+            assert(in != data701->firstPPByMask[jc+1]) ;
+            data701->PT[ip*data701->nbCol+jc].numPP = in ;
+            // compute the transformation
+            // delta[] is the size of set (number ob black case to add)
+            for(int id=0;id < data701->PP[in].nbSet ; id++) data701->PT[ip*data701->nbCol+jc].delta[id] =  nbBit[data701->PP[in].Set[id]] ;
+            for(int is=0;is<data701->PP[ip].nbSet;is++) {
+                if(data701->PP[ip].Set[is] & jc) { // numCv[] is the correspondance of index from old PP to new PP.
+                    for(int id=0;id < data701->PP[in].nbSet ; id++){
+                        if( data701->PP[ip].Set[is] & data701->PP[in].Set[id] ) {
+                            data701->PT[ip*data701->nbCol+jc].numCv[is] = id+1 ;
                             break ;
                         }
-                        if(id == PP[in].nbSet) printf("!") ;
+                        assert(id < data701->PP[in].nbSet) ;
                     }
-                } else {
-                    
                 }
-                
             }
-            printf("=>n%2d ",PT[ip*dim+j].numPP);
-            for(int is=0;is<PP[ip].nbSet;is++) { printf("%x->[%d]=%x ",PP[ip].Cntc.Set[is],PT[ip*dim+j].numCv[is]-1,PP[in].Cntc.Set[PT[ip*dim+j].numCv[is]-1]) ; }
-                for(int id=0;id < PP[in].nbSet ; id++){printf("%d,",PT[ip*dim+j].delta[id]) ; }
-                printf("\n");
         }
     }
-    int firstCohByLevl[8] ;
-    firstCohByLevl[0]= 0 ;
-    coh[0].prob = 1.0 ;
-    coh[0].numPP = 0 ;
-    nbCoh++ ;
-    firstCohByLevl[1]= nbCoh ;
-    double S ;
-    memset(coh[0].Surf,0,sizeof(coh[0].Surf));
-    double S1 = 0 ;
-    int level ;
-    for(level=0;level< PB701_L-1 ;level++) {
-//    for(level=0;level< PB701_L ;level++) {
-        S1 = 0 ;
-        printf("********** %d **********\n",level) ;
-#if 0
-        {
-            int64_t si,sil,sih ;
-            for(sil=0;sil< (1<< PB701_L);sil++) {
-                int64_t S1L = 0 ;
-                for(sih=0;sih < (1<< (PB701_L*level));sih++) {
-                    si = sih * (1<< PB701_L) + sil ;
-//                printf("%llx->%d ",si,SurfMax(PB701_L,level+1, si) ) ;
-                    int surf= SurfMax1(PB701_L,level+1, si) ;
-                    S1L += surf ;
-                }
-                printf("%lld ",S1L);
-                S1 += S1L ;
+    free(PC) ;
+    free(nbBit) ;
+    free(interSec);
+}
+int PB701(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    PB701_DATA data701 ;
+    int sizeColumn = PB701_L ;
+    int maxNbColumn =  PB701_H ;
+    PB701_Init(&data701,sizeColumn) ; // precompute all transformation to add a column
+    int nbCol = data701.nbCol ; // recover
+    PB701_PP * PP = data701.PP ;
+    PB701_TRANSF * PT = data701.PT;
+    
+    PB701_STATE *State= calloc(300000000,sizeof(State[0])) ;
+    int nbState = 0;
+    NsumInd * PPindState = calloc(data701.nbPP,sizeof(PPindState[0])) ;
+    int firstNbState , lastNbState ;
+    firstNbState = 0 ;
+    State[0].prob = 1 ; State[0].numPP = 0 ;
+    nbState = lastNbState = 1;
+    double Sres ;
+    for(int nbColumn=1;nbColumn< maxNbColumn ;nbColumn++) { // loops on column
+        int N=sizeColumn*nbColumn ;
+        Nsum * NS= NsumAlloc(N,PB701_MAXCONNECT+1) ;
+        Prob701 S=0 , ST = 0 ;
+        int maxHash = 0 ;
+        int maxState = 0 ;
+        for(int jc=0;jc<nbCol;jc++) { // loop on differents column the current added column
+            int isDouble = 0 ;
+            if(nbColumn==maxNbColumn-1) { // if last one, check symetry
+                if(data701.isSymetric[jc]< 0) continue ;
+                isDouble = data701.isSymetric[jc] ? 1 : 0 ;
             }
-            printf("S1=%.2f %.8f \n",S1,S1/( 1LL << (PB701_L*(level+1))));
-            S1 /= ( 1LL << (PB701_L*(level+1))) ;
-        }
-#endif
-        double Sprob2 = 0 ;
-        printf("Ich %d -> %d \n",firstCohByLevl[level],firstCohByLevl[level+1]);
-      for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-            for(int j=0;j<dim;j++) {
-                PB701_COH *antCoh = coh+ich ;
-                PB701_COH *newCoh = coh + nbCoh++ ;
-                memset(newCoh,0,sizeof(newCoh[0]));
-                int ip = antCoh->numPP ;
-                PB701_TRANSF *trf = PT + ip*dim + j ;
+            // compute size of exact hash for current added column
+            int SizeHash = 0 ;
+            int firstStateForColumn = nbState ;
+            for(int ip=data701.firstPPByMask[jc];ip<data701.firstPPByMask[jc+1];ip++) {
+                PPindState[ip] = SizeHash ;
+                SizeHash += NsumGetSize(NS,PP[ip].nbSet+1)  ;
+            }
+            // alloc hash states merge
+            NsumInd * hashState = calloc(SizeHash,sizeof(hashState[0])) ;
+            if(SizeHash > maxHash) maxHash = SizeHash ;
+            for(int istate=firstNbState;istate < lastNbState;istate++) { // loop on state from preceedind column
+                PB701_STATE *antState = State+istate ;
+                int ip = antState->numPP ;
+                PB701_TRANSF *trf = PT + ip*nbCol + jc ;
                 int id = trf->numPP ;
-                newCoh->prob = antCoh->prob * dimM1 ;
-                Sprob2 += newCoh->prob ;
-               newCoh->numPP = id ;
-    //             newCoh->Surf[0] = 0 ;
-                newCoh->Surf[0] = antCoh->Surf[0] ;
+                PB701_STATE *newState = State+nbState ;
+                NsumVal * surf = newState->Surf;
+                newState->numPP = id ;
+                surf[0] = antState->Surf[0] ;
                 for(int is=0;is<PP[id].nbSet;is++) {
-                    newCoh->Surf[is+1] = trf->delta[is] ;
+                    surf[is+1] = trf->delta[is] ;
                 }
                 for(int is=0;is<PP[ip].nbSet;is++) {
                     if(trf->numCv[is]) {
-                        newCoh->Surf[trf->numCv[is]] += antCoh->Surf[is+1];
+                        surf[trf->numCv[is]] += antState->Surf[is+1];
                     } else {
-                        if(antCoh->Surf[is+1] >  newCoh->Surf[0] ) newCoh->Surf[0] = antCoh->Surf[is+1] ;
+                        if(antState->Surf[is+1] >  surf[0] ) surf[0] = antState->Surf[is+1] ;
                     }
                 }
- 
-            }
-        }
- 
-        firstCohByLevl[level+2] = nbCoh ;
-        qsort(coh+firstCohByLevl[level+1],firstCohByLevl[level+2]-firstCohByLevl[level+1],sizeof(coh[0]),CmpCoh);
-        int ichn = firstCohByLevl[level+1] ;
-        S=0 ;
-        double Sprob = coh[firstCohByLevl[level+1]].prob ;
-        for(int ich=firstCohByLevl[level+1]+1;ich < firstCohByLevl[level+2];ich++) {
-            Sprob += coh[ich].prob ;
-            if(CmpCoh(coh+ichn,coh+ich) == 0){
-                coh[ichn].prob += coh[ich].prob ;
-            } else {
-                ichn++ ;
-                if(ichn != ich) coh[ichn] = coh[ich] ;
-            }
-        }
-        nbCoh = firstCohByLevl[level+2] = ++ichn ;
-        int antGlb = -1 ;
-        double sumPP= 0 ;
-        for(int ich=firstCohByLevl[level+1];ich < firstCohByLevl[level+2];ich++) {
-            PB701_COH * newCoh = coh+ich ;
-            if(PP[newCoh->numPP].globalContact != antGlb ){
-                antGlb = PP[newCoh->numPP].globalContact ;
-                printf("Sum = %.0f ",sumPP*(1<<((level+1)*PB701_L))) ;
-                sumPP = 0 ;
-            }
- //            printf("n%2d(%x) %.4f=>%x->%d ",newCoh->numPP,PP[newCoh->numPP].globalContact, newCoh->prob*(1<<((level+1)*PB701_L)),0,newCoh->Surf[0]) ;
-            int maxS = newCoh->Surf[0];
-            for(int is=0;is<PP[newCoh->numPP].nbSet;is++) {
-                if(newCoh->Surf[is+1] > maxS) maxS = newCoh->Surf[is+1]  ;
- //               printf("%x->%d ",PP[newCoh->numPP].Cntc.Set[is],newCoh->Surf[is+1]) ;
-            }
-             S += maxS * newCoh->prob ;
- //           printf("\n");
-            sumPP += maxS * newCoh->prob ;
-       }
-        printf("Sum = %.2f\n",sumPP*(1<<((level+1)*PB701_L))) ;
-
-        printf("S=%.8f S1=%.8f Sprob=%.3f Sprob2=%.3f\n",S,S1,Sprob,Sprob2);
-    }
-    
-    
-    {
-        S = 0 ;
-        printf("********** %d **********\n",level) ;
-        double Sprob2 = 0 ;
-        printf("Ich %d -> %d \n",firstCohByLevl[level],firstCohByLevl[level+1]);
-        for(int ich=firstCohByLevl[level];ich < firstCohByLevl[level+1];ich++) {
-            for(int j=0;j<dim;j++) {
-                PB701_COH *antCoh = coh+ich ;
-                PB701_COH *newCoh = coh + nbCoh ;
-                memset(newCoh,0,sizeof(newCoh[0]));
-                int ip = antCoh->numPP ;
-                PB701_TRANSF *trf = PT + ip*dim + j ;
-                int id = trf->numPP ;
-                newCoh->prob = antCoh->prob * dimM1 ;
-                Sprob2 += newCoh->prob ;
-                newCoh->numPP = id ;
-                //             newCoh->Surf[0] = 0 ;
-                newCoh->Surf[0] = antCoh->Surf[0] ;
-                for(int is=0;is<PP[id].nbSet;is++) {
-                    newCoh->Surf[is+1] = trf->delta[is] ;
+                NsumInd numHash = PPindState[id] + NsumGetIndex(NS, PP[id].nbSet+1, surf) ;
+                int newIstate = hashState[numHash] ;
+                if(newIstate == 0) { // not used state
+                    hashState[numHash]= nbState++ ;
+                    newState->prob = isDouble ? 2*antState->prob  : antState->prob ;
+                } else { // used state , cumulate only prob
+                    State[newIstate].prob += isDouble ? 2*antState->prob  : antState->prob  ;
                 }
-                for(int is=0;is<PP[ip].nbSet;is++) {
-                    if(trf->numCv[is]) {
-                        newCoh->Surf[trf->numCv[is]] += antCoh->Surf[is+1];
-                    } else {
-                        if(antCoh->Surf[is+1] >  newCoh->Surf[0] ) newCoh->Surf[0] = antCoh->Surf[is+1] ;
+            }
+            free(hashState);
+            for(int istate = firstStateForColumn ; istate<nbState; istate++) {
+                PB701_STATE * newState = State + istate  ;
+                int maxS = newState->Surf[0];
+                for(int is=0;is<PP[newState->numPP].nbSet;is++) {
+                    if(newState->Surf[is+1] > maxS) maxS = newState->Surf[is+1]  ;
+                }
+                S += maxS * newState->prob ;
+            }
+            if(nbColumn==maxNbColumn-1) { // last column, special case not, necessary to save new states)
+                for(int istate=firstStateForColumn;istate < nbState;istate++) {
+                    PB701_STATE *antState = State + istate  ;
+                    int ip = antState->numPP ;
+                    for(int jc=0;jc<nbCol;jc++) { // [0,1[
+                        PB701_TRANSF *trf = PT + ip*nbCol + jc ;
+                        int id = trf->numPP ;
+                        NsumVal surf[PB701_MAXCONNECT] ;
+                        int maxS = antState->Surf[0] ;
+                        for(int is=0;is<PP[id].nbSet;is++) {
+                            surf[is] = trf->delta[is] ;
+                        }
+                        for(int is=0;is<PP[ip].nbSet;is++) {
+                            if(trf->numCv[is]) {
+                                surf[trf->numCv[is]-1] += antState->Surf[is+1];
+                            } else {
+                                if(antState->Surf[is+1] >  maxS ) maxS = antState->Surf[is+1] ;
+                            }
+                        }
+                        for(int is=0;is<PP[id].nbSet;is++) {
+                            if(surf[is] > maxS) maxS = surf[is]  ;
+                        }
+                        ST += maxS * antState->prob;
                     }
                 }
-                int maxS = newCoh->Surf[0];
-                for(int is=0;is<PP[newCoh->numPP].nbSet;is++) {
-                    if(newCoh->Surf[is+1] > maxS) maxS = newCoh->Surf[is+1]  ;
-                    //               printf("%x->%d ",PP[newCoh->numPP].Cntc.Set[is],newCoh->Surf[is+1]) ;
-                }
-                S += maxS * newCoh->prob ;
-
-                
+                if(nbState > maxState) maxState = nbState ;
+                nbState = firstStateForColumn ; // remins, the used states for last pass are not necessary
             }
         }
         
-        printf("S=%.8f S1=%.8f  Sprob2=%.3f\n",S,S1,Sprob2);
+        int exp2 = (nbColumn)*sizeColumn ;
+        Sres = (double)S / (double) (1LL << (exp2/2)) / (double)(1LL << ((exp2+1)/2)) ;
+#if defined PB701_BIG
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s \t%.3fs %dx%d States [%d -> %d[ HashSize=%d S=%.8f S=%llu%llu\n",
+                                   pbR->ident,(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC ,sizeColumn,nbColumn,
+                                   firstNbState,lastNbState,maxHash
+                                   ,Sres,(int64_t)(S / 1000000000000000LL), (int64_t)(S % 1000000000000000LL));
+#else
+        if(pbR->isVerbose) fprintf(stdout,"\tPB%s \t%.3fs %dx%d States [%d -> %d[ HashSize=%d S=%.8f S=%llu\n",
+                                   pbR->ident,(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC ,sizeColumn,nbColumn,
+                                   firstNbState,lastNbState,maxHash
+                                   ,Sres,S);
+#endif
+        firstNbState = lastNbState ;
+        lastNbState = nbState ;
+        NS=NsumFree(NS);
+        if(nbColumn == maxNbColumn-1) {
+            exp2 = (nbColumn+1)*sizeColumn ;
+            Sres = (double)ST / (double) (1LL << (exp2/2 )) / (double)(1LL << ((exp2+1)/2)) ;
+#if defined PB701_BIG
+            if(pbR->isVerbose) fprintf(stdout,"\tPB%s %.3fs LxH=%dx%d MaxStates=%d S=%.8f S=%llu%llu\n",pbR->ident
+                                      ,(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC
+                   ,sizeColumn,maxNbColumn,maxState
+                   ,Sres,(int64_t)(ST / 1000000000000000LL), (int64_t)(ST % 1000000000000000LL));
+#else
+            if(pbR->isVerbose) fprintf(stdout,"\tPB%s %.3fs LxH=%dx%d MaxStates=%d S=%.8f S=%%llu\n",pbR->ident
+                                       ,(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC
+                                       ,sizeColumn,maxNbColumn,maxState
+                                       ,Sres,ST);
+#endif
+        }
     }
-    
-    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.8f",S);
+    free(PPindState);
+    free(State);
+    snprintf(pbR->strRes, sizeof(pbR->strRes),"%.8f",Sres);
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }

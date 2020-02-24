@@ -40,7 +40,9 @@ PROTO_PB(693a) ;
 PROTO_PB(693b) ;
 PROTO_PB(695) ;
 PROTO_PB(696) ;
+PROTO_PB(696a) ;
 PROTO_PB(697) ;
 PROTO_PB(697a) ;
+PROTO_PB(701) ;
 
 #endif /* PB_other_h */
