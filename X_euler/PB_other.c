@@ -3067,3 +3067,462 @@ int PB701(PB_RESULT *pbR) {
 }
 
 
+#define PB702_MAX   5
+#define PB702_NBT   9
+
+typedef struct PB702_POINT {
+    uint32_t ix ;
+    uint32_t iy ;
+} PB702_POINT ;
+
+static int CmpPoint(const void * el1, const void *el2) {
+    const PB702_POINT * p1 =(PB702_POINT *)el1 ;
+    const PB702_POINT * p2 =(PB702_POINT *)el2 ;
+    int diff = p1->ix - p2->ix ;
+    if(diff) return diff ;
+    return p1->iy - p2->iy ;
+}
+
+int PB702a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int nbPoints = 1 ;
+    int nl= PB702_NBT ;
+    for(int i=0;i<=PB702_MAX;i++) nbPoints *=6 ;
+    nbPoints = (nbPoints-1)/5 ;
+    PB702_POINT * points = malloc(nbPoints*sizeof(points[0])) ;
+    points[0] = (PB702_POINT) {0,0} ;
+    int nbPointsAnt = 0 ;
+    int nbPointCur = 1;
+    nbPoints = 1;
+    int ixMax = 1 << (PB702_MAX+1) ;
+    int ixMax2 = ixMax >> 1 ;
+    int iyMax = 1 << PB702_MAX ;
+    int8_t *pointsDesc = calloc((ixMax+1)*(iyMax+1),sizeof(pointsDesc[0])) ;
+    int16_t *pointsTriangle = calloc((ixMax+1)*(iyMax+1),sizeof(pointsTriangle[0])) ;
+    
+    for(int iy=iyMax;iy>=0;iy--) {
+        for(int ix=0;ix<=ixMax;ix++) {
+            int i1,i2,i3,im = 1 ;
+            i1 = (nl*iy)/ iyMax;
+            if(nl*iy == i1*iyMax) im = 0 ;
+            i2 = ((2*iyMax+iy - ix)*nl)/ixMax ;
+            if((2*iyMax+iy - ix)*nl == i2 * ixMax) im = 0 ;
+            i3 = nl*(ix+iy)/ixMax;
+            if(nl*(ix+iy) == i3 * ixMax) im =0 ;
+            if(im) im = (i1 ^ i2 ^ i3 ^ nl) & 1 ;
+            if(im) {
+                int il = (iy * nl)/iyMax ;
+                im = 1 + il * nl ;
+                int ir = (il & 1) ? ((ix*nl+ixMax2)/ ixMax) : ((ix  * nl) / ixMax) ;
+                im += ir ;
+                if((il & 1) && ir == 0) im = -im ;
+            }
+            pointsTriangle[iy*(ixMax+1)+ix] = im ;
+        }
+    }
+    int *isOktriangle = calloc(nl*nl+1,sizeof(isOktriangle[0]));
+    int64_t sumB = 0 ;
+    pointsDesc[0] = 1 ;
+    for(int ipass=0;ipass<PB702_MAX;ipass++) {
+        for(int ip=nbPointsAnt;ip<nbPointCur;ip++) {
+            PB702_POINT oldPoint = points[ip] ;
+            PB702_POINT newPoint ;
+            newPoint.ix = (ixMax - oldPoint.ix) >> 1 ;
+            newPoint.iy = (oldPoint.iy) >> 1 ;
+            points[nbPoints++] = newPoint ;
+            newPoint.ix = (ixMax2 > oldPoint.ix ) ?  ((ixMax2 - oldPoint.ix) >> 1)  : ((oldPoint.ix - ixMax2) >> 1);
+            newPoint.iy = (oldPoint.iy+iyMax) >> 1 ;
+            points[nbPoints++] = newPoint ;
+            newPoint.ix = (ixMax2 + oldPoint.ix) >> 1 ;
+            newPoint.iy = (oldPoint.iy+iyMax) >> 1 ;
+            points[nbPoints++] = newPoint ;
+            newPoint.ix = (ixMax + oldPoint.ix) >> 1 ;
+            newPoint.iy = (oldPoint.iy) >> 1 ;
+            points[nbPoints++] = newPoint ;
+            newPoint.ix = (ixMax2 + oldPoint.ix) >> 1 ;
+            newPoint.iy = (-oldPoint.iy+iyMax) >> 1 ;
+            points[nbPoints++] = newPoint ;
+            newPoint.ix = (ixMax2 > oldPoint.ix ) ?  ((ixMax2 - oldPoint.ix) >> 1)  : ((oldPoint.ix - ixMax2) >> 1);
+            newPoint.iy = (-oldPoint.iy+iyMax) >> 1 ;
+            points[nbPoints++] = newPoint ;
+        }
+        nbPointsAnt = nbPointCur ;
+        nbPointCur = nbPoints ;
+        qsort(points+nbPointsAnt,nbPointCur-nbPointsAnt,sizeof(points[0]),CmpPoint) ;
+        nbPoints = nbPointsAnt ;
+        for(int i=nbPointsAnt+1;i<nbPointCur;i++) {
+            if(CmpPoint(points+nbPoints,points+i)==0 ) continue ;
+            nbPoints++ ;
+            if(nbPoints == i) continue ;
+            points[nbPoints] = points[i] ;
+        }
+        nbPointCur = ++nbPoints ;
+        printf("%d =>\n",nbPointCur-nbPointsAnt);
+        for(int i=nbPointsAnt;i<nbPointCur;i++) {
+            if(pointsDesc[points[i].iy*(ixMax+1)+points[i].ix]==0) pointsDesc[points[i].iy*(ixMax+1)+points[i].ix]= ipass+1 ;
+        }
+        for(int iy=iyMax;iy>=0;iy--) {
+            for(int ix=0;ix<=ixMax;ix++) printf("%c",(pointsDesc[iy*(ixMax+1)+ix] && pointsTriangle[iy*(ixMax+1)+ix]) ?
+                                                ((pointsDesc[iy*(ixMax+1)+ix]==ipass+1) ? '0'+ipass+1 : '+'  ): ((pointsDesc[iy*(ixMax+1)+ix]==ipass+1)? '*': '.'));
+            printf("\n") ;
+        }
+ 
+        for(int iy=iyMax;iy>=0;iy--) {
+            for(int ix=0;ix<=ixMax;ix++) {
+                if(pointsTriangle[iy*(ixMax+1)+ix] && (pointsDesc[iy*(ixMax+1)+ix]==ipass+1)) {
+                    if(pointsTriangle[iy*(ixMax+1)+ix] > 0) {
+                        if(isOktriangle[pointsTriangle[iy*(ixMax+1)+ix]] == 0) {
+                            isOktriangle[pointsTriangle[iy*(ixMax+1)+ix]] = ipass + 1;
+                            sumB += (ipass+1) * 2 ;
+ //                           printf("T(%d,%d),n%d+(%d),sum=%lld ",ix,iy,pointsTriangle[iy*(ixMax+1)+ix],ipass+1,sumB) ;
+                        } else {
+ //                           printf("Ident(%d,%d)n%d ",ix,iy,pointsTriangle[iy*(ixMax+1)+ix] ) ;
+                        }
+                    } else {
+                        if(isOktriangle[-pointsTriangle[iy*(ixMax+1)+ix]] == 0) {
+                            isOktriangle[-pointsTriangle[iy*(ixMax+1)+ix]] = ipass + 1;
+                            sumB += (ipass+1)  ;
+  //                          printf("H(%d,%d),n%d+(%d),sum=%lld ",ix,iy,pointsTriangle[iy*(ixMax+1)+ix],ipass+1,sumB) ;
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+        
+    }
+    printf("\n");
+    for(int iy=iyMax;iy>=0;iy--) {
+        for(int ix=0;ix<=ixMax;ix++) printf("%c",( pointsDesc[iy*(ixMax+1)+ix] && pointsTriangle[iy*(ixMax+1)+ix])
+                                            ? '0'+pointsDesc[iy*(ixMax+1)+ix] : (pointsTriangle[iy*(ixMax+1)+ix]? '+' :  '.'));
+        printf("\n") ;
+    }
+ 
+    printf("SumB = %lld\n",sumB);
+    
+    uint8_t *isTok = malloc((nl+1)*sizeof(isTok[0]));
+    int64_t sum = 0 ;
+    for(int il=0;il<nl;il++) {
+        int nbt = nl-(il+1)/2 ;
+        int halfNbt = il & 1 ;
+        int isHalfAlive = halfNbt ;
+        int nbTalive = nbt  ;
+//        printf("il=%d nbt=%d alive=%d ",il,nbt,nbTalive+isHalfAlive);
+        memset(isTok,0,nbTalive *sizeof(isTok[0])) ;
+        for(int ik = 2;nbTalive+isHalfAlive;ik++) {
+            int kpow2 = 1 << ik ;
+//            printf("P=%d ",kpow2);
+            // facteur echell 2**in
+            int ilklow = (il * kpow2)/ nl +1 ;
+            //         if(ilklow * nl == il * kpow2) ilklow++ ;
+            int ilkhigh = ((il+1)*kpow2) / nl +1 ;
+//            printf("ilk=[%d,%d[ ",ilklow,ilkhigh);
+            for(int ilk = ilklow;ilk<ilkhigh;ilk++) {
+                int  idebT,deltaK, ifinT ; //  kpow2 * nl
+                idebT = (nl * ilk  - il * kpow2) ;
+                ifinT = (2 * kpow2 - ( nl * ilk -  il * kpow2)) ;
+                if(ilk & 1) {
+                    idebT += nl;
+                    ifinT += nl ;
+                    deltaK =  2* nl ;
+                } else {
+                    if((ilk & 2) == 0) {
+                        idebT += 2* nl ;
+                        ifinT += 2*nl ;
+                    }
+                    deltaK = 4 * nl ;
+                }
+                // ifinT - idebT = 2 * ( kpow2 - ( nl * ilk -  il * kpow2))
+                if(halfNbt) {
+                    // on traite le cas particulier du demi triangle
+                    if(isHalfAlive) {
+                        int ifinTH = ((ilk & 3) ==2) ? ifinT : ifinT - deltaK ;
+                        if (ifinTH - kpow2 >=0) {
+                            int ikfin = (ifinTH- kpow2)/ deltaK ;
+                            if((ifinTH- kpow2)  == deltaK *ikfin) ikfin-- ;
+                            if(ikfin >=0) {
+                                if(ik==4) printf("H[%d]",il) ;
+                                isHalfAlive = 0 ;
+                                sum += ik ;
+//                                printf("(ilk=%d,ifinT=%d,ikfin=%d)H[0],sum=%lld ",ilk,ifinTH-kpow2,ikfin,sum) ;
+                                
+                            }
+                        }
+                    }
+                    
+                    idebT += kpow2 ;
+                    ifinT += kpow2 ;
+                    if(ifinT-idebT > deltaK) {
+                        sum += nbTalive * 2 * ik ;
+ //                       printf("{%dx%d}=0,sum=%lld ",nbTalive,ik,sum) ;
+                        nbTalive = 0 ;
+                        break ;
+                    } else {
+                        for(int nT = 0; nT < nbt ; nT++) {
+                            int ikdeb = idebT/deltaK;
+                            if(idebT == ikdeb*deltaK) ikdeb++ ;
+                            int ikfin = ifinT/ deltaK ;
+                            if(ifinT == ikfin*deltaK) ikfin-- ;
+ //                           printf("[%d->%d,%d->%d] ",idebT,ikdeb,ifinT,ikfin);
+                            
+                            if(isTok[nT] == 0 && ikdeb < ikfin) {
+                                isTok[nT] = 1 ;
+                                if(ik==4) printf("(%d,%d)",il,nT);
+                                sum += 2*ik;
+  //                              printf("{%d}=%d,sum=%lld ",nT,ik,sum) ;
+                                nbTalive-- ;
+                            }
+                            idebT += 2 * kpow2 ;
+                            ifinT += 2 * kpow2 ;
+                        }
+                    }
+                } else {
+                    if(ifinT-idebT > deltaK) {
+ //                       printf("<%d->%d,%d->%d>",idebT,idebT/deltaK,ifinT,ifinT/deltaK);
+                        sum += nbTalive * 2 * ik ;
+  //                      printf("[%dx%d]=0,sum=%lld ",nbTalive,ik,sum) ;
+                        nbTalive = 0 ;
+                        break ;
+                    } else
+                    {
+                        for(int nT = 0; nT < nbt ; nT++) {
+                            int ikdeb = idebT/deltaK;
+                            if(idebT == ikdeb*deltaK) ikdeb++ ;
+                            int ikfin = ifinT/ deltaK ;
+                            if(ifinT == ikfin*deltaK) ikfin-- ;
+  //                          printf("<%d->%d,%d->%d> ",idebT,ikdeb,ifinT,ikfin);
+                            if(isTok[nT] == 0 && ikdeb < ikfin) {
+                                isTok[nT] = 1 ;
+                                if(ik==4) printf("{%d,%d}",il,nT);
+                               sum += 2*ik;
+   //                             printf("[%d]=%d,sum=%lld ",nT,ik,sum) ;
+                                nbTalive-- ;
+                            }
+                            idebT += 2 * kpow2 ;
+                            ifinT += 2 * kpow2 ;
+                        }
+                    }
+                }
+ //               printf(" *** ");
+            }
+ //           printf("\n");
+        }
+    }
+    printf("Sum=%lld \n",sum);
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+#define PB705_MAX 100000000
+#define PB705_MOD  1000000007LL
+
+
+int PB705a(PB_RESULT *pbR) {
+    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
+    int nbPrime = GetNbPrime(ctxP) ;
+    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
+    int64_t SumD1=0, SumD2=0,SumD3=0,SumD4=0,SumD5=0,SumD6=0,SumD7=0,SumD8=0,SumD9=0 ;
+    int64_t cost = 0 ;
+    int64_t totalWeight = 1 ;
+    int numDig = 0;
+    pbR->nbClock = clock() ;
+    for(int i=0;i<nbPrime;i++) {
+        int32_t p = tbPrime[i] ;
+        uint8_t dig[20] ;
+        int nbDig = 0 ;
+        while(p > 0) {
+            int ip = p /10 ;
+            int d = p - 10 * ip ;
+            if(d)dig[nbDig++] = d ;
+            p = ip ;
+        }
+        for(int nd=nbDig-1;nd>=0;nd--) {
+            int d = dig[nd] ;
+            //                        printf("%d :",d);
+            switch(d) {
+                case 1 :
+                    cost = cost + SumD1    ;
+                    break ;
+                case 2 :
+                    cost = 2*cost+SumD1 +SumD2   ;
+                    SumD1 = 2*SumD1 + totalWeight ;
+                    SumD2 *= 2 ;  SumD3 *= 2;  SumD4 *= 2 ;  SumD5 *= 2 ;
+                    SumD6 *= 2 ;  SumD7 *= 2;  SumD8 *= 2 ;  SumD9 *= 2 ;
+                    totalWeight = ( totalWeight * 2 );
+                    break ;
+                case 3 :
+                    cost = 2*cost +SumD1 +SumD3    ;
+                    SumD1 = 2*SumD1 + totalWeight ; SumD2 = 2*SumD2 + totalWeight ;
+                    SumD3 *= 2 ;  SumD4 *= 2 ;  SumD5 *= 2 ; SumD6 *= 2;
+                    SumD7 *= 2 ;  SumD8 *= 2 ;    SumD9 *= 2 ;
+                    totalWeight = ( totalWeight * 2 ) ;
+                    break ;
+                case 4 :
+                    cost = 3*cost+ +SumD1 +SumD2 +SumD4  ;
+                    SumD1 = 3*SumD1 + 2*totalWeight ;
+                    SumD2 = 3*SumD2 + totalWeight ; SumD3 = 3*SumD3 + totalWeight ;
+                    SumD4 *= 3 ; SumD5 *= 3 ;   SumD6 *= 3 ;
+                    SumD7 *= 3 ; SumD8 *= 3 ;   SumD9 *= 3 ;
+                    totalWeight *= 3 ;
+                    break ;
+                case 5 :
+                    cost = 2*cost +SumD1 +SumD5  ;
+                    SumD1 = 2*SumD1 + totalWeight ;  SumD2 = 2*SumD2 + totalWeight ;
+                    SumD3 = 2*SumD3 + totalWeight ;  SumD4 = 2*SumD4 + totalWeight ;
+                    SumD5 *= 2 ; SumD6 *= 2 ;  SumD7 *= 2 ; SumD8 *= 2 ;SumD9 *= 2 ;
+                    totalWeight *=  2  ;
+                    break ;
+                case 6 :
+                    cost = 4*cost +SumD1 +SumD2 +SumD3 +SumD6 ;
+                    SumD1 = 4*SumD1 + 3*totalWeight ;
+                    SumD2 = 4*SumD2 + 2*totalWeight ;
+                    SumD3 = 4*SumD3 + totalWeight ; SumD4 = 4*SumD4 + totalWeight ;
+                    SumD5 = 4*SumD5 + totalWeight ;
+                    SumD6 *= 4 ; SumD7 *= 4 ; SumD8 *= 4 ; SumD9 *= 4 ;
+                    totalWeight *= 4 ;
+                    break ;
+                case 7 :
+                    cost = 2*cost +SumD1 +SumD7   ;
+                    SumD1 = 2*SumD1 + totalWeight ;  SumD2 = 2*SumD2 + totalWeight ;
+                    SumD3 = 2*SumD3 + totalWeight ;  SumD4 = 2*SumD4 + totalWeight ;
+                    SumD5 = 2*SumD5 + totalWeight ;  SumD6 = 2*SumD6 + totalWeight ;
+                    SumD7 *= 2  ;  SumD8 *= 2  ; SumD9 *= 2  ;
+                    totalWeight *=  2   ;
+                    break ;
+                case 8 :
+                    cost = 4*cost +SumD1 +SumD2 +SumD4 +SumD8   ;
+                    SumD1 = 4*SumD1 + 3*totalWeight ;
+                    SumD2 = 4*SumD2 + 2*totalWeight ; SumD3 = 4*SumD3 + 2*totalWeight ;
+                    SumD4 = 4*SumD4 + totalWeight ;  SumD5 = 4*SumD5 + totalWeight ;
+                    SumD6 = 4*SumD6 + totalWeight ;  SumD7 = 4*SumD7 + totalWeight ;
+                    SumD8 *= 4 ; SumD9 *= 4 ;
+                    totalWeight = ( totalWeight * 4 )  ;
+                    break ;
+                case 9 :
+                    cost = 3*cost +SumD1 +SumD3 +SumD9    ;
+                    SumD1 = 3*SumD1 + 2*totalWeight ;
+                    SumD2 = 3*SumD2 + 2*totalWeight ;
+                    SumD3 = 3*SumD3 + totalWeight ; SumD4 = 3*SumD4 + totalWeight;
+                    SumD5 = 3*SumD5 + totalWeight ; SumD6 = 3*SumD6 + totalWeight;
+                    SumD7 = 3*SumD7 + totalWeight ; SumD8 = 3*SumD8 + totalWeight;
+                    SumD9 *= 3 ;
+                    totalWeight *=  3   ;
+                    break ;
+            }
+            numDig++ ;
+            if((numDig & 0x7) ==0  )
+            {
+                cost = cost %  PB705_MOD ;
+                totalWeight = totalWeight % PB705_MOD ;
+                SumD1 = SumD1  % PB705_MOD ;  SumD2 = SumD2  % PB705_MOD ;  SumD3 = SumD3  % PB705_MOD ;
+                SumD4 = SumD4  % PB705_MOD ;  SumD5 = SumD5  % PB705_MOD ;  SumD6 = SumD6  % PB705_MOD ;
+                SumD7 = SumD7  % PB705_MOD ;  SumD8 = SumD8  % PB705_MOD ;  SumD9 = SumD9  % PB705_MOD ;
+            }
+            /*
+             printf("%lld %lld %lld %lld %lld %lld %lld %lld %lld TW=%lld Cost=%lld\n"
+             ,SumD1,SumD2,SumD3,SumD4,SumD5
+             ,SumD6,SumD7,SumD8,SumD9,totalWeight,cost % PB705_MOD);
+             */
+        }
+    }
+    cost = cost %  PB705_MOD ;
+    sprintf(pbR->strRes,"%lld",cost) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+int PB705(PB_RESULT *pbR) {
+    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
+    pbR->nbClock = clock() ;
+    int nbPrime = GetNbPrime(ctxP) ;
+    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
+    int64_t D1=0,D2=0,D3=0,D4=0,D5=0,D6=0,D7=0,D8=0,D9=0 ;
+    int64_t D21=0,D31=0,D41=0,D51=0,D61=0,D71=0,D81=0,D91=0 ;
+    int64_t D32=0,D42=0,D52=0,D62=0,D72=0,D82=0,D92=0 ;
+    int64_t D43=0,D53=0,D63=0,D73=0,D83=0,D93=0 ;
+    int64_t D54=0,D64=0,D74=0,D84=0,D94=0 ;
+    int64_t D65=0,D75=0,D85=0,D95=0 ;
+    int64_t D76=0,D86=0,D96=0 ;
+    int64_t D87=0,D97=0 ;
+    int64_t D98=0 ;
+    
+    for(int i=0;i<nbPrime;i++) {
+        int32_t p = tbPrime[i] ;
+        int dig[10] ;
+        int nbDig = 0 ;
+        while(p >= 10) {
+            int d = p % 10 ;
+            p = p/10 ;
+            if(d)dig[nbDig++] = d ;
+        }
+        if(p)dig[nbDig++] = p ;
+        for(int nd=nbDig-1;nd>=0;nd--) {
+            int d = dig[nd] ;
+            switch(d) {
+                case 1 : D1++; D21+=D2; D31+=D3; D41+=D4; D51+=D5; D61+=D6; D71+=D7; D81+=D8; D91+=D9; break ;
+                case 2 : D2++; D32+=D3; D42+=D4; D52+=D5; D62+=D6; D72+=D7; D82+=D8; D92+=D9; break ;
+                case 3 : D3++; D43+=D4; D53+=D5; D63+=D6; D73+=D7; D83+=D8; D93+=D9; break ;
+                case 4 : D4++; D54+=D5; D64+=D6; D74+=D7; D84+=D8; D94+=D9; break ;
+                case 5 : D5++; D65+=D6; D75+=D7; D85+=D8; D95+=D9; break ;
+                case 6 : D6++; D76+=D7; D86+=D8; D96+=D9; break ;
+                case 7 : D7++; D87+=D8; D97+=D9; break ;
+                case 8 : D8++; D98+=D9; break ;
+                case 9 : D9++; break ;
+            }
+        }
+    }
+    
+    
+    
+    int64_t cost = 0 ;
+    cost +=  (D21+D31+D51+D71)*36 + (D41+D91)*48 + (D61+D81)*54  ;
+    {    int64_t D22=D2*(D2-1)/2 ;
+        int64_t D23=D2*D3-D32; int64_t D24=D2*D4-D42; int64_t D25=D2*D5-D52 ;
+        int64_t D26=D2*D6-D62; int64_t D27=D2*D7-D72; int64_t D28=D2*D8-D82 ;
+        int64_t D29=D2*D9-D92 ;
+        cost += D22*18 +(D32+D52+D72)*36 +(D23+D25+D27)*18 +D42*36 +D24*12 +D92*48 +D29*12  +D62*45 +D26*9 + D82*45 + D28*9 ;
+    }
+    {   int64_t D33=D3*(D3-1)/2 ;
+        int64_t D34=D3*D4-D43; int64_t D35=D3*D5-D53 ; int64_t D36=D3*D6-D63 ;
+        int64_t D37=D3*D7-D73; int64_t D38=D3*D8-D83 ; int64_t D39=D3*D9-D93 ;
+        cost += D33*18 +(D53+D73)*36 +(D35+D37)*18 +D43*36 +D34*24 +D93*36 +D39*12  +D63*36 +D36*18+ D83*45 + D38*18 ;
+    }
+    {   int64_t D44=D4*(D4-1)/2 ;
+        int64_t D45=D4*D5-D54 ; int64_t D46=D4*D6-D64 ; int64_t D47=D4*D7-D74 ;
+        int64_t D48=D4*D8-D84 ; int64_t D49=D4*D9-D94 ;
+        cost += D44*24 +(D54+D74)*36 +(D45+D47)*24 +D94*40 +D49*24  +D64*36 +D46*24 +D84*36 + D48*18 ;
+    }
+    {   int64_t D55=D5*(D5-1)/2 ;
+        int64_t D56=D5*D6-D65; int64_t D57=D5*D7-D75 ;
+        int64_t D58=D5*D8-D85; int64_t D59=D5*D9-D95 ;
+        cost += D55*18 +D75*36 +D57*18 +D95*36 +D59*24  +D65*36 +D56*27 +D85*36 + D58*27 ;
+    }
+    {   int64_t D66=D6*(D6-1)/2;
+        int64_t D67=D6*D7-D76; int64_t D68=D6*D8-D86; int64_t D69=D6*D9-D96;
+        cost += D66*27 +D76*36 +D67*27 +D96*36 +D69*24  +D86*36 + D68*27;
+    }
+    {   int64_t D77 =D7*(D7-1)/2 ;
+        int64_t D78=D7*D8-D87; int64_t D79= D7*D9-D97 ;
+        cost += D77*18 +D97*36 +D79*24  +D87*36 + D78*27 ;
+    }
+    {   int64_t D88=D8*(D8-1)/2 ;
+        int64_t D89=D8*D9-D98 ;
+        cost += D88*27+D98*36+D89*30   ;
+    }
+    int64_t D99 = D9 * (D9-1)/2 ;
+    cost += D99*24    ;
+    int64_t costMod = cost % PB705_MOD ;
+    int64_t nbPow2 = D2 + D3 + D5 + D7 + 2*D6 + 2*D8 ;
+    int64_t nbPow3 = D4 + D9 ;
+    costMod = (costMod * modPow(2,nbPow2-3,PB705_MOD)) % PB705_MOD ;
+    if(nbPow3==0) costMod/=9 ;
+    else if(nbPow3==1) costMod/=3 ;
+    else costMod = (costMod * modPow(3,nbPow3-2,PB705_MOD)) % PB705_MOD ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    if(pbR->isVerbose)fprintf(stdout,"\tPB%s for Max=%d Nbinv=%lld (%%%lld) = %lld x 2**%lld x 3**%lld\n",
+                              pbR->ident,PB705_MAX,costMod,PB705_MOD,cost,nbPow2-3,nbPow3-2);
+    sprintf(pbR->strRes,"%lld",costMod) ;
+    return 1 ;
+}
+
