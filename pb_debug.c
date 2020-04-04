@@ -482,627 +482,89 @@ int PB702(PB_RESULT *pbR) {
  //   exit(0);
     return 1 ;
 }
-
-#define PB705_MAX 100000000
-//#define PB705_MAX 50
-#define PB705_MOD  1000000007
-
-typedef struct PB705_DEC {
-    uint8_t nbD[10] ;
-    int32_t indHash ;
-    int64_t weight ;
-    int64_t cost ;
-} PB705_DEC ;
-
-typedef struct PB705_WC {
-    int64_t weight ;
- //   int64_t cost ;
-} PB705_WC ;
-#if 0
-int PB705(PB_RESULT *pbR) {
-    int div1[] = { 1,1 } , div2[]= {2,2,1}, div3[]={2,3,1}, div4[]={3,4,2,1}
-    ,div5[]={2,5,1},div6[]={4,6,3,2,1},div7[]={2,7,1},div8[]={4,8,4,2,1},div9[]={3,9,3,1};
-    int *Div[10] = {
-        NULL,div1,div2,div3,div4,div5,div6,div7,div8,div9
-    };
-    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
-    int nbPrime = GetNbPrime(ctxP) ;
-    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
-    int64_t SumD[10] ;
-    for(int i=0;i<10;i++) SumD[i] = 0 ;
-    int64_t cost = 0 ;
-    int64_t totalWeight = 1 ;
-    pbR->nbClock = clock() ;
-    int numDig = 0;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        uint8_t dig[20] ;
-        int nbDig = 0 ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d)dig[nbDig++] = d ;
-            p = ip ;
-        }
-        for(int nd=nbDig-1;nd>=0;nd--) {
-            int d = dig[nd] ;
-            int64_t oldCost = cost ;
-            cost = 0 ;
-            int nW = Div[d][0] ;
-            cost = (cost + nW * oldCost) % PB705_MOD ;
-            for(int id=0;id<nW;id++) {
-                cost = ( cost + totalWeight * numDig -SumD[Div[d][id+1]]) % PB705_MOD  ;
-            }
-            SumD[1] = (nW*SumD[1] + totalWeight) %  PB705_MOD;
-            switch(nW) {
-                case 1 : {
-                    for(int idw=2;idw<=9;idw++) {
-                        SumD[idw] = (SumD[idw] + totalWeight) %  PB705_MOD;
-                    }
-                      break ;
-                }
-                case 2 : {
-                    int32_t dd1 = Div[d][1];
-                    for(int idw=2;idw<dd1;idw++) {
-                        SumD[idw] = (2*SumD[idw] + totalWeight) % PB705_MOD ;
-                    }
-                    for(int idw=dd1;idw<=9;idw++) {
-                        SumD[idw] = (2*SumD[idw] + 2 * totalWeight) % PB705_MOD ;
-                    }
-                    break ;
-                }
-                case 3 : {
-                    int32_t dd1 = Div[d][1], dd2 = Div[d][2];
-                    for(int idw=2;idw<dd2;idw++) {
-                        SumD[idw] = (3*SumD[idw] + totalWeight) % PB705_MOD ;
-                    }
-                    for(int idw=dd2;idw<dd1;idw++) {
-                        SumD[idw] = (3*SumD[idw] + 2*totalWeight) % PB705_MOD ;
-                    }
-                    for(int idw=dd1;idw<=9;idw++) {
-                        SumD[idw] = (3*SumD[idw] + 3 * totalWeight) % PB705_MOD ;
-                    }
-                    break ;
-                }
-                case 4 : {
-                    int32_t dd1 = Div[d][1], dd2 = Div[d][2], dd3 = Div[d][3]  ;
-                  for(int idw=2;idw<dd3;idw++) {
-                        SumD[idw] = (4*SumD[idw] + totalWeight) % PB705_MOD ;
-                    }
-                  for(int idw=dd3;idw<dd2;idw++) {
-                        SumD[idw] = (4*SumD[idw] + 2*totalWeight) % PB705_MOD ;
-                    }
-                    for(int idw=dd2;idw<dd1;idw++) {
-                        SumD[idw] = (4*SumD[idw] + 3*totalWeight) % PB705_MOD ;
-                    }
-                    for(int idw=dd1;idw<=9;idw++) {
-                        SumD[idw] = (4*SumD[idw] + 4 * totalWeight) % PB705_MOD ;
-                    }
-                      break ;
-                }
-
-            }
-            numDig++ ;
-            if(nW > 1) totalWeight = ( totalWeight * nW ) % PB705_MOD ;
-//            for(int i=1;i<=9;i++) printf("%lld ",SumD[i]);
-//            printf("Cost=%lld\n",cost);
-
+static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
+    u_int64_t aPow2 = a % mod ;
+    u_int64_t aPowExp = (exp & 1) ? aPow2 : 1 ;
+    int i ;
+    for(i=1;exp >= (1LL<<i) ;i++) {
+        aPow2 = (aPow2 * aPow2) % mod ;
+        if( (1LL<<i) & exp) {
+            aPowExp = (aPowExp * aPow2 ) % mod  ;
         }
     }
-    sprintf(pbR->strRes,"%lld",cost) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
+    return aPowExp ;
 }
-#endif
-int PB705a(PB_RESULT *pbR) {
-    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
-    int nbPrime = GetNbPrime(ctxP) ;
-    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
-    int64_t SumD1=0, SumD2=0,SumD3=0,SumD4=0,SumD5=0,SumD6=0,SumD7=0,SumD8=0,SumD9=0 ;
-    int64_t cost = 0 ;
-    int64_t totalWeight = 1 ;
+#define PB705_W 5
+#define PB707_MAXF  7
+
+int PB707(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
-    int numDig = 0;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        uint8_t dig[20] ;
-        int nbDig = 0 ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d)dig[nbDig++] = d ;
-            p = ip ;
-        }
-        for(int nd=nbDig-1;nd>=0;nd--) {
-            int d = dig[nd] ;
- //           printf("%d :",d);
-            switch(d) {
-                case 1 :
-                    cost = (  cost + SumD1 ) % PB705_MOD  ;
- /*                   SumD1 = (SumD1)  %  PB705_MOD;
-                    SumD2 = (SumD2 ) %  PB705_MOD;
-                    SumD3 = (SumD3 ) %  PB705_MOD;
-                    SumD4 = (SumD4 ) %  PB705_MOD;
-                    SumD5 = (SumD5 ) %  PB705_MOD;
-                    SumD6 = (SumD6 ) %  PB705_MOD;
-                    SumD7 = (SumD7 ) %  PB705_MOD;
-                    SumD8 = (SumD8 ) %  PB705_MOD;
-                    SumD9 = (SumD9 ) %  PB705_MOD;
- */                  break ;
-                case 2 :
-                    cost = (  2*cost+SumD1 +SumD2 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 ) %  PB705_MOD;
-                    SumD3 = (2*SumD3 ) %  PB705_MOD;
-                    SumD4 = (2*SumD4 ) %  PB705_MOD;
-                    SumD5 = (2*SumD5 ) %  PB705_MOD;
-                    SumD6 = (2*SumD6 ) %  PB705_MOD;
-                    SumD7 = (2*SumD7 ) %  PB705_MOD;
-                    SumD8 = (2*SumD8 ) %  PB705_MOD;
-                    SumD9 = (2*SumD9) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 3 :
-                    cost = (  2*cost +SumD1 +SumD3 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*SumD3 ) %  PB705_MOD;
-                    SumD4 = (2*SumD4 ) %  PB705_MOD;
-                    SumD5 = (2*SumD5 ) %  PB705_MOD;
-                    SumD6 = (2*SumD6 ) %  PB705_MOD;
-                    SumD7 = (2*SumD7 ) %  PB705_MOD;
-                    SumD8 = (2*SumD8 ) %  PB705_MOD;
-                    SumD9 = (2*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 4 :
-                    cost = (  3*cost+ +SumD1 +SumD2 +SumD4 ) % PB705_MOD  ;
-                    SumD1 = (3*SumD1 + 2*totalWeight) %  PB705_MOD;
-                    SumD2 = (3*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (3*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (3*SumD4 ) %  PB705_MOD;
-                    SumD5 = (3*SumD5 ) %  PB705_MOD;
-                    SumD6 = (3*SumD6 ) %  PB705_MOD;
-                    SumD7 = (3*SumD7 ) %  PB705_MOD;
-                    SumD8 = (3*SumD8 ) %  PB705_MOD;
-                    SumD9 = (3*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 3 ) % PB705_MOD ;
-                    break ;
-                case 5 :
-                    cost = (  2*cost +SumD1 +SumD5 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (2*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (2*SumD5 ) %  PB705_MOD;
-                    SumD6 = (2*SumD6 ) %  PB705_MOD;
-                    SumD7 = (2*SumD7 ) %  PB705_MOD;
-                    SumD8 = (2*SumD8 ) %  PB705_MOD;
-                    SumD9 = (2*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 6 :
-                    cost = ( 4*cost +SumD1 +SumD2 +SumD3 +SumD6 ) % PB705_MOD  ;
-                    SumD1 = (4*SumD1 + 3*totalWeight) %  PB705_MOD;
-                    SumD2 = (4*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (4*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (4*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (4*SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (4*SumD6 ) %  PB705_MOD;
-                    SumD7 = (4*SumD7 ) %  PB705_MOD;
-                    SumD8 = (4*SumD8 ) %  PB705_MOD;
-                    SumD9 = (4*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 4 ) % PB705_MOD ;
-                    break ;
-               case 7 :
-                    cost = (  2*cost +SumD1 +SumD7 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (2*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (2*SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (2*SumD6 + totalWeight) %  PB705_MOD;
-                    SumD7 = (2*SumD7 ) %  PB705_MOD;
-                    SumD8 = (2*SumD8 ) %  PB705_MOD;
-                    SumD9 = (2*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 8 :
-                    cost = (  4*cost +SumD1 +SumD2 +SumD4 +SumD8 ) % PB705_MOD  ;
-                    SumD1 = (4*SumD1 + 3*totalWeight) %  PB705_MOD;
-                    SumD2 = (4*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (4*SumD3 + 2*totalWeight) %  PB705_MOD;
-                    SumD4 = (4*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (4*SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (4*SumD6 + totalWeight) %  PB705_MOD;
-                    SumD7 = (4*SumD7 + totalWeight) %  PB705_MOD;
-                    SumD8 = (4*SumD8 ) %  PB705_MOD;
-                    SumD9 = (4*SumD9 ) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 4 ) % PB705_MOD ;
-                    break ;
-                case 9 :
-                    cost = (  3*cost +SumD1 +SumD3 +SumD9 ) % PB705_MOD  ;
-                    SumD1 = (3*SumD1 + 2*totalWeight) %  PB705_MOD;
-                    SumD2 = (3*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (3*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (3*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (3*SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (3*SumD6 + totalWeight) %  PB705_MOD;
-                    SumD7 = (3*SumD7 + totalWeight) %  PB705_MOD;
-                    SumD8 = (3*SumD8 + totalWeight) %  PB705_MOD;
-                    SumD9 = (3*SumD9) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 3 ) % PB705_MOD ;
-                    break ;
-            }
-            numDig++ ;
- //                       printf("%lld %lld %lld %lld %lld %lld %lld %lld %lld TW=%lld Cost=%lld\n"
- //                             ,SumD1,SumD2,SumD3,SumD4,SumD5
- //                              ,SumD6,SumD7,SumD8,SumD9,totalWeight,cost);
-            
-        }
-    }
-    sprintf(pbR->strRes,"%lld",cost) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
-}
-
-
-int PB705(PB_RESULT *pbR) {
-    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
-    int nbPrime = GetNbPrime(ctxP) ;
-    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
-    int64_t SumD1=0, SumD2=0,SumD3=0,SumD4=0,SumD5=0,SumD6=0,SumD7=0,SumD8=0,SumD9=0 ;
-    int64_t cost = 0 ;
-    int64_t totalWeight = 1 ;
-    pbR->nbClock = clock() ;
-    int numDig = 0;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        uint8_t dig[20] ;
-        int nbDig = 0 ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d)dig[nbDig++] = d ;
-            p = ip ;
-        }
-        for(int nd=nbDig-1;nd>=0;nd--) {
-            int d = dig[nd] ;
- //           printf("%d :",d);
-            switch(d) {
-                case 1 :
-                    cost = (  cost + totalWeight * numDig -SumD1 ) % PB705_MOD  ;
-                    SumD1 = (SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (SumD6 + totalWeight) %  PB705_MOD;
-                    SumD7 = (SumD7 + totalWeight) %  PB705_MOD;
-                    SumD8 = (SumD8 + totalWeight) %  PB705_MOD;
-                    SumD9 = (SumD9 + totalWeight) %  PB705_MOD;
-                    break ;
-                case 2 :
-                    cost = (  2*cost+2*totalWeight * numDig -SumD1 -SumD2 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*(SumD2 + totalWeight)) %  PB705_MOD;
-                    SumD3 = (2*(SumD3 + totalWeight)) %  PB705_MOD;
-                    SumD4 = (2*(SumD4 + totalWeight)) %  PB705_MOD;
-                    SumD5 = (2*(SumD5 + totalWeight)) %  PB705_MOD;
-                    SumD6 = (2*(SumD6 + totalWeight)) %  PB705_MOD;
-                    SumD7 = (2*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (2*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (2*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 3 :
-                    cost = (  2*cost+2*totalWeight * numDig -SumD1 -SumD3 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*(SumD3 + totalWeight)) %  PB705_MOD;
-                    SumD4 = (2*(SumD4 + totalWeight)) %  PB705_MOD;
-                    SumD5 = (2*(SumD5 + totalWeight)) %  PB705_MOD;
-                    SumD6 = (2*(SumD6 + totalWeight)) %  PB705_MOD;
-                    SumD7 = (2*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (2*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (2*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 4 :
-                    cost = (  3*cost+3 * totalWeight * numDig -SumD1 -SumD2 -SumD4 ) % PB705_MOD  ;
-                    SumD1 = (3*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (3*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (3*SumD3 + 2*totalWeight) %  PB705_MOD;
-                    SumD4 = (3*(SumD4 + totalWeight)) %  PB705_MOD;
-                    SumD5 = (3*(SumD5 + totalWeight)) %  PB705_MOD;
-                    SumD6 = (3*(SumD6 + totalWeight)) %  PB705_MOD;
-                    SumD7 = (3*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (3*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (3*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 3 ) % PB705_MOD ;
-                    break ;
-                case 5 :
-                    cost = (  2*cost+2*totalWeight * numDig -SumD1 -SumD5 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (2*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (2*(SumD5 + totalWeight)) %  PB705_MOD;
-                    SumD6 = (2*(SumD6 + totalWeight)) %  PB705_MOD;
-                    SumD7 = (2*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (2*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (2*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 6 :
-                    cost = ( 4*cost+4*totalWeight * numDig -SumD1 -SumD2 -SumD3 -SumD6 ) % PB705_MOD  ;
-                    SumD1 = (4*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (4*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (4*SumD3 + 3*totalWeight) %  PB705_MOD;
-                    SumD4 = (4*SumD4 + 3*totalWeight) %  PB705_MOD;
-                    SumD5 = (4*SumD5 + 3*totalWeight) %  PB705_MOD;
-                    SumD6 = (4*(SumD6 + totalWeight)) %  PB705_MOD;
-                    SumD7 = (4*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (4*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (4*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 4 ) % PB705_MOD ;
-                    break ;
-                case 7 :
-                    cost = (  2*cost+2*totalWeight * numDig -SumD1 -SumD7 ) % PB705_MOD  ;
-                    SumD1 = (2*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (2*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (2*SumD3 + totalWeight) %  PB705_MOD;
-                    SumD4 = (2*SumD4 + totalWeight) %  PB705_MOD;
-                    SumD5 = (2*SumD5 + totalWeight) %  PB705_MOD;
-                    SumD6 = (2*SumD6 + totalWeight) %  PB705_MOD;
-                    SumD7 = (2*(SumD7 + totalWeight)) %  PB705_MOD;
-                    SumD8 = (2*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (2*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 2 ) % PB705_MOD ;
-                    break ;
-                case 8 :
-                    cost = (  4*cost+4*totalWeight * numDig -SumD1 -SumD2 -SumD4 -SumD8 ) % PB705_MOD  ;
-                    SumD1 = (4*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (4*SumD2 + 2*totalWeight) %  PB705_MOD;
-                    SumD3 = (4*SumD3 + 2*totalWeight) %  PB705_MOD;
-                    SumD4 = (4*SumD4 + 3*totalWeight) %  PB705_MOD;
-                    SumD5 = (4*SumD5 + 3*totalWeight) %  PB705_MOD;
-                    SumD6 = (4*SumD6 + 3*totalWeight) %  PB705_MOD;
-                    SumD7 = (4*SumD7 + 3*totalWeight) %  PB705_MOD;
-                    SumD8 = (4*(SumD8 + totalWeight)) %  PB705_MOD;
-                    SumD9 = (4*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 4 ) % PB705_MOD ;
-                    break ;
-                case 9 :
-                    cost = (  3*cost+3*totalWeight * numDig -SumD1 -SumD3 -SumD9 ) % PB705_MOD  ;
-                    SumD1 = (3*SumD1 + totalWeight) %  PB705_MOD;
-                    SumD2 = (3*SumD2 + totalWeight) %  PB705_MOD;
-                    SumD3 = (3*SumD3 + 2*totalWeight) %  PB705_MOD;
-                    SumD4 = (3*SumD4 + 2*totalWeight) %  PB705_MOD;
-                    SumD5 = (3*SumD5 + 2*totalWeight) %  PB705_MOD;
-                    SumD6 = (3*SumD6 + 2*totalWeight) %  PB705_MOD;
-                    SumD7 = (3*SumD7 + 2*totalWeight) %  PB705_MOD;
-                    SumD8 = (3*SumD8 + 2*totalWeight) %  PB705_MOD;
-                    SumD9 = (3*(SumD9 + totalWeight)) %  PB705_MOD;
-                    totalWeight = ( totalWeight * 3 ) % PB705_MOD ;
-                    break ;
-            }
-            numDig++ ;
-//            printf("%lld %lld %lld %lld %lld %lld %lld %lld %lld TW=%lld Cost=%lld\n"
-//                   ,SumD1,SumD2,SumD3,SumD4,SumD5
-//                   ,SumD6,SumD7,SumD8,SumD9,totalWeight,cost);
-            
-        }
-    }
-    sprintf(pbR->strRes,"%lld",cost) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
-}
-
-
-#if 0
-
-int PB705d(PB_RESULT *pbR) {
-    int div1[] = { 1,1 } , div2[]= {2,2,1}, div3[]={2,3,1}, div4[]={3,4,2,1}
-    ,div5[]={2,5,1},div6[]={4,6,3,2,1},div7[]={2,7,1},div8[]={4,8,4,2,1},div9[]={3,9,3,1};
-    int *Div[10] = {
-        NULL,div1,div2,div3,div4,div5,div6,div7,div8,div9
-    };
-    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
-    int nbPrime = GetNbPrime(ctxP) ;
-    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
-    int N = 0 ;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d) N++ ;
-            p = ip ;
-        }
-    }
-    printf("N= %d\n",N);
-    PB705_WC * ptWC1[10] ;
-    PB705_WC * ptWC2[10] ;
-
-    for(int id=1;id<=9;id++) {
-        ptWC1[id] =calloc(N+1,sizeof(ptWC1[id][0]));
-        ptWC2[id] =calloc(N+1,sizeof(ptWC2[id][0]));
-    }
-    
-    PB705_WC ** curWC = ptWC1 ;
-    PB705_WC ** antWC = ptWC2 ;
-
-    
-    for(int id=1;id<=9;id++) {
-        curWC[id][0].weight = 1 ;
-    }
-    int64_t cost = 0 ;
-    int64_t totalWeight = 1 ;
-    pbR->nbClock = clock() ;
-    int numDig = 0;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        uint8_t dig[20] ;
-        int nbDig = 0 ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d)dig[nbDig++] = d ;
-            p = ip ;
-        }
-        for(int nd=nbDig-1;nd>=0;nd--) {
-            int d = dig[nd] ;
-            int64_t oldCost = cost ;
-            cost = 0 ;
-            numDig++ ;
-            PB705_WC ** tmp = antWC ;
-            antWC = curWC ;
-            curWC = tmp ;
-            for(int idw=1;idw<=9;idw++) {
-                memset(curWC[idw],0,(N+1)*sizeof(curWC[idw][0])) ;
-            }
-           int nW = Div[d][0] ;
-            for(int id=0;id<nW;id++) {
-                int32_t dd = Div[d][id+1] ;
- //               printf("%d ",dd);
-                for(int idw=1;idw<=9;idw++) {
-                    for(int ih=0;ih<numDig;ih++) {
-                        if(antWC[idw][ih].weight) {
-                            if(idw < dd) {
-                                 curWC[idw][ih].weight = (curWC[idw][ih].weight + antWC[idw][ih].weight) % PB705_MOD  ;
-                            } else {
-                                curWC[idw][ih+1].weight = (curWC[idw][ih+1].weight + antWC[idw][ih].weight) % PB705_MOD  ;
-                            }
-                        }
-                   }
-                }
-                cost = (cost + oldCost) % PB705_MOD ;
-                int64_t deltaCost = 0 ;
-                for(int ih=0;ih<numDig;ih++) {
-                    if(antWC[dd][ih].weight) {
-                       deltaCost = (deltaCost + antWC[dd][ih].weight * ih) % PB705_MOD  ;
-                    }
-                }
-                cost = (cost + totalWeight * (numDig -1)- deltaCost) % PB705_MOD  ;
-            }
-            if(nW > 1) totalWeight = ( totalWeight * nW ) % PB705_MOD ;
-//           printf("Cost=%lld\n",cost);
-/*            for(int k = 1;k<=9;k++) {
-                for(int ih=0;ih<=N;ih++) printf("%lld ",curWC[k][ih].weight);
-                printf("\n");
-            }
- */
-        }
-    }
-     sprintf(pbR->strRes,"%lld",cost) ;
-    pbR->nbClock = clock() - pbR->nbClock ;
-    return 1 ;
-}
-
-
-
-int PB705b(PB_RESULT *pbR) {
-    CTX_PRIMETABLE * ctxP = Gen_tablePrime(PB705_MAX) ;
-    int nbPrime = GetNbPrime(ctxP) ;
-    const uint32_t *tbPrime = GetTbPrime(ctxP) ;
-    int N = 0 ;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d) N++ ;
-            p = ip ;
-        }
-    }
-    int8_t strDig[13] = { 2 , 3, 5, 7, 1, 1, 1, 3, 1, 7, 1, 9, 0} ;
-  
-    Nsum * NS = NsumAlloc(N, 9) ; // allocationof structure
-    NsumInd size = NsumGetSize(NS,9) ; // get the number of decomposition
-    // perfect hash, ks is the number of ni non null
-//    NsumInd NsumGetIndex(Nsum *NS,int ks,NsumVal *sum) ;
-    printf("N= %d Size=%d\n",N,size);
-    
-    PB705_DEC * P1dec = malloc(size*sizeof(P1dec[0])) ;
-    PB705_DEC * P2dec = malloc(size*sizeof(P2dec[0])) ;
-
-    PB705_DEC * antPdec = P1dec ;
-    PB705_DEC * curPdec = P2dec ;
-
-    int32_t *hashPdec = calloc(size+1,sizeof(hashPdec[0])) ;
-    
-    int nbPdec = 0 ;
-    curPdec[nbPdec].weight = 1 ;
-    curPdec[nbPdec].cost = 0 ;
-    curPdec[nbPdec].indHash = 0 ;
-    memset(curPdec[nbPdec].nbD,0,sizeof(curPdec[nbPdec].nbD));
-    nbPdec ++ ;
-    
-    int div1[] = { 1,1 } , div2[]= {2,2,1}, div3[]={2,3,1}, div4[]={3,4,2,1}
-    ,div5[]={2,5,1},div6[]={4,6,3,2,1},div7[]={2,7,1},div8[]={4,8,4,2,1},div9[]={3,9,3,1};
-    int *Div[10] = {
-        NULL,div1,div2,div3,div4,div5,div6,div7,div8,div9
-    };
-    pbR->nbClock = clock() ;
-    for(int i=0;i<nbPrime;i++) {
-        int32_t p = tbPrime[i] ;
-        uint8_t dig[20] ;
-        int nbDig = 0 ;
-        while(p > 0) {
-            int ip = p /10 ;
-            int d = p - 10 * ip ;
-            if(d)dig[nbDig++] = d ;
-            p = ip ;
-        }
-        for(int nd=nbDig-1;nd>=0;nd--) {
-            int d = dig[nd] ;
-                PB705_DEC * tmp = antPdec ;
-                antPdec = curPdec ;
-                curPdec = tmp ;
-                // on reset le hash
-                int antNbpdec = nbPdec ;
-                nbPdec = 0 ;
-                for(int ia=0; ia<antNbpdec;ia++) {
-                    hashPdec[antPdec[ia].indHash] = 0 ;
-                }
-                int nW = Div[d][0] ;
-                for(int ia=0;ia<antNbpdec;ia++) {
-                    uint8_t nbD[10] ;
-                    memcpy(nbD,antPdec[ia].nbD,sizeof(antPdec[ia].nbD)) ;
-                    for(int id=0;id<nW;id++) {
-                        int32_t dd = Div[d][id+1] ;
-                        nbD[dd]++ ;
-                        int indH = NsumGetIndex(NS,9,nbD)  ;
-                        int indNewP ;
-                        if(hashPdec[indH]) {
-                            indNewP = hashPdec[indH]-1 ;
-                            curPdec[indNewP].weight = (curPdec[indNewP].weight + antPdec[ia].weight)  % PB705_MOD;
-                            curPdec[indNewP].cost = (curPdec[indNewP].cost + antPdec[ia].cost) % PB705_MOD ;
-                        } else {
-                            indNewP = nbPdec ;
-                            hashPdec[indH] = ++nbPdec ;
-                            memcpy(curPdec[indNewP].nbD,nbD,sizeof(curPdec[indNewP].nbD));
-                            curPdec[indNewP].indHash = indH ;
-                            curPdec[indNewP].weight = antPdec[ia].weight ;
-                            curPdec[indNewP].cost = antPdec[ia].cost ;
-                        }
-                        nbD[dd]-- ;
-                        int dSum = 0 ;
-                        for(int idd=9;idd>dd;idd--) {
-                            dSum += nbD[idd] ;
-                        }
-                        curPdec[indNewP].cost = (curPdec[indNewP].cost + dSum * antPdec[ia].weight ) % PB705_MOD  ;
-                    }
-                }
-            
-        }
-    }
     int64_t S = 0 ;
-    for(int ia = 0;ia<nbPdec;ia++) {
-        S = (S+curPdec[ia].cost) % PB705_MOD ;
-    }
+    pbR->nbClock = clock() - pbR->nbClock ;
+    int F0 =0 , F1 = 1 ;
+    int w = PB705_W ;
+    for(int jf=0;jf<PB707_MAXF;jf++) {
+        if((w==F1) || (w & 3)==0 || (F1 & 3) == 0) {
+            S += modPow(2,w*F1,1000000007) ;
+        } else if (w<F1){
+            S += modPow(2,w*(F1-1),1000000007) ;
+        } else {
+            S += modPow(2,(w-1)*F1,1000000007) ;
 
+        }
+        int tmp = F0 ;
+        F0 = F1 ; F1 += tmp ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    return 1 ;
+}
+
+#define PB708_MAX   100000000
+//#define PB708_MAX   17897130
+#define PB708_MAX   100000000
+int PB708(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int64_t N2 = Sqrt64(N)+1 ;
+    uint8_t * Nb2 = calloc(N2+1,sizeof(Nb2[0]));
+    int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
+    int nbPrim = 0 ;
+    int32_t *tbPrim = malloc(N2*sizeof(tbPrim[0])/10) ;
+    for(int p=2;p<=N2;p++) {
+        if(Nb2[p]) {
+            histPow2[Nb2[p]]++ ;
+            continue ;
+        }
+        histPow2[1]++ ; tbPrim[nbPrim++] = p ;
+        for(int64_t pp=p;pp<=N2;pp *=p) {
+            for(int64_t npp=pp;npp<=N2;npp+=pp) {
+                Nb2[npp]++ ;
+            }
+        }
+    }
+    for(int64_t n=N2+1;n<=N;n++) {
+        int nbP = 0 ;
+        int64_t q = n ;
+        for(int np=0;np<nbPrim && q > 1 ;np++) {
+            int p = tbPrim[np] ;
+            if(p*(int64_t)p > n) break ;
+            while ( (q % p) == 0) {
+                q /= p ;
+                nbP++ ;
+            }
+        }
+        if(q > 1) nbP++ ;
+        histPow2[nbP]++ ;
+        
+    }
+    int64_t S = 1 ;
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%d ",i2,histPow2[i2]);
+
+        S += histPow2[i2] << i2 ;
+    }
     sprintf(pbR->strRes,"%lld",S) ;
     pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
@@ -1110,55 +572,740 @@ int PB705b(PB_RESULT *pbR) {
 
 
 
-int PB705c(PB_RESULT *pbR) {
-    int8_t strDig[] = { 2 , 3, 5, 7, 1, 1, 1, 3, 1, 7, 1, 9, 0} ;
-    int nbDiv[9] = { 1 , 2 ,2 , 3 , 2 , 4 , 2 , 4, 3} ;
-    int div1[] = { 1,1 } , div2[]= {2,2,1}, div3[]={2,3,1}, div4[]={3,4,2,1}
-    ,div5[]={2,5,1},div6[]={4,6,3,2,1},div7[]={2,7,1},div8[]={4,8,4,2,1},div9[]={3,9,3,1};
-    int *Div[10] = {
-        NULL,div1,div2,div3,div4,div5,div6,div7,div8,div9
-    };
-    pbR->nbClock = clock() ;
-    int64_t nbDig[10] ;
-    int64_t oldNbDig[10] ;
-    int64_t oldLgxDig[10] ;
-    int64_t sumLgxDig[10] ;
-    int64_t weight = 1 ;
-    int64_t sum = 0 ;
-    printf("%d %d %d \n",Div[1][0],Div[1][1],Div[2][0]);
-    memset(nbDig,0,sizeof(nbDig));
-    memset(sumLgxDig,0,sizeof(sumLgxDig));
-    int8_t d ;
-    for(int id=0;(d=strDig[id]) != 0;id++ ) {
- /*       memcpy(oldNbDig,nbDig,sizeof(nbDig));
-        memcpy(oldLgxDig,sumLgxDig,sizeof(sumLgxDig));
-        memset(nbDig,0,sizeof(nbDig));
-        memset(sumLgxDig,0,sizeof(sumLgxDig));
-  */
-        int nW = Div[d][0] ;
-        sum *= nW ;
-        for(int n=0;n<Div[d][0];n++) {
-            int dd = Div[d][n+1] ;
-            for(int idd=dd+1;idd<=9;idd++) {
-                sum += sumLgxDig[idd] ;
+
+typedef uint64_t T_prime64 ;
+typedef int(*TY_CPL_nxtPrime64)(void *ctx,T_prime64 nxtPrime);
+uint32_t FindPrime64(T_prime64 maxValue,void *ctx,TY_CPL_nxtPrime64 nxtPrime) ;
+typedef struct CTX_PRIMETABLE64 CTX_PRIMETABLE64 ;
+
+struct  CTX_PRIMETABLE64 {
+    uint32_t       nbPrime ;
+    T_prime64     maxValue ;
+    uint32_t    maxNbPrime ;
+    T_prime64     *tbPrime ;
+}  ;
+
+int CPL_tablePrime64(void *ptCtx,T_prime64 nxtPrime) {
+    CTX_PRIMETABLE64 * ctx = (CTX_PRIMETABLE64 *) ptCtx ;
+    if(nxtPrime > ctx->maxValue) return 0 ;
+    ctx->tbPrime[ctx->nbPrime] = nxtPrime ;
+    ctx->nbPrime++ ;
+    if(ctx->nbPrime >= ctx->maxNbPrime) {
+        ctx->maxValue = nxtPrime * nxtPrime ;
+        return 0 ;
+    }
+    return 1;
+}
+
+const T_prime64 * GetTbPrime64(CTX_PRIMETABLE64 * ctx) {
+    return ctx->tbPrime ;
+}
+
+uint32_t GetNbPrime64(CTX_PRIMETABLE64 * ctx) {
+    return ctx->nbPrime ;
+}
+
+CTX_PRIMETABLE64 * Free_tablePrime64(CTX_PRIMETABLE64 * ctx) {
+    if(ctx != NULL) free(ctx->tbPrime) ;
+    free(ctx);
+    return NULL ;
+}
+
+
+
+//
+// On replie la table.
+// la taille de la table peut être quelconque
+// Plus rapide pour taille nSqrt ou 32368 si trop grande valeurs
+//
+uint32_t FindPrime64_(T_prime64 nbMax,void *ctx,TY_CPL_nxtPrime64 nxtPrime) {
+    uint32_t nSqrt = 1+ (int32_t)Sqrt64(nbMax ) ;
+    int isEnd = 0;
+    T_prime64 *tbPrime = malloc(nSqrt * sizeof(tbPrime[0])) ;
+    int64_t *offSet = malloc(nSqrt * sizeof(offSet[0])) ;
+    uint32_t sizeTable =  (nSqrt < 65536) ? nSqrt : 65536 ;
+    int8_t *isComposed = calloc( sizeTable , sizeof(isComposed[0])) ;
+    uint32_t nbPrime = 0 ;
+    T_prime64 lastPrime = 0 ;
+    T_prime64 offSetTable = 0 ;
+    T_prime64 nbPrimeSqrt = 0 ;
+    
+    nbPrime ++ ;
+    lastPrime = 2 ;
+    if(nxtPrime(ctx,2) == 0) {
+        return nbPrime ;
+    }
+    // remarque le nb premier 2 n'est pas stocke dans tbPrime car pas utilise dans le crible erasto.
+    // pour commencer a 3 donc indPrime = (3>>1)
+    T_prime64 indPrime = 1 ;
+    
+    while ( 1) {
+        T_prime64 icp ;
+        for(icp=indPrime - offSetTable ;icp < sizeTable; icp++ ) {
+            if(!isComposed[icp] ) {
+                lastPrime = 2*(icp+offSetTable)+1 ;
+                
+                if(lastPrime < nSqrt) {
+                    T_prime64 icp2 ;
+                    tbPrime[nbPrimeSqrt] = lastPrime ;
+                    for(icp2 = icp + lastPrime; icp2 < sizeTable ; icp2 += lastPrime ) {
+                        isComposed[icp2] = 1 ;
+                    }
+                    offSet[nbPrimeSqrt++] = icp2 - sizeTable ;
+                }
+                nbPrime++ ;
+                if(nxtPrime(ctx,lastPrime) == 0) {
+                    isEnd = 1;
+                    break ; // demande d'arret
+                }
             }
         }
-
-        for(int i=1;i<=9;i++) {
-            sumLgxDig[i] = nW * (sumLgxDig[i]+nbDig[i]) ;
-            nbDig[i] = nW * nbDig[i] ;
+        offSetTable += sizeTable ;
+        if(isEnd || offSetTable >= nbMax) break ;
+        indPrime = offSetTable ;
+        if ( offSetTable + sizeTable > nbMax) { sizeTable = (int32_t)(nbMax - offSetTable) ; }
+        memset(isComposed,0,sizeTable) ;
+        {
+            int np ;
+            for(np=0;np<nbPrimeSqrt;np++) {
+                T_prime64 p = tbPrime[np] ;
+                int64_t indPrime = offSet[np] ;
+                while ( indPrime < sizeTable) {
+                    isComposed[indPrime] = 1 ;
+                    indPrime += p ;
+                }
+                offSet[np] = indPrime - sizeTable ;
+            }
         }
-         for(int n=0;n<Div[d][0];n++) {
-            int dd = Div[d][n+1] ;
-              nbDig[dd] += weight ;
-             sumLgxDig[dd] += weight ;
-        }
-        weight *= nW ;
-        printf("%d =>W=%lld,S=%lld",d,weight,sum) ;
-        for(int i = 1;i<=9;i++) printf("[%lld x %lld]",sumLgxDig[i],nbDig[i]);
-        printf("\n");
     }
+    free(tbPrime);
+    free(offSet) ;
+    free(isComposed);
+    return nbPrime ;
+}
 
+uint32_t FindPrime64(T_prime64 maxValue,void *ctx,TY_CPL_nxtPrime64 nxtPrime) {
+    return FindPrime64_(maxValue,ctx,nxtPrime) ;
+}
+
+CTX_PRIMETABLE64 * Gen_tablePrime64(T_prime64 maxValue) {
+    CTX_PRIMETABLE64 *ctx ;
+    ctx = calloc(1,sizeof(ctx[0]));
+    if(ctx == NULL) return ctx ;
+    ctx->maxValue = maxValue ;
+    if(maxValue > 100) {
+        ctx->maxNbPrime = (uint32_t) (1+ maxValue / (log((double)maxValue) - 4)) ;
+    } else {
+        ctx->maxNbPrime = 30 ;
+    }
+    ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
+    if(ctx->tbPrime == NULL) { return Free_tablePrime64(ctx) ; }
+    FindPrime64(maxValue,ctx,CPL_tablePrime64) ;
+    return ctx ;
+}
+
+CTX_PRIMETABLE64 * Gen_tablePrimeNb64(T_prime64 maxNb) {
+    CTX_PRIMETABLE64 *ctx ;
+    ctx = calloc(1,sizeof(ctx[0]));
+    if(ctx == NULL) return ctx ;
+    if(maxNb < 30)  {
+        ctx->maxNbPrime = 30 ;
+    } else {
+        ctx->maxNbPrime = (uint32_t) maxNb ;
+    }
+    ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
+    if(ctx->tbPrime == NULL) { return Free_tablePrime64(ctx) ; }
+    //   ctx->maxValue = 0x7fffffff ;
+    ctx->maxValue = ctx->maxNbPrime * (4 + log (ctx->maxNbPrime))  ;
+    FindPrime64(ctx->maxValue,ctx,CPL_tablePrime64) ;
+    return ctx ;
+}
+
+static int32_t CmpPrime(const void *e1,const void *e2) {
+    T_prime64 * p1 = (T_prime64 *)e1 ;
+    T_prime64 * p2 = (T_prime64 *)e2 ;
+    if(*p1 > *p2) return 1;
+    else if( *p1 < *p2) return -1 ;
+    return 0 ;
+}
+
+int Search_TablePrime64(CTX_PRIMETABLE64 *ctxP, T_prime64 n) {
+    return (bsearch(&n,ctxP->tbPrime,ctxP->nbPrime,sizeof(n),CmpPrime) != NULL) ;
+}
+
+int SearchRg_TablePrime64(CTX_PRIMETABLE64 *ctxP, T_prime64 n) {
+    T_prime64 * pt= bsearch(&n,ctxP->tbPrime,ctxP->nbPrime,sizeof(n),CmpPrime) ;
+    if(pt != NULL) return (int)(pt-ctxP->tbPrime) ;
+    else return -1 ;
+}
+typedef struct PB708_N {
+    int64_t val ;
+    int8_t nbp2 ;
+    
+} PB708_N ;
+int cmpPow2537(const void *el1,const void *el2) {
+    PB708_N *n1 = (PB708_N *)el1 ;
+    PB708_N *n2 = (PB708_N *)el2 ;
+    if(n1->val > n2->val) return 1;
+    else if(n1->val < n2->val) return -1 ;
+    return 0 ;
+}
+
+int PB708b(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
+    
+    PB708_N *pow2357 = malloc(4000000*sizeof(pow2357[0])) ;
+    int nbPow2357 = 0 ;
+    pow2357[nbPow2357].val = 1 ;
+    pow2357[nbPow2357++].nbp2 = 0 ;
+    int n2=1 ;
+    for(int64_t pow2=2;pow2<=N;pow2 *= 2 , n2++) {
+        pow2357[nbPow2357].val = pow2 ;
+        pow2357[nbPow2357++].nbp2 = n2 ;
+    }
+    
+ 
+    
+#define PB708_NBP   11
+    int prim[PB708_NBP]= {3,5,7,11,13,17,19,23,29,31,37} ;
+//#define PB708_NBP   3
+//    int prim[PB708_NBP]= {3,5,7} ;
+    for(int ip=0;ip<PB708_NBP;ip++) {
+        int p = prim[ip];
+        int nbp = 1 ;
+        for(int64_t powp=p;powp<=N;powp *= p , nbp++) {
+            int64_t pow2_p ;
+            for(int ip2=0;(pow2_p=pow2357[ip2].val*powp)<=N;ip2++) {
+                pow2357[nbPow2357].val = pow2_p ;
+                pow2357[nbPow2357++].nbp2 = pow2357[ip2].nbp2 + nbp ;
+            }
+        }
+        qsort(pow2357,nbPow2357,sizeof(pow2357[0]),cmpPow2537);
+    }
+    printf("Maxp2=%d nbp=%d\n",maxPow2,nbPow2357);
+//    for(int i=0;i<nbPow2357;i++) printf("%lld(%d) ",pow2357[i].val,pow2357[i].nbp2);
+    int64_t nbN = nbPow2357 ;
+//    int32_t N2 = (int32_t) Sqrt64(N+1) ;
+   int32_t N2 = (int32_t) Sqrt64(N)+1 ;
+    
+    
+    uint8_t * Nb2 = calloc(N2+1,sizeof(Nb2[0]));
+    for(int p=2;p<N2;p++) {
+        if(Nb2[p]) continue ;
+        for(int64_t pp=p;pp<N2;pp *=p) {
+            for(int64_t npp=pp;npp<N2;npp+=pp) {
+                Nb2[npp]++ ;
+            }
+        }
+    }
+    
+    int64_t * countSQ = calloc(N2,sizeof(countSQ[0]));
+    int8_t * nb2SQ = calloc(N2,sizeof(nb2SQ[0])) ;
+    for(int i=1;i<nbPow2357;i++)  {
+        int64_t pn0 = pow2357[i].val ;
+ /*       if(pn0 <N2 ) {
+            nb2SQ[pn0]=pow2357[i].nbp2 ;
+            countSQ[pn0] ++ ;
+        }
+       int d ;
+        for(d=2;d*d<pn0 && d < N2 ;d++) {
+//            printf("(%lld,%d)",pn0,d);
+            if((pn0 % d) ==0) {
+                countSQ[d] ++ ;
+                int64_t d2 = pn0/d ;
+                if(d2 < N2) countSQ[d2] ++ ;
+            }
+ 
+        }
+        if(d*d == pn0 && d <N2 ) countSQ[d] ++ ;
+  */
+        histPow2[pow2357[i].nbp2]++;
+    }
+/*
+    printf("\nP0 ");
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+    }
+    printf("\n");
+*/
+//    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N+1) ;
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
+    int64_t nbPrime = GetNbPrime64(ctxP) ;
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    int64_t nbPrimeSq ;
+    printf("Nb primes=%lld \n",nbPrime);
+//    for(int n=2;n<N2;n++) {
+    for(int n=1;n<N2;n++) {
+        for(int i0=0;i0<nbPow2357;i0++) {
+            int64_t p0 = pow2357[i0].val*n ;
+            if(p0 > N) break ;
+//            printf("%d+%lld ",n,p0) ;
+            countSQ[n]++ ;
+            int nb0 = pow2357[i0].nbp2+Nb2[n] ;
+            for(int ip1=PB708_NBP+1;ip1<nbPrime;ip1++) {
+                T_prime64 p1 = tbPrime[ip1] ;
+                int64_t pn1 = p1*p0 ;
+                if(pn1 > N) break ;
+ //               printf("%d+%lld ",n,p1) ;
+              countSQ[n]++ ;
+                if(n==1)  {histPow2[nb0+1]++ ; nbN++ ;
+ //                   printf("{%lld+%d}",pn1,nb0+1) ;
+                }
+                for(int ip2=PB708_NBP+1;ip2<=ip1;ip2++) {
+                    T_prime64 p2 = tbPrime[ip2] ;
+                    int64_t pn2 = pn1*p2 ;
+                    if(pn2 > N) break ;
+                    countSQ[n]++ ;
+                    if(n==1)  { histPow2[nb0+2]++ ; nbN++ ;
+  //                      printf("{%lld+%d}",pn2,nb0+2) ;
+                    }
+                    for(int ip3=PB708_NBP+1;ip3<=ip2;ip3++) {
+                        T_prime64 p3 = tbPrime[ip3] ;
+                        int64_t pn3 = pn2*p3 ;
+                        if(pn3 > N) break ;
+                        countSQ[n]++ ;
+                        if(n==1)  {histPow2[nb0+3]++ ; nbN++ ;}
+                        for(int ip4=PB708_NBP+1;ip4<=ip3;ip4++) {
+                            T_prime64 p4 = tbPrime[ip4] ;
+                            int64_t pn4 = pn3*p4 ;
+                            if(pn4 > N) break ;
+                            countSQ[n]++ ;
+                            if(n==1)  {histPow2[nb0+4]++ ; nbN++ ;}
+                            for(int ip5=PB708_NBP+1;ip5<=ip4;ip5++) {
+                                T_prime64 p5 = tbPrime[ip5] ;
+                                int64_t pn5 = pn4*p5 ;
+                                if(pn5 > N) break ;
+                                countSQ[n]++ ;
+                                if(n==1)  {histPow2[nb0+5]++ ; nbN++ ;}
+                                for(int ip6=PB708_NBP+1;ip6<=ip5;ip6++) {
+                                    T_prime64 p6 = tbPrime[ip6] ;
+                                    int64_t pn6 = pn5*p6 ;
+                                    if(pn6 > N) break ;
+                                    countSQ[n]++ ;
+                                    if(n==1)  {histPow2[nb0+6]++ ; nbN++ ;}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    printf("N=%lld nbB=%lld \n",N,nbN);
+//    int64_t S = 1 + (N-nbN)*2;
+    int64_t S = 1 ;
+    printf("\n Count=");
+    for(int i=1;i<N2;i++) {
+        countSQ[i]= N/i - countSQ[i];
+//        printf("%lld->%lld ",N/i - countSQ[i],countSQ[i]);
+    }
+ /*
+    printf("\nP1 ");
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+    }
+    printf("\n");
+*/
+    for(int n=N2-1;n>1;n--) {
+ //       printf("H[%d]+=(%lld/%d)%lld ",Nb2[n]+1,N,n,countSQ[n]);
+        histPow2[ Nb2[n]+1] += countSQ[n] ;
+        nbN += countSQ[n] ;
+        int d ;
+        int64_t pnc = countSQ[n] ;
+        for(d=2;d*d<n && d < N2 ;d++) {
+            if((n % d) ==0) {
+                countSQ[d] -= pnc ;
+                int64_t d2 = n/d ;
+                if(d2 < N2) countSQ[d2] -=pnc ;
+            }
+        }
+        if(d*d == n && d <N2 ) countSQ[d] -=pnc ;
+   }
+    histPow2[1] += N-nbN ;
+//    histPow2[2] += (N/2-nbN2) ;
+//    histPow2[1] += (N-nbN) - (N/2-nbN2) ;
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+        S += histPow2[i2] << i2 ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
     return 1 ;
 }
-#endif
+
+int PB708c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
+    
+    PB708_N *pow2357 = malloc(4000000*sizeof(pow2357[0])) ;
+    int nbPow2357 = 0 ;
+    pow2357[nbPow2357].val = 1 ;
+    pow2357[nbPow2357++].nbp2 = 0 ;
+    int n2=1 ;
+    for(int64_t pow2=2;pow2<=N;pow2 *= 2 , n2++) {
+        pow2357[nbPow2357].val = pow2 ;
+        pow2357[nbPow2357++].nbp2 = n2 ;
+    }
+//#define PB708_NBP   11
+//    int prim[PB708_NBP]= {3,5,7,11,13,17,19,23,29,31,37} ;
+    #define PB708_NBP   3
+        int prim[PB708_NBP]= {3,5,7} ;
+    for(int ip=0;ip<PB708_NBP;ip++) {
+        int p = prim[ip];
+        int nbp = 1 ;
+        for(int64_t powp=p;powp<=N;powp *= p , nbp++) {
+            int64_t pow2_p ;
+            for(int ip2=0;(pow2_p=pow2357[ip2].val*powp)<=N;ip2++) {
+                pow2357[nbPow2357].val = pow2_p ;
+                pow2357[nbPow2357++].nbp2 = pow2357[ip2].nbp2 + nbp ;
+            }
+        }
+        qsort(pow2357,nbPow2357,sizeof(pow2357[0]),cmpPow2537);
+    }
+    printf("Maxp2=%d nbp=%d\n",maxPow2,nbPow2357);
+    //    for(int i=0;i<nbPow2357;i++) printf("%lld(%d) ",pow2357[i].val,pow2357[i].nbp2);
+    int64_t nbN = nbPow2357 ;
+    int32_t N2 = (int32_t) Sqrt64(N+1) ;
+    int64_t * countSQ = calloc(N2,sizeof(countSQ[0]));
+    int8_t * nb2SQ = calloc(N2,sizeof(nb2SQ[0])) ;
+    for(int i=1;i<nbPow2357;i++)  {
+        int64_t pn0 = pow2357[i].val ;
+        if(pn0 <N2 ) {
+            nb2SQ[pn0]=pow2357[i].nbp2 ;
+            countSQ[pn0] ++ ;
+        }
+        int d ;
+        for(d=2;d*d<pn0 && d < N2 ;d++) {
+            //            printf("(%lld,%d)",pn0,d);
+            if((pn0 % d) ==0) {
+                countSQ[d] ++ ;
+                int64_t d2 = pn0/d ;
+                if(d2 < N2) countSQ[d2] ++ ;
+            }
+            
+        }
+        if(d*d == pn0 && d <N2 ) countSQ[d] ++ ;
+        histPow2[pow2357[i].nbp2]++;
+    }
+/*    printf("\nP0 ");
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+    }
+    printf("\n");
+*/
+    //    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N+1) ;
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
+    int64_t nbPrime = GetNbPrime64(ctxP) ;
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    int64_t nbPrimeSq ;
+    int64_t p0 ;
+    printf("Nb primes=%lld \n",nbPrime);
+    for(int ip1=PB708_NBP+1;ip1<nbPrime;ip1++) {
+        T_prime64 p1 = tbPrime[ip1] ;
+        //        if(2*p1>N) break ;
+        int64_t n1 = p1 ;
+        for(int i=0;i<nbPow2357;i++) {
+            int64_t pn1 = pow2357[i].val*n1 ;
+            if(pn1 > N) break ;
+            if(pn1 <N2 ) {
+                nb2SQ[pn1]=pow2357[i].nbp2+1 ;
+                countSQ[pn1] ++ ;
+            }
+            int d ;
+            for(d=2;d*d<pn1 && d < N2 ;d++) {
+                if((pn1 % d) ==0) {
+                    countSQ[d] ++ ;
+                    int64_t d2 = pn1/d ;
+                    if(d2 < N2) countSQ[d2] ++ ;
+                }
+            }
+            if(d*d == pn1 && d <N2 ) countSQ[d] ++ ;
+            histPow2[pow2357[i].nbp2+1]++ ; nbN++ ;
+  //          printf("{%lld+%d}",pn1,pow2357[i].nbp2+1) ;
+        }
+        for(int ip2=PB708_NBP+1;ip2<=ip1;ip2++) {
+            T_prime64 p2 = tbPrime[ip2] ;
+            int64_t n2 = n1*p2 ;
+            if(n2 > N) break ;
+            for(int i=0;i<nbPow2357;i++) {
+                int64_t pn2 = pow2357[i].val*n2 ;
+                if(pn2 > N) break ;
+                if(pn2 <N2 ) {
+                    nb2SQ[pn2]=pow2357[i].nbp2+2 ;
+                    countSQ[pn2] ++ ;
+                }
+                int d ;
+                for(d=2;d*d<pn2 && d < N2 ;d++) {
+                    if((pn2 % d) ==0) {
+                        countSQ[d] ++ ;
+                        int64_t d2 = pn2/d ;
+                        if(d2 < N2) countSQ[d2] ++ ;
+                    }
+                }
+                if(d*d == pn2 && d <N2 ) countSQ[d] ++ ;
+                histPow2[pow2357[i].nbp2+2]++ ; nbN++ ;
+ //               printf("{%lld+%d}",pn2,pow2357[i].nbp2+2) ;
+
+            }
+            for(int ip3=PB708_NBP+1;ip3<=ip2;ip3++) {
+                T_prime64 p3 = tbPrime[ip3] ;
+                int64_t n3 = n2*p3 ;
+                if(n3 > N) break ;
+                for(int i=0;i<nbPow2357;i++) {
+                    int64_t pn3 = pow2357[i].val*n3 ;
+                    if(pn3 > N) break ;
+                    if(pn3 <N2 ) {
+                        nb2SQ[pn3]=pow2357[i].nbp2+3 ;
+                        countSQ[pn3] ++ ;
+                        
+                    }
+                    int d ;
+                    for(d=2;d*d<pn3 && d < N2 ;d++) {
+                        if((pn3 % d) ==0) {
+                            countSQ[d] ++ ;
+                            int64_t d2 = pn3/d ;
+                            if(d2 < N2) countSQ[d2] ++ ;
+                        }
+                    }
+                    if(d*d == pn3 && d <N2 ) countSQ[d] ++ ;
+                    histPow2[pow2357[i].nbp2+3]++ ; nbN++ ;
+                }
+                for(int ip4=PB708_NBP+1;ip4<=ip3;ip4++) {
+                    T_prime64 p4 = tbPrime[ip4] ;
+                    int64_t n4 = n3*p4 ;
+                    if(n4 > N) break ;
+                    for(int i=0;i<nbPow2357;i++) {
+                        int64_t pn4 = pow2357[i].val*n4 ;
+                        if(pn4 > N) break ;
+                        if(pn4 <N2 ) {
+                            nb2SQ[pn4]=pow2357[i].nbp2+4 ;
+                            countSQ[pn4] ++ ;
+                            
+                        }
+                        int d ;
+                        for(d=2;d*d<pn4 && d < N2 ;d++) {
+                            if((pn4 % d) ==0) {
+                                countSQ[d] ++ ;
+                                int64_t d2 = pn4/d ;
+                                if(d2 < N2) countSQ[d2] ++ ;
+                            }
+                        }
+                        if(d*d == pn4 && d <N2 ) countSQ[d] ++ ;
+                        histPow2[pow2357[i].nbp2+4]++ ; nbN++ ;
+                    }
+                    for(int ip5=PB708_NBP+1;ip5<=ip4;ip5++) {
+                        T_prime64 p5 = tbPrime[ip5] ;
+                        int64_t n5 = n4*p5 ;
+                        if(n5 > N) break ;
+                        for(int i=0;i<nbPow2357;i++) {
+                            int64_t pn5 = pow2357[i].val*n5 ;
+                            if(pn5 > N) break ;
+                            if(pn5 <N2 ) {
+                                nb2SQ[pn5]=pow2357[i].nbp2+5 ;
+                                countSQ[pn5] ++ ;
+                                
+                            }
+                            int d ;
+                            for(d=2;d*d<pn5 && d < N2 ;d++) {
+                                if((pn5 % d) ==0) {
+                                    countSQ[d] ++ ;
+                                    int64_t d2 = pn5/d ;
+                                    if(d2 < N2) countSQ[d2] ++ ;
+                                }
+                            }
+                            if(d*d == pn5 && d <N2 ) countSQ[d] ++ ;
+                            histPow2[pow2357[i].nbp2+5]++ ; nbN++ ;
+                        }
+                        for(int ip6=PB708_NBP+1;ip6<=ip5;ip6++) {
+                            T_prime64 p6 = tbPrime[ip6] ;
+                            int64_t n6 = n5*p6 ;
+                            if(n6 > N) break ;
+                            for(int i=0;i<nbPow2357;i++) {
+                                int64_t pn6 = pow2357[i].val*n6 ;
+                                if(pn6 > N) break ;
+                                if(pn6 <N2 ) {
+                                    nb2SQ[pn6]=pow2357[i].nbp2+6 ;
+                                    countSQ[pn6] ++ ;
+                                    
+                                }
+                                int d ;
+                                for(d=2;d*d<pn6 && d < N2 ;d++) {
+                                    if((pn6 % d) ==0) {
+                                        countSQ[d] ++ ;
+                                        int64_t d2 = pn6/d ;
+                                        if(d2 < N2) countSQ[d2] ++ ;
+                                    }
+                                }
+                                if(d*d == pn6 && d <N2 ) countSQ[d] ++ ;
+                                histPow2[pow2357[i].nbp2+6]++ ; nbN++ ;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    printf("N=%lld nbB=%lld \n",N,nbN);
+    //    int64_t S = 1 + (N-nbN)*2;
+    int64_t S = 1 ;
+    printf("\n Count=");
+    for(int i=1;i<N2;i++) {
+        countSQ[i]= N/i - countSQ[i];
+ //       printf("%lld->%lld ",N/i - countSQ[i],countSQ[i]);
+    }
+    
+  /*
+    printf("\nP1 ");
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+    }
+    printf("\n");
+*/
+    for(int n=N2-1;n>1;n--) {
+//        printf("H[%d]+=(%lld/%d)%lld ",nb2SQ[n]+1,N,n,countSQ[n]);
+        histPow2[ nb2SQ[n]+1] += countSQ[n] ;
+        nbN += countSQ[n] ;
+        int d ;
+        int64_t pnc = countSQ[n] ;
+        for(d=2;d*d<n && d < N2 ;d++) {
+            if((n % d) ==0) {
+                countSQ[d] -= pnc ;
+                int64_t d2 = n/d ;
+                if(d2 < N2) countSQ[d2] -=pnc ;
+            }
+        }
+        if(d*d == n && d <N2 ) countSQ[d] -=pnc ;
+    }
+    histPow2[1] += N-nbN ;
+    //    histPow2[2] += (N/2-nbN2) ;
+    //    histPow2[1] += (N-nbN) - (N/2-nbN2) ;
+ 
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+        S += histPow2[i2] << i2 ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+int PB708a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
+    
+    PB708_N *pow2357 = malloc(400000*sizeof(pow2357[0])) ;
+    int nbPow2357 = 0 ;
+    pow2357[nbPow2357].val = 1 ;
+    pow2357[nbPow2357++].nbp2 = 0 ;
+    int n2=1 ;
+    for(int64_t pow2=2;pow2<=N;pow2 *= 2 , n2++) {
+        pow2357[nbPow2357].val = pow2 ;
+        pow2357[nbPow2357++].nbp2 = n2 ;
+    }
+#define PB708_NBP   11
+    int prim[PB708_NBP]= {3,5,7,11,13,17,19,23,29,31,37} ;
+    for(int ip=0;ip<PB708_NBP;ip++) {
+        int p = prim[ip];
+        int nbp = 1 ;
+        for(int64_t powp=p;powp<=N;powp *= p , nbp++) {
+            int64_t pow2_p ;
+            for(int ip2=0;(pow2_p=pow2357[ip2].val*powp)<=N;ip2++) {
+                pow2357[nbPow2357].val = pow2_p ;
+                pow2357[nbPow2357++].nbp2 = pow2357[ip2].nbp2 + nbp ;
+            }
+        }
+        qsort(pow2357,nbPow2357,sizeof(pow2357[0]),cmpPow2537);
+    }
+    printf("Maxp2=%d nbp=%d\n",maxPow2,nbPow2357);
+//    for(int i=0;i<nbPow2357;i++) printf("%lld(%d) ",pow2357[i].val,pow2357[i].nbp2);
+    for(int i=1;i<nbPow2357;i++) histPow2[pow2357[i].nbp2]++;
+    int64_t nbN = nbPow2357 ;
+    int32_t N2 = (int32_t) Sqrt64(N)+1 ;
+    
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N+1) ;
+    int64_t nbPrime = GetNbPrime64(ctxP) ;
+    printf("Nb primes=%lld\n",nbPrime);
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    for(int ip1=PB708_NBP+1;ip1<nbPrime;ip1++) {
+        T_prime64 p1 = tbPrime[ip1] ;
+        int64_t n1 = p1 ;
+        for(int i=0;i<nbPow2357;i++) {
+            if(pow2357[i].val*n1 > N) break ;
+ //           printf("%lld<%d> ",pow2357[i].val*n1,pow2357[i].nbp2+1) ;
+            histPow2[pow2357[i].nbp2+1]++ ; nbN++ ;
+        }
+        for(int ip2=ip1;ip2<nbPrime;ip2++) {
+            T_prime64 p2 = tbPrime[ip2] ;
+            int64_t n2 = n1*p2 ;
+            if(n2 > N) break ;
+            for(int i=0;i<nbPow2357;i++) {
+                if(pow2357[i].val*n2 > N) break ;
+ //               printf("%lld[%d] ",pow2357[i].val*n2,pow2357[i].nbp2+2) ;
+                histPow2[pow2357[i].nbp2+2]++ ; nbN++ ;
+            }
+            for(int ip3=ip2;ip3<nbPrime;ip3++) {
+                T_prime64 p3 = tbPrime[ip3] ;
+                int64_t n3 = n2*p3 ;
+                if(n3 > N) break ;
+                for(int i=0;i<nbPow2357;i++) {
+                    if(pow2357[i].val*n3 > N) break ;
+ //                   printf("%lld{%d} ",pow2357[i].val*n3,pow2357[i].nbp2+3) ;
+                    histPow2[pow2357[i].nbp2+3]++ ; nbN++ ;
+                }
+                for(int ip4=ip3;ip4<nbPrime;ip4++) {
+                    T_prime64 p4 = tbPrime[ip4] ;
+                    int64_t n4 = n3*p4 ;
+                    if(n4 > N) break ;
+                    for(int i=0;i<nbPow2357;i++) {
+                        if(pow2357[i].val*n4 > N) break ;
+                        //                   printf("%lld{%d} ",pow2357[i].val*n3,pow2357[i].nbp2+3) ;
+                        histPow2[pow2357[i].nbp2+4]++ ; nbN++ ;
+                    }
+                    for(int ip5=ip4;ip5<nbPrime;ip5++) {
+                        T_prime64 p5 = tbPrime[ip5] ;
+                        int64_t n5 = n4*p5 ;
+                        if(n5 > N) break ;
+                        for(int i=0;i<nbPow2357;i++) {
+                            if(pow2357[i].val*n5 > N) break ;
+                            //                   printf("%lld{%d} ",pow2357[i].val*n3,pow2357[i].nbp2+3) ;
+                            histPow2[pow2357[i].nbp2+5]++ ; nbN++ ;
+                        }
+                        for(int ip6=ip5;ip6<nbPrime;ip6++) {
+                            T_prime64 p6 = tbPrime[ip6] ;
+                            int64_t n6 = n5*p6 ;
+                            if(n5 > N) break ;
+                            for(int i=0;i<nbPow2357;i++) {
+                                if(pow2357[i].val*n6 > N) break ;
+                                //                   printf("%lld{%d} ",pow2357[i].val*n3,pow2357[i].nbp2+3) ;
+                                histPow2[pow2357[i].nbp2+6]++ ; nbN++ ;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    printf("N=%lld nbB=%lld \n",N,nbN);
+    int64_t S = 1 + (N-nbN)*2;
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+        S += histPow2[i2] << i2 ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
