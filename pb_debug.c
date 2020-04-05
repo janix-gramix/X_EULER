@@ -521,7 +521,7 @@ int PB707(PB_RESULT *pbR) {
 
 #define PB708_MAX   100000000
 //#define PB708_MAX   17897130
-#define PB708_MAX   100000000
+#define PB708_MAX   1000000000
 int PB708(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int64_t N = PB708_MAX ;
@@ -840,69 +840,112 @@ int PB708b(PB_RESULT *pbR) {
     int64_t nbPrimeSq ;
     printf("Nb primes=%lld \n",nbPrime);
 //    for(int n=2;n<N2;n++) {
-    for(int n=1;n<N2;n++) {
+    int Piv = 200 ;
+    PB708_N *powPiv = malloc(100000000*sizeof(powPiv[0])) ;
+    int nbPiv = 0 ;
+//    for(int n=1;n<N2;n++) {
+    for(int n=1;n<=Piv;n++) {
+        int64_t count_n = 0 ;
         for(int i0=0;i0<nbPow2357;i0++) {
             int64_t p0 = pow2357[i0].val*n ;
+            int64_t p0piv = pow2357[i0].val ;
             if(p0 > N) break ;
 //            printf("%d+%lld ",n,p0) ;
-            countSQ[n]++ ;
+            count_n++ ;
             int nb0 = pow2357[i0].nbp2+Nb2[n] ;
-            for(int ip1=PB708_NBP+1;ip1<nbPrime;ip1++) {
+            int nb0piv = pow2357[i0].nbp2 ;
+            if(n==Piv) {powPiv[nbPiv].val = p0piv ; powPiv[nbPiv++].nbp2 = nb0piv ; }
+
+            int ip1 ;
+            for(ip1=PB708_NBP+1;ip1<nbPrime;ip1++) {
                 T_prime64 p1 = tbPrime[ip1] ;
                 int64_t pn1 = p1*p0 ;
                 if(pn1 > N) break ;
+                int64_t pn1piv ;
  //               printf("%d+%lld ",n,p1) ;
-              countSQ[n]++ ;
+              count_n++ ;
                 if(n==1)  {histPow2[nb0+1]++ ; nbN++ ;
  //                   printf("{%lld+%d}",pn1,nb0+1) ;
                 }
-                for(int ip2=PB708_NBP+1;ip2<=ip1;ip2++) {
+                if(n==Piv) {
+                    powPiv[nbPiv].val = pn1piv = p1*p0piv  ;
+                    powPiv[nbPiv++].nbp2 = nb0piv+1 ;
+                }
+//                for(int ip2=PB708_NBP+1;ip2<=ip1;ip2++) {
+                for(int ip2=ip1;ip2<nbPrime;ip2++) {
                     T_prime64 p2 = tbPrime[ip2] ;
                     int64_t pn2 = pn1*p2 ;
-                    if(pn2 > N) break ;
-                    countSQ[n]++ ;
+                    int64_t pn2piv  ;
+                   if(pn2 > N) {  break ; }
+                    count_n++ ;
                     if(n==1)  { histPow2[nb0+2]++ ; nbN++ ;
   //                      printf("{%lld+%d}",pn2,nb0+2) ;
                     }
-                    for(int ip3=PB708_NBP+1;ip3<=ip2;ip3++) {
-                        T_prime64 p3 = tbPrime[ip3] ;
+                    if(n==Piv) {powPiv[nbPiv].val = pn2piv = p2*pn1piv   ; powPiv[nbPiv++].nbp2 = nb0piv+2 ; }
+ //                    for(int ip3=PB708_NBP+1;ip3<=ip2;ip3++) {
+                    for(int ip3=ip2;ip3<nbPrime;ip3++) {
+                       T_prime64 p3 = tbPrime[ip3] ;
                         int64_t pn3 = pn2*p3 ;
                         if(pn3 > N) break ;
-                        countSQ[n]++ ;
+                        int64_t pn3piv ;
+                        count_n++ ;
                         if(n==1)  {histPow2[nb0+3]++ ; nbN++ ;}
-                        for(int ip4=PB708_NBP+1;ip4<=ip3;ip4++) {
+                        if(n==Piv) {powPiv[nbPiv].val = pn3piv = p3*pn2piv ; powPiv[nbPiv++].nbp2 = nb0piv+3 ; }
+
+ //                       for(int ip4=PB708_NBP+1;ip4<=ip3;ip4++) {
+                        for(int ip4=ip3;ip4<nbPrime;ip4++) {
                             T_prime64 p4 = tbPrime[ip4] ;
                             int64_t pn4 = pn3*p4 ;
                             if(pn4 > N) break ;
-                            countSQ[n]++ ;
+                            count_n++ ;
+                            int64_t pn4piv ;
                             if(n==1)  {histPow2[nb0+4]++ ; nbN++ ;}
-                            for(int ip5=PB708_NBP+1;ip5<=ip4;ip5++) {
-                                T_prime64 p5 = tbPrime[ip5] ;
+                            if(n==Piv) {powPiv[nbPiv].val = pn4piv = p4*pn3piv ; powPiv[nbPiv++].nbp2 = nb0piv+4 ; }
+
+ //                           for(int ip5=PB708_NBP+1;ip5<=ip4;ip5++) {
+                            for(int ip5=ip4;ip5<nbPrime;ip5++) {
+                               T_prime64 p5 = tbPrime[ip5] ;
                                 int64_t pn5 = pn4*p5 ;
                                 if(pn5 > N) break ;
-                                countSQ[n]++ ;
+                                count_n++ ;
+                                int64_t pn5piv ;
                                 if(n==1)  {histPow2[nb0+5]++ ; nbN++ ;}
-                                for(int ip6=PB708_NBP+1;ip6<=ip5;ip6++) {
-                                    T_prime64 p6 = tbPrime[ip6] ;
+                                if(n==Piv) {powPiv[nbPiv].val = pn5piv = p5*pn4piv ; powPiv[nbPiv++].nbp2 = nb0piv+5 ; }
+
+ //                               for(int ip6=PB708_NBP+1;ip6<=ip5;ip6++) {
+                                for(int ip6=ip5;ip6<nbPrime;ip6++) {
+                                   T_prime64 p6 = tbPrime[ip6] ;
                                     int64_t pn6 = pn5*p6 ;
                                     if(pn6 > N) break ;
-                                    countSQ[n]++ ;
+                                    count_n++ ;
+                                    int pn6piv ;
                                     if(n==1)  {histPow2[nb0+6]++ ; nbN++ ;}
+                                    if(n==Piv) {powPiv[nbPiv].val = pn6piv = p6*pn5piv ; powPiv[nbPiv++].nbp2 = nb0piv+6 ; }
+
                                 }
                             }
                         }
                     }
-                }
+               }
             }
-        }
+       }
+        countSQ[n] = count_n ;
     }
-    printf("N=%lld nbB=%lld \n",N,nbN);
+    qsort(powPiv,nbPiv,sizeof(powPiv[0]),cmpPow2537);
+    for(int n=Piv+1;n<N2;n++) {
+        int ip ;
+        for(ip=0;ip<nbPiv;ip++) {
+            if(n*powPiv[ip].val > N) break ;
+        }
+        countSQ[n] = ip ;
+    }
+    printf("N=%lld nbB=%lld nbPiv=%d\n",N,nbN,nbPiv);
 //    int64_t S = 1 + (N-nbN)*2;
     int64_t S = 1 ;
     printf("\n Count=");
     for(int i=1;i<N2;i++) {
         countSQ[i]= N/i - countSQ[i];
-//        printf("%lld->%lld ",N/i - countSQ[i],countSQ[i]);
+//        printf("(%d)%lld->%lld ",i,N/i - countSQ[i],countSQ[i]);
     }
  /*
     printf("\nP1 ");
