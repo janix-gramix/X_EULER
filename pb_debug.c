@@ -760,28 +760,31 @@ int PB708b(PB_RESULT *pbR) {
     while( (1LL << maxPow2) <= N  ) maxPow2++ ;
     int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
 
-//    int32_t N2 = (int32_t) Sqrt64(N+1) ;
-    int32_t N2 = (int32_t) Sqrt64(N)+1 ;
+    int32_t N2 = (int32_t) Sqrt64(N) ;
+//    int32_t N2 = (int32_t) Sqrt64(N)+1 ;
     int32_t invN2 = (int32_t)(N / N2) ;
 
     int32_t NP = N2 ;
 //    int32_t N2 = (int32_t) Sqrt64(N)+1 ;
 //    int32_t N2 = (int32_t) N+1 ;
     
-    uint8_t * Nb2_l = calloc(10*NP+1,sizeof(Nb2_l[0]));
+    uint8_t * Nb2_l = calloc(NP+1,sizeof(Nb2_l[0]));
     uint8_t * Nb2_h = calloc(N/NP+1,sizeof(Nb2_h[0]));
 
-    uint64_t * S2_l = calloc(10*NP+1,sizeof(S2_l[0]));
+    uint64_t * S2_l = calloc(NP+1,sizeof(S2_l[0]));
     uint64_t * S2_h = calloc(N/NP+1,sizeof(S2_h[0]));
 
-    uint64_t * NBNoP_l = calloc(10*NP+1,sizeof(NBNoP_l[0]));
+    uint64_t * NBNoP_l = calloc(NP+1,sizeof(NBNoP_l[0]));
     uint64_t * NBNoP_h = calloc(N/NP+1,sizeof(NBNoP_h[0]));
  
 //    int64_t * countSQ = calloc(N2+1,sizeof(countSQ[0]));
 
+
+    
+    
    
     NBNoP_l[1] = 1 ;
-    for(int p=2;p< /* 10* */ NP;p++) {
+    for(int p=2;p<= NP;p++) {
         if(Nb2_l[p]) {
             histPow2[Nb2_l[p]]++ ;
             NBNoP_l[p] = NBNoP_l[p-1]+1 ;
@@ -790,19 +793,19 @@ int PB708b(PB_RESULT *pbR) {
             NBNoP_l[p] = (p <= N2) ? p : NBNoP_l[p-1] ;
             histPow2[1]++ ;
         }
-        for(int64_t pp=p;pp</* 10* */ NP;pp *=p) {
-            for(int64_t npp=pp;npp< /*10* */ NP;npp+=pp) {
+        for(int64_t pp=p;pp<= NP;pp *=p) {
+            for(int64_t npp=pp;npp<= NP;npp+=pp) {
                 Nb2_l[npp]++ ;
             }
         }
     }
     S2_l[1] = 1 ;
-    for(int i=2;i</* 10* */ NP;i++) {
+    for(int i=2;i<= NP;i++) {
         S2_l[i] = S2_l[i-1]+ (1LL << Nb2_l[i]) ;
     }
     
-#define S2(i)  ( ( (i) < NP) ? S2_l[i] : S2_h[N/(i)])
-#define NoP(i)  ( ( (i) < NP) ? NBNoP_l[i] : NBNoP_h[N/(i)])
+#define S2(i)  ( ( (i) <= NP) ? S2_l[i] : S2_h[N/(i)])
+#define NoP(i)  ( ( (i) <= NP) ? NBNoP_l[i] : NBNoP_h[N/(i)])
 /*
     printf("\nNBNoP_l=");
     for(int i=1;i<=NP;i++) {
@@ -813,7 +816,80 @@ int PB708b(PB_RESULT *pbR) {
     CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
     int64_t nbPrime = GetNbPrime64(ctxP) ;
     const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
-    for(int64_t in = N/(NP-1);in>0;in--) {
+    
+#define NoP(i)  ( ( (i) <= NP) ? NBNoP_l[i] : NBNoP_h[N/(i)])
+
+     uint64_t * NB_lh = calloc(NP+1+N/NP+1,sizeof(NB_lh[0]));
+    uint64_t * NB_l = NB_lh+NP+1 ;
+
+#define NB(i)  ( ( (i) <= NP) ? (i) : (NP+1+N/(i)) )
+
+    NB_lh[1] = 1 ;
+    
+//    for(int64_t in = 1;in*NP<N;in++) {
+    for(int64_t in = 1;in<=NP;in++) {
+        if(NB_lh[in]==0) continue ;
+ //       printf("\n%lld->",in);
+ //       for(int i=0;i<2*NP+1;i++) printf("%lld ",NB_lh[i]);
+        int64_t nbIn = NB_lh[in] ;
+        NB_lh[NP+2] += nbIn ;
+        NB_lh[in] = 0 ;
+        int64_t p1 ;
+        for(int ip1=0;ip1 < nbPrime && (p1=tbPrime[ip1])*in <= N  ; ip1++) {
+            int64_t Ni1 = in*p1 ;
+            NB_lh[NB(Ni1)] += 2*nbIn ; // printf("p1=%lld,NB(%lld)+=%lld ",p1,NB(Ni1),2*nbIn);
+            int64_t p2 ;
+            for(int ip2=ip1+1; ip2 < nbPrime && (p2=tbPrime[ip2])*Ni1 <=  N; ip2++ ) {
+                int64_t Ni2 = Ni1 * p2 ;
+                NB_lh[NB(Ni2)] -= 4*nbIn ; // printf("p2=%lld,NB(%lld)-=%lld ",p2,NB(Ni2),4*nbIn);
+                int64_t p3 ;
+                for(int ip3=ip2+1; ip3 < nbPrime && (p3=tbPrime[ip3])*Ni2 <=  N; ip3++ ) {
+                    int64_t Ni3 = Ni2*p3 ;
+                    NB_lh[NB(Ni3)] += 8*nbIn ;
+                    int64_t p4 ;
+                    for(int ip4=ip3+1; ip4 < nbPrime && (p4=tbPrime[ip4])*Ni3 <=  N; ip4++ ) {
+                        int64_t Ni4 = Ni3 * p4 ;
+                        NB_lh[NB(Ni4)] -= 16*nbIn ;
+                        int64_t p5 ;
+                        for(int ip5=ip4+1; ip5 < nbPrime && (p5=tbPrime[ip5])*Ni4 <=  N; ip5++ ) {
+                            int64_t Ni5 = Ni4 * p5 ;
+                             int64_t p6 ;
+                           NB_lh[NB(Ni5)] += 32*nbIn ;
+                           for(int ip6=ip5+1; ip6 < nbPrime && (p6=tbPrime[ip6])*Ni5 <=  N; ip6++ ) {
+                               int64_t Ni6 = Ni5 * p6 ;
+                               NB_lh[NB(Ni6)] -= 64*nbIn ;
+                               int64_t p7 ;
+                                for(int ip7=ip6+1; ip7 < nbPrime && (p7=tbPrime[ip7])*Ni6 <=  N; ip7++ ) {
+                                    int64_t Ni7 = Ni6*p7 ;
+                                    NB_lh[NB(Ni7)] += 128*nbIn ;
+                                    int64_t p8 ;
+                                    for(int ip8=ip7+1; ip8 < nbPrime && (p8=tbPrime[ip8])*Ni7 <=  N; ip8++ ) {
+                                        int64_t Ni8 = Ni7*p8 ;
+                                        NB_lh[NB(Ni8)] -= 256*nbIn ;
+                                  }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    printf("\n   ");
+//    for(int i=0;i<2*NP+1;i++) printf("%lld ",NB_lh[i]);
+    {
+        int64_t S =0 ;
+
+        for(int i=1;i<=NP;i++) {
+             S += NB_lh[NP+1+i] * S2_l[i] ;
+//            printf("(%d)=%lld=>%lld ",i,NB_lh[NP+1+i],S);
+       }
+        printf("\n%.3fs S=%lld\n",(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC, S);
+    }
+    
+    
+    
+    for(int64_t in = N/NP;in>0;in--) {
         int64_t Ni0 = N / in ;
         int64_t S2in = 1 ;
         int64_t NBnoPin = 1 ;
@@ -888,6 +964,7 @@ int PB708b(PB_RESULT *pbR) {
 
 //        if(Ni0 < N2*10) printf("(in=%lld)[%lld]=%lld/%lld(NoP=%lld)) ",in,Ni0,S2_h[in],S2_l[Ni0],NBnoPin);
     }
+    printf("Sh[1]=%lld\n",S2_h[1]);
 /*
     printf("\nS2_h=");
     for(int i=1;i<=NP;i++) {
@@ -896,18 +973,18 @@ int PB708b(PB_RESULT *pbR) {
  */
     printf("\n");
     int64_t nbN=NBNoP_h[1] ;
-    for(int i=1;i<N2;i++) {
+    for(int i=1;i<=N2;i++) {
         NBNoP_h[i]= N/i - NBNoP_h[i]; // donc countSQ[n] contient les nb premiers p >N2 et  n *p < N
 //        printf("(%d)%lld->%lld ",i,N/i - NBNoP_h[i],NBNoP_h[i]);
     }
     memset(histPow2,0,maxPow2*sizeof(histPow2[0]));
-    for(int n=N2-1;n>1;n--) {
+    for(int n=N2;n>1;n--) {
         //       printf("H[%d]+=(%lld/%d)%lld ",Nb2[n]+1,N,n,countSQ[n]);
         histPow2[ Nb2_l[n]+1] += NBNoP_h[n] ; // on rajoute les p * n
         nbN += NBNoP_h[n] ;
         int d ;
         int64_t pnc = NBNoP_h[n] ;
-        for(d=2;d*d<n && d < N2 ;d++) {
+        for(d=2;d*d<n && d <= N2 ;d++) {
             // on retranche si d diviseur strict de n , les p * n a countSQ[d]
             if((n % d) ==0) {
                 NBNoP_h[d] -= pnc ;
@@ -915,7 +992,7 @@ int PB708b(PB_RESULT *pbR) {
                 if(d2 < N2) NBNoP_h[d2] -=pnc ;
             }
         }
-        if(d*d == n && d <N2 ) NBNoP_h[d] -=pnc ;
+        if(d*d == n && d <=N2 ) NBNoP_h[d] -=pnc ;
     }
     histPow2[1] += N-nbN ;
 
@@ -974,21 +1051,21 @@ int PB708b1(PB_RESULT *pbR) {
 //    for(int i=0;i<nbPow2357;i++) printf("%lld(%d) ",pow2357[i].val,pow2357[i].nbp2);
     int64_t nbN = nbPow2357 ;
 //    int32_t N2 = (int32_t) Sqrt64(N+1) ;
-   int32_t N2 = (int32_t) Sqrt64(N)+1 ;
+   int32_t N2 = (int32_t) Sqrt64(N) ;
     int32_t invN2 = (int32_t)(N / N2) ;
     
     uint8_t * Nb2 = calloc(N2+1,sizeof(Nb2[0]));
-    for(int p=2;p<N2;p++) {
+    for(int p=2;p<=N2;p++) {
         if(Nb2[p]) continue ;
-        for(int64_t pp=p;pp<N2;pp *=p) {
-            for(int64_t npp=pp;npp<N2;npp+=pp) {
+        for(int64_t pp=p;pp<=N2;pp *=p) {
+            for(int64_t npp=pp;npp<=N2;npp+=pp) {
                 Nb2[npp]++ ;
             }
         }
     }
     
     int64_t * countSQ = calloc(N2+1,sizeof(countSQ[0]));
-    int8_t * nb2SQ = calloc(N2,sizeof(nb2SQ[0])) ;
+    int8_t * nb2SQ = calloc(N2+1,sizeof(nb2SQ[0])) ;
     for(int i=1;i<nbPow2357;i++)  {
         int64_t pn0 = pow2357[i].val ;
  /*       if(pn0 <N2 ) {
@@ -1129,7 +1206,7 @@ int PB708b1(PB_RESULT *pbR) {
 //    int64_t S = 1 + (N-nbN)*2;
     int64_t S = 1 ;
     printf("\n Count=");
-    for(int i=1;i<N2;i++) {
+    for(int i=1;i<=N2;i++) {
         countSQ[i]= N/i - countSQ[i]; // donc countSQ[n] contient les nb premiers p >N2 et  n *p < N
  //       printf("(%d)%lld->%lld ",i,N/i - countSQ[i],countSQ[i]);
     }
@@ -1140,21 +1217,21 @@ int PB708b1(PB_RESULT *pbR) {
     }
     printf("\n");
 */
-    for(int n=N2-1;n>1;n--) {
+    for(int n=N2;n>1;n--) {
  //       printf("H[%d]+=(%lld/%d)%lld ",Nb2[n]+1,N,n,countSQ[n]);
         histPow2[ Nb2[n]+1] += countSQ[n] ; // on rajoute les p * n
         nbN += countSQ[n] ;
         int d ;
         int64_t pnc = countSQ[n] ;
-        for(d=2;d*d<n && d < N2 ;d++) {
+        for(d=2;d*d<n && d <= N2 ;d++) {
             // on retranche si d diviseur strict de n , les p * n a countSQ[d]
             if((n % d) ==0) {
                 countSQ[d] -= pnc ;
                 int64_t d2 = n/d ;
-                if(d2 < N2) countSQ[d2] -=pnc ;
+                if(d2 <= N2) countSQ[d2] -=pnc ;
             }
         }
-        if(d*d == n && d <N2 ) countSQ[d] -=pnc ;
+        if(d*d == n && d <=N2 ) countSQ[d] -=pnc ;
    }
         histPow2[1] += N-nbN ;
 //    histPow2[2] += (N/2-nbN2) ;
