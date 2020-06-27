@@ -3068,7 +3068,7 @@ int PB701(PB_RESULT *pbR) {
 
 
 #define PB702_MAX   5
-#define PB702_NBT   9
+#define PB702_NBT   5
 
 typedef struct PB702_POINT {
     uint32_t ix ;
@@ -3525,4 +3525,284 @@ int PB705(PB_RESULT *pbR) {
     sprintf(pbR->strRes,"%lld",costMod) ;
     return 1 ;
 }
+
+#define PB708_MAX   100000000000000
+// version brute n'aboutit pas pour la value demandee
+int PB708(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int64_t N2 = Sqrt64(N)+1 ;
+    uint8_t * Nb2 = calloc(N2+1,sizeof(Nb2[0]));
+    int64_t *histPow2 = calloc(maxPow2,sizeof(histPow2[0])) ;
+    int nbPrim = 0 ;
+    int32_t *tbPrim = malloc(N2*sizeof(tbPrim[0])/10) ;
+    for(int p=2;p<=N2;p++) {
+        if(Nb2[p]) {
+            histPow2[Nb2[p]]++ ;
+            continue ;
+        }
+        histPow2[1]++ ; tbPrim[nbPrim++] = p ;
+        for(int64_t pp=p;pp<=N2;pp *=p) {
+            for(int64_t npp=pp;npp<=N2;npp+=pp) {
+                Nb2[npp]++ ;
+            }
+        }
+    }
+    for(int64_t n=N2+1;n<=N;n++) {
+        int nbP = 0 ;
+        int64_t q = n ;
+        for(int np=0;np<nbPrim && q > 1 ;np++) {
+            int p = tbPrim[np] ;
+            if(p*(int64_t)p > n) break ;
+            while ( (q % p) == 0) {
+                q /= p ;
+                nbP++ ;
+            }
+        }
+        if(q > 1) nbP++ ;
+        histPow2[nbP]++ ;
+        
+    }
+    int64_t S = 1 ;
+    for(int i2=1;i2<maxPow2;i2++) {
+        printf("h[%d]=%lld ",i2,histPow2[i2]);
+        
+        S += histPow2[i2] << i2 ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+#define PB708_MAXLEVEL  10
+typedef struct LEVEL708 {
+    int32_t ip ;        // prime index for the level
+    int32_t ipow ;      // exponant for prime p minus 2. (as p*p is minima)
+    int64_t p ;         // prime for the level
+    int64_t inv_xp ;    // N / Product(pi ** expi)
+} LEVEL708 ;
+
+int64_t Alpha1(int64_t n) {
+    int64_t alpha = 0 ;
+    if(n < 0x7fffffff) {
+        int32_t n32 = (int32_t) n ;
+        for(int32_t d=1;d*(int64_t)d <= n32;d++ ) {
+            alpha += n32/d ;
+        }
+        int32_t sqn = Sqrt32(n32) ;
+        alpha = 2*alpha - sqn*sqn ;
+    } else {
+        for(int32_t d=1;d*(int64_t)d <= n;d++ ) {
+            alpha += n/d ;
+        }
+        int64_t sqn = Sqrt64(n) ;
+        alpha = 2*alpha - sqn*sqn ;
+    }
+    return alpha;
+}
+
+// version non recursive
+// on developpe tous les produits avec au moins un carre pour chaque nombre premier
+int PB708a(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int32_t N2 = (int32_t) Sqrt64(N) ;
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
+    int32_t nbPrime = GetNbPrime64(ctxP) ;
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    int32_t NL = (int32_t)pow(N/4,1/3.0) ;
+    int64_t *alphaNL = malloc(NL*sizeof(alphaNL[0]));
+    for(int in=1;in<NL;in++) { alphaNL[in] = Alpha1(in) ; }
+    int64_t S = 0 ;
+    LEVEL708 Lv[PB708_MAXLEVEL] ;
+    Lv[0].inv_xp = N ;
+    Lv[0].ipow = 0 ;
+    Lv[0].ip = 0 ;
+    Lv[0].p = 1 ;
+    int is=0 ;
+    while(1) {
+        int64_t inv_xp = Lv[is].inv_xp ;
+        int isUp = 0 ;
+        if(inv_xp>=1) { // prime product don't exeed N
+            if(inv_xp >= NL) {
+                S += Alpha1(inv_xp) << Lv[is].ipow ;
+            } else {
+                S += alphaNL[inv_xp] <<  Lv[is].ipow ;
+            }
+            if(Lv[is].ip < nbPrime) { // not last prime < Sqrt(N)
+                isUp = 1 ; // Up level
+                Lv[is+1].ip = Lv[is].ip ; // next prime for up level
+                is++ ;
+            }
+        }
+        if (isUp || (Lv[is].ip < nbPrime && Lv[is].ipow > Lv[is-1].ipow) ) {
+            // Up level or ( prime product exeed N and  ( Not last prime and p*p OK ))
+            Lv[is].p = tbPrime[Lv[is].ip++] ; // next prime
+            int64_t p2 = (Lv[is].p*Lv[is].p) ;
+            if(p2 <= Lv[is-1].inv_xp) { // prime product don't exeed N
+                // use next prime p => p*p
+                Lv[is].inv_xp = Lv[is-1].inv_xp / p2 ;
+                Lv[is].ipow = Lv[is-1].ipow ;
+                continue ;
+            }
+        }
+        // level is finished : last valid prime, and max exponant
+        if(--is==0) break  ; // down level
+        Lv[is].ipow++ ; // next exponant
+        if(Lv[is].inv_xp >= Lv[is].p) Lv[is].inv_xp /= Lv[is].p ; // x p
+        else Lv[is].inv_xp = 0 ;
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+
+int64_t Alpha_b(int64_t n) {
+    static int32_t NL = 0 ;
+    static int64_t *alphaL = NULL ;
+    if(n < 0) {
+        NL = (int32_t) (-n) ;
+        alphaL = malloc(NL*sizeof(alphaL[0]));
+        for(int i=1;i<=NL;i++) alphaL[i] = Alpha1(i);
+        return 0 ;
+    }
+    if(n <= NL) {
+        return alphaL[n] ;
+    } else {
+        return Alpha1(n) ;
+    }
+    
+}
+
+// version avec boucles imbriquees
+int PB708b(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int32_t N2 = (int32_t) Sqrt64(N) ;
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
+    int32_t nbPrime = GetNbPrime64(ctxP) ;
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    int32_t NL = (int32_t)pow(N/4,1/3.0) ;
+    Alpha_b(-NL);
+    int64_t S = Alpha_b(N) ;
+    for(int ip1=0;ip1<nbPrime;ip1++) {
+        T_prime64 p1 = tbPrime[ip1] ;
+        int64_t pn1 = p1*p1 ;
+        int64_t IN1 = N/pn1 ;
+        for(int ipowP1=0;IN1>=1;IN1 /=p1, ipowP1++) {
+            S += Alpha_b(IN1) << ipowP1 ;
+            for(int ip2=ip1+1;ip2<nbPrime;ip2++) {
+                T_prime64 p2 = tbPrime[ip2] ;
+                int64_t pn2 = p2*p2 ;
+                if(pn2 > IN1) break ;
+                int64_t IN2 = IN1/pn2 ;
+                for(int ipowP2=ipowP1;IN2>=1;IN2 /=p2, ipowP2++) {
+                    S += Alpha_b(IN2) << ipowP2 ;
+                    for(int ip3=ip2+1;ip3<nbPrime;ip3++) {
+                        T_prime64 p3 = tbPrime[ip3] ;
+                        int64_t pn3 = p3*p3 ;
+                        if(pn3 > IN2) break ;
+                        int64_t IN3 = IN2/pn3 ;
+                        for(int ipowP3=ipowP2;IN3>=1;IN3 /=p3, ipowP3++) {
+                            S += Alpha_b(IN3) << ipowP3 ;
+                            for(int ip4=ip3+1;ip4<nbPrime;ip4++) {
+                                T_prime64 p4 = tbPrime[ip4] ;
+                                int64_t pn4 = p4*p4 ;
+                                if(pn4 > IN3) break ;
+                                int64_t IN4 = IN3/pn4 ;
+                                for(int ipowP4=ipowP3;IN4>=1;IN4 /=p4, ipowP4++) {
+                                    S += Alpha_b(IN4) << ipowP4 ;
+                                    for(int ip5=ip4+1;ip5<nbPrime;ip5++) {
+                                        T_prime64 p5 = tbPrime[ip5] ;
+                                        int64_t pn5 = p5*p5 ;
+                                        if(pn5 > IN4) break ;
+                                        int64_t IN5 = IN4/pn5 ;
+                                        for(int ipowP5=ipowP4;IN5>=1;IN5 /=p5, ipowP5++) {
+                                            S += Alpha_b(IN5) << ipowP5 ;
+                                            for(int ip6=ip5+1;ip6<nbPrime;ip6++) {
+                                                T_prime64 p6 = tbPrime[ip6] ;
+                                                int64_t pn6 = p6*p6 ;
+                                                if(pn6 > IN5) break ;
+                                                int64_t IN6 = IN5/pn6 ;
+                                                for(int ipowP6=ipowP5;IN6>=1;IN6 /=p6, ipowP6++) {
+                                                    S += Alpha_b(IN6) << ipowP6 ;
+                                                    for(int ip7=ip6+1;ip7<nbPrime;ip7++) {
+                                                        T_prime64 p7 = tbPrime[ip7] ;
+                                                        int64_t pn7 = p7*p7 ;
+                                                        if(pn7 > IN6) break ;
+                                                        int64_t IN7 = IN6/pn7 ;
+                                                        for(int ipowP7=ipowP6;IN7>=1;IN7 /=p7, ipowP7++) {
+                                                            S += Alpha_b(IN7) << ipowP7 ;
+                                                            for(int ip8=ip7+1;ip8<nbPrime;ip8++) {
+                                                                T_prime64 p8 = tbPrime[ip8] ;
+                                                                int64_t pn8 = p8*p8 ;
+                                                                if(pn8 > IN7) break ;
+                                                                int64_t IN8 = IN7/pn8 ;
+                                                                for(int ipowP8=ipowP7;IN8>=1;IN8 /=p8, ipowP8++) {
+                                                                    S += Alpha_b(IN8) << ipowP8 ;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
+// version avec fonction recursive
+int64_t F708(const T_prime64 *tbPrime,int nbPrime,int64_t N,int32_t NP,int64_t divN) {
+    int64_t IN0 = N/divN ;
+    int64_t res = Alpha_b(IN0) ;
+    int ip ;
+    for(ip=0;ip<nbPrime;ip++) {
+        int64_t p = tbPrime[ip] ;
+        int64_t p2 = p*p ;
+        int64_t IN = IN0 ;
+        if(p2 > IN) break ;
+        IN = IN/p2 ;
+        for(int ipowP=0;IN>=1;p2 *=p,IN /=p, ipowP++) {
+            res += F708(tbPrime+ip+1,nbPrime-ip-1,N,NP,p2*divN) << ipowP ;
+        }
+    }
+    return res ;
+}
+int PB708c(PB_RESULT *pbR) {
+    pbR->nbClock = clock() ;
+    int64_t N = PB708_MAX ;
+    int maxPow2 = 0 ;
+    
+    while( (1LL << maxPow2) <= N  ) maxPow2++ ;
+    int32_t N2 = (int32_t) Sqrt64(N) ;
+    printf("%.3fs alphaH computed\n",(float)(clock()-pbR->nbClock)/CLOCKS_PER_SEC);
+    CTX_PRIMETABLE64 * ctxP = Gen_tablePrime64(N2) ;
+    int32_t nbPrime = GetNbPrime64(ctxP) ;
+    const T_prime64 *tbPrime = GetTbPrime64(ctxP) ;
+    printf("Nb primes=%d N2=%d\n",nbPrime,N2);
+    int32_t NL = (int32_t)pow(N/4,1/3.0) ;
+    Alpha_b(-NL);
+    int64_t S = F708(tbPrime,nbPrime,N,N2,1);
+    sprintf(pbR->strRes,"%lld",S) ;
+    pbR->nbClock = clock() - pbR->nbClock ;
+    return 1 ;
+}
+
+
 
