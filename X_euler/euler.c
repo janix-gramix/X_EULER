@@ -408,9 +408,17 @@ static PB_CALL ALL_calls[] = {
      ,PROTO_CALL(693,699161,'Finite Sequence Generator')
 //   ,PROTO_CALL(693b,699161,'Finite Sequence Generator')
 //   ,PROTO_CALL(693a,699161,'Finite Sequence Generator')
+    ,PROTO_CALL(696,436944244,'Mahjong')
     ,PROTO_CALL(697,4343871.06,'Randomly Decaying Sequence')
 //    ,PROTO_CALL(697a,4343871.06,'Randomly Decaying Sequence')
     ,PROTO_CALL(701,13.51099836,'Random connected area')
+    ,PROTO_CALL(705,480440153,'Total Inversion Count of Divided Sequences')
+//    ,PROTO_CALL(705a,480440153,'Total Inversion Count of Divided Sequences')
+    ,PROTO_CALL(708a,28874142998632109,'Twos are all you need')
+//    ,PROTO_CALL(708b,28874142998632109,'Twos are all you need')
+//    ,PROTO_CALL(708c,28874142998632109,'Twos are all you need')
+//    ,PROTO_CALL(708,28874142998632109,'Twos are all you need')
+
 
     
     ,{ NULL,NULL,"","" }
@@ -424,8 +432,10 @@ static PB_CALL CUR_calls[] = {
 
 //        PROTO_CALL(695,???,'Random Rectangles')
 
-         PROTO_CALL(696,436944244,'Mahjong')
-
+         PROTO_CALL(702c,???,'Jumping Flea')
+        ,PROTO_CALL(702a,???,'Jumping Flea')
+//        PROTO_CALL(707,???,'Lights Out')
+  
     //        ,PROTO_CALL(690,???,'Tom and Jerry')
   //    ,PROTO_CALL(681a,2611227421428,'Maximal Area')
 //   ,PROTO_CALL(681,2611227421428,'Maximal Area')

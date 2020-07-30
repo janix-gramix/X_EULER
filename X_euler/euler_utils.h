@@ -120,6 +120,21 @@ int SearchRg_TablePrime(CTX_PRIMETABLE *ctxP, T_prime n) ;
 
 int MRP_isPrime(uint64_t n) ;
 
+// version 64 bits
+typedef uint64_t T_prime64 ;
+typedef int(*TY_CPL_nxtPrime64)(void *ctx,T_prime64 nxtPrime);
+uint32_t FindPrime64(T_prime64 maxValue,void *ctx,TY_CPL_nxtPrime64 nxtPrime) ;
+typedef struct CTX_PRIMETABLE64 CTX_PRIMETABLE64 ;
+
+CTX_PRIMETABLE64 * Gen_tablePrime64(T_prime64 maxValue) ;
+CTX_PRIMETABLE64 * Free_tablePrime64(CTX_PRIMETABLE64 * ctx) ;
+const T_prime64 * GetTbPrime64(CTX_PRIMETABLE64 * ctx) ;
+uint32_t GetNbPrime64(CTX_PRIMETABLE64 * ctx) ;
+CTX_PRIMETABLE64 * Gen_tablePrimeNb64(T_prime64 maxNb) ;
+int Search_TablePrime64(CTX_PRIMETABLE64 *ctxP, T_prime64 n) ;
+int SearchRg_TablePrime64(CTX_PRIMETABLE64 *ctxP, T_prime64 n) ;
+
+
 
 uint32_t FindNbDiv(uint64_t N, const T_prime *tbPrime) ;
 uint32_t FindNbDivPrime(uint64_t N, const T_prime *tbPrime) ;

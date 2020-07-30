@@ -3083,7 +3083,7 @@ static int CmpPoint(const void * el1, const void *el2) {
     return p1->iy - p2->iy ;
 }
 
-int PB702a(PB_RESULT *pbR) {
+int PB702b(PB_RESULT *pbR) {
     pbR->nbClock = clock() ;
     int nbPoints = 1 ;
     int nl= PB702_NBT ;

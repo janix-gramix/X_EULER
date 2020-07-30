@@ -524,6 +524,143 @@ int MRP_isPrime(uint64_t n) {
     && MRP_witness(n, s, d,13) && MRP_witness(n, s, d, 17) && MRP_witness(n, s, d, 19) && MRP_witness(n, s, d, 23) && MRP_witness(n, s, d, 29) && MRP_witness(n, s, d, 31) && MRP_witness(n, s, d, 37) ;
 }
 
+struct  CTX_PRIMETABLE64 {
+    uint32_t       nbPrime ;
+    T_prime64     maxValue ;
+    uint32_t    maxNbPrime ;
+    T_prime64     *tbPrime ;
+}  ;
+
+int CPL_tablePrime64(void *ptCtx,T_prime64 nxtPrime) {
+    CTX_PRIMETABLE64 * ctx = (CTX_PRIMETABLE64 *) ptCtx ;
+    if(nxtPrime > ctx->maxValue) return 0 ;
+    ctx->tbPrime[ctx->nbPrime] = nxtPrime ;
+    ctx->nbPrime++ ;
+    if(ctx->nbPrime >= ctx->maxNbPrime) {
+        ctx->maxValue = nxtPrime * nxtPrime ;
+        return 0 ;
+    }
+    return 1;
+}
+
+const T_prime64 * GetTbPrime64(CTX_PRIMETABLE64 * ctx) {
+    return ctx->tbPrime ;
+}
+
+uint32_t GetNbPrime64(CTX_PRIMETABLE64 * ctx) {
+    return ctx->nbPrime ;
+}
+
+CTX_PRIMETABLE64 * Free_tablePrime64(CTX_PRIMETABLE64 * ctx) {
+    if(ctx != NULL) free(ctx->tbPrime) ;
+    free(ctx);
+    return NULL ;
+}
+
+//
+// On replie la table.
+// la taille de la table peut être quelconque
+// Plus rapide pour taille nSqrt ou 32368 si trop grande valeurs
+//
+uint32_t FindPrime64(T_prime64 nbMax,void *ctx,TY_CPL_nxtPrime64 nxtPrime) {
+    uint32_t nSqrt = 1+ (int32_t)Sqrt64(nbMax ) ;
+    int isEnd = 0;
+    T_prime64 *tbPrime = malloc(nSqrt * sizeof(tbPrime[0])) ;
+    int64_t *offSet = malloc(nSqrt * sizeof(offSet[0])) ;
+    uint32_t sizeTable =  (nSqrt < 65536) ? nSqrt : 65536 ;
+    int8_t *isComposed = calloc( sizeTable , sizeof(isComposed[0])) ;
+    uint32_t nbPrime = 0 ;
+    T_prime64 lastPrime = 0 ;
+    T_prime64 offSetTable = 0 ;
+    T_prime64 nbPrimeSqrt = 0 ;
+    
+    nbPrime ++ ;
+    lastPrime = 2 ;
+    if(nxtPrime(ctx,2) == 0) {
+        return nbPrime ;
+    }
+    // remarque le nb premier 2 n'est pas stocke dans tbPrime car pas utilise dans le crible erasto.
+    // pour commencer a 3 donc indPrime = (3>>1)
+    T_prime64 indPrime = 1 ;
+    
+    while ( 1) {
+        T_prime64 icp ;
+        for(icp=indPrime - offSetTable ;icp < sizeTable; icp++ ) {
+            if(!isComposed[icp] ) {
+                lastPrime = 2*(icp+offSetTable)+1 ;
+                
+                if(lastPrime < nSqrt) {
+                    T_prime64 icp2 ;
+                    tbPrime[nbPrimeSqrt] = lastPrime ;
+                    for(icp2 = icp + lastPrime; icp2 < sizeTable ; icp2 += lastPrime ) {
+                        isComposed[icp2] = 1 ;
+                    }
+                    offSet[nbPrimeSqrt++] = icp2 - sizeTable ;
+                }
+                nbPrime++ ;
+                if(nxtPrime(ctx,lastPrime) == 0) {
+                    isEnd = 1;
+                    break ; // demande d'arret
+                }
+            }
+        }
+        offSetTable += sizeTable ;
+        if(isEnd || offSetTable >= nbMax) break ;
+        indPrime = offSetTable ;
+        if ( offSetTable + sizeTable > nbMax) { sizeTable = (int32_t)(nbMax - offSetTable) ; }
+        memset(isComposed,0,sizeTable) ;
+        {
+            int np ;
+            for(np=0;np<nbPrimeSqrt;np++) {
+                T_prime64 p = tbPrime[np] ;
+                int64_t indPrime = offSet[np] ;
+                while ( indPrime < sizeTable) {
+                    isComposed[indPrime] = 1 ;
+                    indPrime += p ;
+                }
+                offSet[np] = indPrime - sizeTable ;
+            }
+        }
+    }
+    free(tbPrime);
+    free(offSet) ;
+    free(isComposed);
+    return nbPrime ;
+}
+
+CTX_PRIMETABLE64 * Gen_tablePrime64(T_prime64 maxValue) {
+    CTX_PRIMETABLE64 *ctx ;
+    ctx = calloc(1,sizeof(ctx[0]));
+    if(ctx == NULL) return ctx ;
+    ctx->maxValue = maxValue ;
+    if(maxValue > 100) {
+        ctx->maxNbPrime = (uint32_t) (1+ maxValue / (log((double)maxValue) - 4)) ;
+    } else {
+        ctx->maxNbPrime = 30 ;
+    }
+    ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
+    if(ctx->tbPrime == NULL) { return Free_tablePrime64(ctx) ; }
+    FindPrime64(maxValue,ctx,CPL_tablePrime64) ;
+    return ctx ;
+}
+
+CTX_PRIMETABLE64 * Gen_tablePrimeNb64(T_prime64 maxNb) {
+    CTX_PRIMETABLE64 *ctx ;
+    ctx = calloc(1,sizeof(ctx[0]));
+    if(ctx == NULL) return ctx ;
+    if(maxNb < 30)  {
+        ctx->maxNbPrime = 30 ;
+    } else {
+        ctx->maxNbPrime = (uint32_t) maxNb ;
+    }
+    ctx->tbPrime = malloc(ctx->maxNbPrime * sizeof(ctx->tbPrime[0]));
+    if(ctx->tbPrime == NULL) { return Free_tablePrime64(ctx) ; }
+    //   ctx->maxValue = 0x7fffffff ;
+    ctx->maxValue = ctx->maxNbPrime * (4 + log (ctx->maxNbPrime))  ;
+    FindPrime64(ctx->maxValue,ctx,CPL_tablePrime64) ;
+    return ctx ;
+}
+
 //**************************************
 
 
