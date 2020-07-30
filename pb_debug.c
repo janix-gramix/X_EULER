@@ -739,9 +739,9 @@ int PB702(PB_RESULT *pbR) {
  //   exit(0);
     return 1 ;
 }
-static u_int64_t modPow(int64_t a,int64_t exp,u_int64_t mod) {
-    u_int64_t aPow2 = a % mod ;
-    u_int64_t aPowExp = (exp & 1) ? aPow2 : 1 ;
+static uint64_t modPow(int64_t a,int64_t exp,uint64_t mod) {
+    uint64_t aPow2 = a % mod ;
+    uint64_t aPowExp = (exp & 1) ? aPow2 : 1 ;
     int i ;
     for(i=1;exp >= (1LL<<i) ;i++) {
         aPow2 = (aPow2 * aPow2) % mod ;
